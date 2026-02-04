@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../schemas/v0/theme.schema.json
+# GitHub-inspired theme - familiar to developers
+name: "GitHub"
+
+colors:
+  light:
+    background: "#ffffff"
+    surface: "#f6f8fa"
+    text: "#24292f"
+    textMuted: "#57606a"
+    heading: "#1f2328"
+    primary: "#0969da"
+    primaryHover: "#0550ae"
+    accent: "#8250df"
+    border: "#d0d7de"
+
+  dark:
+    background: "#0d1117"
+    surface: "#161b22"
+    text: "#c9d1d9"
+    textMuted: "#8b949e"
+    heading: "#f0f6fc"
+    primary: "#58a6ff"
+    primaryHover: "#79c0ff"
+    accent: "#a371f7"
+    border: "#30363d"
+
+code:
+  light: "default"
+  dark: "okaidia"
+
+typography:
+  body: "system"
+  headings: "system"
+  code: "mono"
+  baseSize: "16px"
+  scale: "1.25"

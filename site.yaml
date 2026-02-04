@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./schemas/v0/site.schema.json
+schemaVersion: "0.1.0"
+docroot: "content"
+title: "Kitfly Docs"
+home: "index.md"
+
+brand:
+  name: "Kitfly"
+  url: "/"
+  logo: "assets/brand/kitfly-neon-256.png"
+  favicon: "assets/brand/kitfly-favicon-32.png"
+
+sections:
+  - name: "Guide"
+    path: "guide"
+  - name: "Templates"
+    path: "templates"
+  - name: "Reference"
+    path: "reference"
+  - name: "User Guide"
+    path: "../docs/userguide"
+  - name: "Decisions"
+    path: "../docs/decisions"
+  - name: "Schemas"
+    path: "../schemas"
+    exclude: ["site.schema.json", "theme.schema.json"]

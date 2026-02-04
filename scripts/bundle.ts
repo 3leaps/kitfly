@@ -1,0 +1,785 @@
+/**
+ * Bundle a site into a single self-contained HTML file
+ *
+ * Usage: bun run bundle [folder] [options]
+ *
+ * Options:
+ *   -o, --out <dir>    Output directory [env: KITFLY_BUILD_OUT] [default: dist]
+ *   -n, --name <file>  Bundle filename [env: KITFLY_BUNDLE_NAME] [default: bundle.html]
+ *   --raw              Include raw markdown in bundle [env: KITFLY_BUILD_RAW] [default: true]
+ *   --no-raw           Don't include raw markdown
+ *   --help             Show help message
+ *
+ * Creates dist/bundle.html - a single file containing all content,
+ * styles, and scripts for offline viewing.
+ */
+
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, extname, join, resolve } from "node:path";
+import { marked, Renderer } from "marked";
+import { ENGINE_ASSETS_DIR, ENGINE_ROOT } from "../src/engine.ts";
+import {
+	// Navigation/template building
+	buildSectionNav,
+	// Types
+	type ContentFile,
+	collectFiles,
+	envBool,
+	// Config helpers
+	envString,
+	// Formatting
+	escapeHtml,
+	// YAML/Config parsing
+	loadSiteConfig,
+	// Markdown utilities
+	parseFrontmatter,
+	resolveStylesPath,
+	type SiteConfig,
+	slugify,
+	validatePath,
+} from "../src/shared.ts";
+import { generateThemeCSS, getPrismUrls, loadTheme } from "../src/theme.ts";
+
+// Defaults
+const DEFAULT_OUT = "dist";
+const DEFAULT_NAME = "bundle.html";
+
+let ROOT = process.cwd();
+let OUT_DIR = DEFAULT_OUT;
+let BUNDLE_NAME = DEFAULT_NAME;
+
+// ---------------------------------------------------------------------------
+// CLI argument parsing
+// ---------------------------------------------------------------------------
+
+interface ParsedArgs {
+	folder?: string;
+	out?: string;
+	name?: string;
+	raw?: boolean;
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+	const result: ParsedArgs = {};
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		const next = argv[i + 1];
+
+		if ((arg === "--out" || arg === "-o") && next && !next.startsWith("-")) {
+			result.out = next;
+			i++;
+		} else if ((arg === "--name" || arg === "-n") && next && !next.startsWith("-")) {
+			result.name = next;
+			i++;
+		} else if (arg === "--raw") {
+			result.raw = true;
+		} else if (arg === "--no-raw") {
+			result.raw = false;
+		} else if (!arg.startsWith("-") && !result.folder) {
+			result.folder = arg;
+		}
+	}
+	return result;
+}
+
+function getConfig(): {
+	folder?: string;
+	out: string;
+	name: string;
+	raw: boolean;
+} {
+	const args = parseArgs(process.argv.slice(2));
+	return {
+		folder: args.folder,
+		out: args.out ?? envString("KITFLY_BUILD_OUT", DEFAULT_OUT),
+		name: args.name ?? envString("KITFLY_BUNDLE_NAME", DEFAULT_NAME),
+		raw: args.raw ?? envBool("KITFLY_BUILD_RAW", true),
+	};
+}
+
+// Configure marked with custom renderer
+const renderer = new Renderer();
+const originalCode = renderer.code.bind(renderer);
+renderer.code = (code: { type: "code"; raw: string; text: string; lang?: string }) => {
+	if (code.lang === "mermaid") {
+		const escaped = code.text.replace(/"/g, "&quot;");
+		return `<pre class="mermaid" data-mermaid-source="${escaped}">${code.text}</pre>`;
+	}
+	return originalCode(code);
+};
+renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
+	const plain = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+	const id = slugify(plain);
+	const inner = marked.parseInline(text) as string;
+	return `<h${depth} id="${id}">${inner}</h${depth}>\n`;
+};
+marked.use({ renderer });
+
+// MIME type from file extension
+function imageMime(filePath: string): string | null {
+	const ext = extname(filePath).toLowerCase();
+	const map: Record<string, string> = {
+		".png": "image/png",
+		".jpg": "image/jpeg",
+		".jpeg": "image/jpeg",
+		".gif": "image/gif",
+		".webp": "image/webp",
+		".svg": "image/svg+xml",
+		".ico": "image/x-icon",
+	};
+	return map[ext] ?? null;
+}
+
+// Resolve a local image path to an absolute filesystem path
+async function resolveLocalImage(src: string, config: SiteConfig): Promise<string | null> {
+	const clean = decodeURIComponent(src).replace(/^\//, "");
+
+	// 1. /assets/... — try site assets then engine assets
+	if (clean.startsWith("assets/")) {
+		const rel = clean.slice("assets/".length);
+		for (const base of [join(ROOT, "assets"), ENGINE_ASSETS_DIR]) {
+			const p = join(base, rel);
+			try {
+				await stat(p);
+				return p;
+			} catch {
+				/* continue */
+			}
+		}
+	}
+
+	// 2. Resolve via docroot (handles absolute content paths)
+	const docPath = validatePath(ROOT, config.docroot, clean, false);
+	if (docPath) {
+		try {
+			await stat(docPath);
+			return docPath;
+		} catch {
+			/* continue */
+		}
+	}
+
+	// 3. Search section directories
+	for (const section of config.sections) {
+		const sectionPath = validatePath(ROOT, config.docroot, section.path, false);
+		if (!sectionPath) continue;
+		const p = join(sectionPath, clean);
+		try {
+			await stat(p);
+			return p;
+		} catch {
+			/* continue */
+		}
+	}
+
+	return null;
+}
+
+// Convert a local file to a base64 data URI
+async function fileToDataUri(filePath: string): Promise<string | null> {
+	const mime = imageMime(filePath);
+	if (!mime) return null;
+	const bytes = await readFile(filePath);
+	const base64 = Buffer.from(bytes).toString("base64");
+	return `data:${mime};base64,${base64}`;
+}
+
+// Inline all local <img src="..."> references as base64 data URIs
+async function inlineLocalImages(html: string, config: SiteConfig): Promise<string> {
+	const imgRegex = /<img\s[^>]*src="([^"]+)"[^>]*>/g;
+	const matches = [...html.matchAll(imgRegex)];
+	let result = html;
+
+	for (const match of matches) {
+		const src = match[1];
+		// Skip external URLs and already-inlined data URIs
+		if (/^(https?:|data:)/i.test(src)) continue;
+
+		const resolved = await resolveLocalImage(src, config);
+		if (!resolved) {
+			console.warn(`  ⚠ Image not found for inlining: ${src}`);
+			continue;
+		}
+		const dataUri = await fileToDataUri(resolved);
+		if (!dataUri) continue;
+		result = result.replace(match[0], match[0].replace(`src="${src}"`, `src="${dataUri}"`));
+	}
+
+	return result;
+}
+
+// Rewrite internal content links to hash navigation for single-file bundle
+function rewriteContentLinks(
+	html: string,
+	files: ContentFile[],
+	currentUrlPath?: string,
+	docroot?: string,
+): string {
+	// Build lookup maps: urlPath -> sectionId, plus docroot-stripped variants
+	const lookup = new Map<string, string>();
+	for (const file of files) {
+		const sid = slugify(file.urlPath);
+		lookup.set(file.urlPath, sid);
+		// Also register without the docroot prefix so content-relative links match
+		if (docroot && docroot !== "." && file.urlPath.startsWith(`${docroot}/`)) {
+			lookup.set(file.urlPath.slice(docroot.length + 1), sid);
+		}
+	}
+
+	function resolve(href: string): string | null {
+		let cleaned = href;
+
+		// Resolve relative links against current page's urlPath
+		if (currentUrlPath && !cleaned.startsWith("/")) {
+			const base = currentUrlPath.includes("/")
+				? currentUrlPath.slice(0, currentUrlPath.lastIndexOf("/"))
+				: "";
+			cleaned = base ? `${base}/${cleaned}` : cleaned;
+
+			// Resolve ../ segments
+			const parts = cleaned.split("/");
+			const resolved: string[] = [];
+			for (const part of parts) {
+				if (part === "..") {
+					resolved.pop();
+				} else if (part !== ".") {
+					resolved.push(part);
+				}
+			}
+			cleaned = resolved.join("/");
+		}
+
+		// Normalize
+		cleaned = cleaned
+			.replace(/^\//, "")
+			.replace(/\.(html|md)$/, "")
+			.replace(/\/$/, "");
+
+		return lookup.get(cleaned) ?? null;
+	}
+
+	return html.replace(/<a\s([^>]*?)href="([^"]*)"([^>]*?)>/g, (_match, before, href, after) => {
+		// Skip external, anchor-only, and data links
+		if (/^(https?:|mailto:|data:|#)/i.test(href)) {
+			return `<a ${before}href="${href}"${after}>`;
+		}
+
+		const sectionId = resolve(href);
+		if (sectionId) {
+			return `<a ${before}href="#${sectionId}"${after}>`;
+		}
+
+		// Leave unmatched links unchanged
+		return `<a ${before}href="${href}"${after}>`;
+	});
+}
+
+function buildBundleNav(files: ContentFile[], config: SiteConfig): string {
+	const sectionFiles = new Map<string, ContentFile[]>();
+	for (const file of files) {
+		if (!sectionFiles.has(file.section)) {
+			sectionFiles.set(file.section, []);
+		}
+		sectionFiles.get(file.section)?.push(file);
+	}
+
+	const makeHref = (urlPath: string) => `#${slugify(urlPath)}`;
+	let html = '<ul class="bundle-nav">';
+	if (config.home) {
+		html += '<li><a href="#home" class="nav-home">Home</a></li>';
+	}
+	html += buildSectionNav(sectionFiles, config, null, makeHref);
+	html += "</ul>";
+	return html;
+}
+
+function buildBundleSidebarHeader(config: SiteConfig, version: string, brandLogo: string): string {
+	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
+	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const productHref = config.home ? "#home" : "#";
+
+	return `
+      <div class="sidebar-header">
+        <div class="logo ${logoClass}">
+          <a href="${config.brand.url}" class="logo-icon"${brandTarget}>
+            <img src="${brandLogo}" alt="${config.brand.name}" class="logo-img">
+          </a>
+          <span class="logo-text">
+            <a href="${config.brand.url}" class="brand"${brandTarget}>${config.brand.name}</a>
+            <a href="${productHref}" class="product">Bundle</a>
+          </span>
+        </div>
+        <div class="header-tools">
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <div class="sidebar-meta">
+            <span class="meta-version">v${version}</span>
+            <span class="meta-branch">bundle</span>
+          </div>
+        </div>
+      </div>`;
+}
+
+// Resolve and inline a brand asset path, returning data URI or original path
+async function inlineBrandAsset(assetPath: string): Promise<string> {
+	const clean = assetPath.replace(/^\//, "");
+	for (const base of [join(ROOT, "assets"), ENGINE_ASSETS_DIR]) {
+		// assetPath is typically "assets/brand/logo.png" — strip leading "assets/"
+		const rel = clean.startsWith("assets/") ? clean.slice("assets/".length) : clean;
+		const p = join(base, rel);
+		try {
+			await stat(p);
+			const uri = await fileToDataUri(p);
+			if (uri) return uri;
+		} catch {
+			/* continue */
+		}
+	}
+	return assetPath;
+}
+
+// Get version from VERSION file
+async function getVersion(): Promise<string> {
+	try {
+		return (await readFile(join(ENGINE_ROOT, "VERSION"), "utf-8")).trim();
+	} catch {
+		return "0.0.0";
+	}
+}
+
+// Fetch and cache external scripts for offline bundle
+async function fetchScript(url: string): Promise<string> {
+	console.log(`  ↓ Fetching ${url.split("/").pop()}...`);
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch ${url}: ${response.status}`);
+	}
+	return response.text();
+}
+
+async function fetchExternalAssets(prismUrls: { light: string; dark: string }): Promise<{
+	prismCss: string;
+	prismCssDark: string;
+	prismCore: string;
+	prismAutoloader: string;
+	mermaid: string;
+}> {
+	const [prismCss, prismCssDark, prismCore, prismAutoloader, mermaid] = await Promise.all([
+		fetchScript(prismUrls.light),
+		fetchScript(prismUrls.dark),
+		fetchScript("https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js"),
+		fetchScript(
+			"https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js",
+		),
+		fetchScript("https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"),
+	]);
+
+	return { prismCss, prismCssDark, prismCore, prismAutoloader, mermaid };
+}
+
+// Build the bundle
+async function bundle() {
+	console.log("Bundling site...\n");
+
+	const config = await loadSiteConfig(ROOT, "Documentation");
+	console.log(`  ✓ Loaded config: "${config.title}" (${config.sections.length} sections)`);
+
+	const theme = await loadTheme(ROOT);
+	console.log(`  ✓ Loaded theme: "${theme.name || "default"}"`);
+	const prismUrls = getPrismUrls(theme);
+
+	const files = await collectFiles(ROOT, config);
+	if (files.length === 0) {
+		console.error("No content files found. Cannot create bundle.");
+		process.exit(1);
+	}
+
+	// Read CSS
+	const css = await readFile(await resolveStylesPath(ROOT), "utf-8");
+	console.log("  ✓ Loaded styles.css");
+
+	// Fetch external assets for offline support
+	const assets = await fetchExternalAssets(prismUrls);
+	console.log("  ✓ Fetched external assets (Prism, Mermaid)");
+
+	// Get version
+	const version = await getVersion();
+
+	// Build navigation and content sections
+	const sections: Map<string, { id: string; title: string; html: string }[]> = new Map();
+
+	// Add home page as first item if specified
+	if (config.home) {
+		const homePath = validatePath(ROOT, config.docroot, config.home);
+		if (homePath) {
+			try {
+				await stat(homePath);
+				const content = await readFile(homePath, "utf-8");
+				const { frontmatter, body } = parseFrontmatter(content);
+				const title = (frontmatter.title as string) || "Home";
+				let htmlContent = marked.parse(body) as string;
+				htmlContent = await inlineLocalImages(htmlContent, config);
+				htmlContent = rewriteContentLinks(htmlContent, files, undefined, config.docroot);
+				sections.set("Home", [{ id: "home", title, html: htmlContent }]);
+				console.log(`  ✓ Added home page: ${config.home}`);
+			} catch {
+				console.warn(`  ⚠ Home page ${config.home} not found`);
+			}
+		}
+	}
+
+	// Collect page metadata and raw content for AI accessibility
+	const pageIndex: {
+		path: string;
+		title: string;
+		section: string;
+		description?: string;
+	}[] = [];
+	const rawMarkdown: { path: string; content: string }[] = [];
+
+	for (const file of files) {
+		const content = await readFile(file.path, "utf-8");
+		let title = basename(file.path).replace(/\.(md|yaml|json)$/, "");
+		let description: string | undefined;
+		let htmlContent: string;
+
+		if (file.path.endsWith(".yaml")) {
+			htmlContent = `<pre><code class="language-yaml">${escapeHtml(content)}</code></pre>`;
+		} else if (file.path.endsWith(".json")) {
+			// Render JSON as code block (pretty-printed)
+			let prettyJson = content;
+			try {
+				prettyJson = JSON.stringify(JSON.parse(content), null, 2);
+			} catch {
+				// Use original if not valid JSON
+			}
+			htmlContent = `<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
+		} else {
+			const { frontmatter, body } = parseFrontmatter(content);
+			if (frontmatter.title) {
+				title = frontmatter.title as string;
+			}
+			if (frontmatter.description) {
+				description = frontmatter.description as string;
+			}
+			htmlContent = marked.parse(body) as string;
+
+			// Collect raw markdown for AI accessibility
+			if (INCLUDE_RAW) {
+				rawMarkdown.push({ path: file.urlPath, content });
+			}
+		}
+
+		// Collect page metadata for content index
+		pageIndex.push({
+			path: file.urlPath,
+			title,
+			section: file.section,
+			description,
+		});
+
+		// Inline any SVG references
+		htmlContent = await inlineLocalImages(htmlContent, config);
+		htmlContent = rewriteContentLinks(htmlContent, files, file.urlPath, config.docroot);
+
+		const sectionId = slugify(file.urlPath);
+
+		if (!sections.has(file.section)) {
+			sections.set(file.section, []);
+		}
+		sections.get(file.section)?.push({ id: sectionId, title, html: htmlContent });
+	}
+
+	// Build navigation HTML from shared hierarchical nav tree
+	const navHtml = buildBundleNav(files, config);
+
+	// Build content HTML
+	let contentHtml = "";
+	for (const [, items] of sections) {
+		for (const item of items) {
+			contentHtml += `
+        <section id="${item.id}" class="bundle-section">
+          <h1 class="section-title">${item.title}</h1>
+          ${item.html}
+        </section>
+      `;
+		}
+	}
+
+	const year = new Date().getFullYear();
+	const themeCSS = generateThemeCSS(theme);
+
+	// Inline brand assets for self-contained bundle
+	const brandLogo = await inlineBrandAsset(config.brand.logo || "assets/brand/logo.png");
+	const brandFavicon = await inlineBrandAsset(config.brand.favicon || "assets/brand/favicon.png");
+
+	// Build the complete HTML document
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${config.title}</title>
+  <link rel="icon" href="${brandFavicon}">
+  <style>
+${css}
+
+/* Bundle-specific styles */
+.bundle-nav { position: sticky; top: 1rem; }
+.bundle-section {
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: 1rem;
+}
+.bundle-section:last-child { border-bottom: none; }
+.section-title { margin-top: 0; }
+
+/* Print styles for bundle */
+@media print {
+  .sidebar { display: none !important; }
+  .bundle-section { page-break-inside: avoid; }
+}
+  </style>
+  ${themeCSS}
+  <style id="prism-light">
+${assets.prismCss}
+  </style>
+  <style id="prism-dark" disabled>
+${assets.prismCssDark}
+  </style>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = saved === 'dark' || (!saved && prefersDark);
+      if (isDark) {
+        document.getElementById('prism-light')?.setAttribute('disabled', '');
+        document.getElementById('prism-dark')?.removeAttribute('disabled');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+${buildBundleSidebarHeader(config, version, brandLogo)}
+      <div class="sidebar-nav">
+        ${navHtml}
+      </div>
+    </nav>
+    <main class="content">
+      <article class="prose">
+        ${contentHtml}
+      </article>
+    </main>
+  </div>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <span class="footer-version">v${version}</span>
+        <span class="footer-separator">·</span>
+        <span class="footer-commit">offline bundle</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-copyright">© ${year} ${config.brand.name}</span>
+      </div>
+    </div>
+  </footer>
+  <script>
+${assets.prismCore}
+  </script>
+  <script>
+${assets.prismAutoloader}
+  </script>
+  <script>
+${assets.mermaid}
+  </script>
+  <script>
+    // Initialize Mermaid
+    function getMermaidTheme() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = theme === 'dark' || (!theme && prefersDark);
+      return isDark ? 'dark' : 'neutral';
+    }
+
+    mermaid.initialize({ startOnLoad: true, theme: getMermaidTheme() });
+
+    window.reinitMermaid = async function() {
+      mermaid.initialize({ startOnLoad: false, theme: getMermaidTheme() });
+      const diagrams = document.querySelectorAll('.mermaid');
+      for (const el of diagrams) {
+        const code = el.getAttribute('data-mermaid-source');
+        if (code) {
+          el.innerHTML = code;
+          el.removeAttribute('data-processed');
+        }
+      }
+      await mermaid.run({ nodes: diagrams });
+    };
+  </script>
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      let next;
+      if (current === 'dark') {
+        next = 'light';
+      } else if (current === 'light') {
+        next = 'dark';
+      } else {
+        next = prefersDark ? 'light' : 'dark';
+      }
+
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+
+      const prismLight = document.getElementById('prism-light');
+      const prismDark = document.getElementById('prism-dark');
+      if (next === 'dark') {
+        prismLight?.setAttribute('disabled', '');
+        prismDark?.removeAttribute('disabled');
+      } else {
+        prismLight?.removeAttribute('disabled');
+        prismDark?.setAttribute('disabled', '');
+      }
+
+      if (window.reinitMermaid) {
+        window.reinitMermaid();
+      }
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+          history.pushState(null, '', this.getAttribute('href'));
+        }
+      });
+    });
+  </script>
+  <!-- AI Accessibility: Content Index -->
+  <script type="application/json" id="kitfly-content-index">
+${JSON.stringify(
+	{
+		version,
+		title: config.title,
+		generated: new Date().toISOString(),
+		format: "bundle",
+		pages: pageIndex.map((p) => ({
+			id: slugify(p.path),
+			path: p.path,
+			title: p.title,
+			section: p.section,
+			description: p.description,
+		})),
+	},
+	null,
+	2,
+)}
+  </script>
+${
+	INCLUDE_RAW
+		? `  <!-- AI Accessibility: Raw Markdown -->
+  <script type="application/json" id="kitfly-raw-markdown">
+${JSON.stringify(
+	rawMarkdown.reduce(
+		(acc, { path, content }) => {
+			acc[path] = content;
+			return acc;
+		},
+		{} as Record<string, string>,
+	),
+)}
+  </script>`
+		: "<!-- Raw markdown disabled (--no-raw) -->"
+}
+</body>
+</html>`;
+
+	// Write the bundle
+	const outDir = join(ROOT, OUT_DIR);
+	await mkdir(outDir, { recursive: true });
+	const bundlePath = join(outDir, BUNDLE_NAME);
+	await writeFile(bundlePath, html);
+
+	const sizeKB = (Buffer.byteLength(html, "utf-8") / 1024).toFixed(1);
+	console.log(`  ✓ ${BUNDLE_NAME} (${sizeKB} KB, ${files.length} pages)`);
+
+	console.log(`\n\x1b[32mBundle complete! Output: ${OUT_DIR}/${BUNDLE_NAME}\x1b[0m`);
+	console.log(`\nTo view: open ${OUT_DIR}/${BUNDLE_NAME}`);
+}
+
+export interface BundleOptions {
+	folder?: string;
+	out?: string;
+	name?: string;
+	raw?: boolean; // Include raw markdown in bundle (default: true)
+}
+
+let INCLUDE_RAW = true;
+
+export { buildBundleNav, buildBundleSidebarHeader };
+
+export async function bundleSite(options: BundleOptions = {}) {
+	if (options.folder) {
+		ROOT = resolve(process.cwd(), options.folder);
+	}
+	if (options.out) {
+		OUT_DIR = options.out;
+	}
+	if (options.name) {
+		BUNDLE_NAME = options.name;
+	}
+	if (options.raw === false) {
+		INCLUDE_RAW = false;
+	}
+	await bundle();
+}
+
+if (import.meta.main) {
+	// Check for help flag
+	if (process.argv.includes("--help")) {
+		console.log(`
+Usage: bun run bundle [folder] [options]
+
+Options:
+  -o, --out <dir>       Output directory [env: KITFLY_BUILD_OUT] [default: ${DEFAULT_OUT}]
+  -n, --name <file>     Bundle filename [env: KITFLY_BUNDLE_NAME] [default: ${DEFAULT_NAME}]
+  --raw                 Include raw markdown in bundle [env: KITFLY_BUILD_RAW] [default: true]
+  --no-raw              Don't include raw markdown
+  --help                Show this help message
+
+Examples:
+  bun run bundle
+  bun run bundle ./docs
+  bun run bundle --name docs.html
+  bun run bundle ./docs --out ./public --name handbook.html
+  KITFLY_BUNDLE_NAME=docs.html bun run bundle
+`);
+		process.exit(0);
+	}
+
+	const cfg = getConfig();
+	bundleSite({
+		folder: cfg.folder,
+		out: cfg.out,
+		name: cfg.name,
+		raw: cfg.raw,
+	}).catch(console.error);
+}

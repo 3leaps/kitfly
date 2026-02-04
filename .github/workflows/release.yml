@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate VERSION matches tag
+        id: version
+        run: |
+          FILE_VERSION=$(cat VERSION)
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::VERSION ($FILE_VERSION) != tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: validate-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Quality gates
+        run: |
+          bun run format:check
+          bun run lint:ci
+          bun run typecheck
+          bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Package
+        run: npm pack
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: kitfly-${{ needs.validate-version.outputs.version }}.tgz
+
+  create-release:
+    needs: [validate-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download tarball
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: npm-package
+          path: release/
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          draft: true
+          generate_release_notes: true
+          body: |
+            ## kitfly v${{ needs.validate-version.outputs.version }}
+
+            **Note:** This release is unsigned. Signed checksums will be uploaded after manual signing.
+
+            ### Installation
+
+            ```bash
+            bun install -g kitfly
+            # or
+            npm install -g kitfly
+            ```
+
+            ### Verification
+
+            Once signed artifacts are available:
+            ```bash
+            # Verify checksum signature
+            minisign -Vm SHA256SUMS -p kitfly-minisign.pub
+
+            # Verify package checksum
+            shasum -a 256 -c SHA256SUMS
+            ```

@@ -1,0 +1,60 @@
+{
+  "name": "kitfly",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Turn your writing into a website",
+  "bin": {
+    "kitfly": "./src/cli.ts"
+  },
+  "files": [
+    "src/",
+    "scripts/",
+    "schemas/",
+    "dist/",
+    "VERSION",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "build": "bun run scripts/build.ts",
+    "bundle": "bun run scripts/bundle.ts",
+    "cli": "bun run src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome check src/ scripts/",
+    "lint:ci": "biome check --no-errors-on-unmatched src/ scripts/",
+    "fmt": "biome check --write src/ scripts/",
+    "format:check": "biome check --no-errors-on-unmatched src/ scripts/",
+    "typecheck": "tsc --noEmit",
+    "version:sync": "bun run scripts/version-sync.ts",
+    "version:check": "bun run scripts/version-sync.ts --check"
+  },
+  "dependencies": {
+    "@3leaps/sysprims": "^0.1.12",
+    "@fulmenhq/tsfulmen": "^0.2.7",
+    "marked": "^15.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.5",
+    "@types/bun": "^1.2.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "prettier": "^3.6.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
+  },
+  "author": "3 Leaps <hello@3leaps.net>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3leaps/kitfly"
+  },
+  "keywords": [
+    "documentation",
+    "markdown",
+    "static-site",
+    "docs"
+  ]
+}

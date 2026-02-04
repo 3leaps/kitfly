@@ -1,0 +1,130 @@
+# goneat Tools Configuration (v1.0.0)
+# Repository: kitfly
+#
+# This file is the SINGLE SOURCE OF TRUTH for tools configuration.
+# There are NO hidden defaults or runtime merging.
+#
+# Edit this file to:
+# - Add/remove tools
+# - Change tool detection commands
+# - Modify installer priorities
+# - Define custom scopes
+#
+# Validate changes with: goneat doctor tools validate
+# See schema: schemas/tools/tools.v1.0.0.json
+
+scopes:
+  foundation:
+    description: Core tools for kitfly development
+    tools:
+      - bun
+      - ripgrep
+      - jq
+      - yq
+      - yamlfmt
+
+tools:
+  bun:
+    name: bun
+    description: Fast JavaScript runtime - required for kitfly development
+    kind: system
+    detect_command: bun --version
+    platforms:
+      - darwin
+      - linux
+      - windows
+    version_args:
+      - --version
+    installer_priority:
+      darwin:
+        - brew
+        - mise
+      linux:
+        - brew
+        - mise
+      windows:
+        - scoop
+        - winget
+    version_scheme: semver
+    minimum_version: 1.0.0
+
+  ripgrep:
+    name: ripgrep
+    description: Fast text search - used by goneat for license auditing
+    kind: system
+    detect_command: rg --version
+    platforms:
+      - darwin
+      - linux
+      - windows
+    installer_priority:
+      darwin:
+        - brew
+        - mise
+      linux:
+        - brew
+        - mise
+      windows:
+        - scoop
+        - winget
+
+  jq:
+    name: jq
+    description: JSON processor - used in CI/CD scripts
+    kind: system
+    detect_command: jq --version
+    platforms:
+      - darwin
+      - linux
+      - windows
+    installer_priority:
+      darwin:
+        - brew
+        - mise
+      linux:
+        - brew
+        - mise
+      windows:
+        - scoop
+        - winget
+
+  yq:
+    name: yq
+    description: YAML processor
+    kind: system
+    detect_command: yq --version
+    platforms:
+      - darwin
+      - linux
+      - windows
+    installer_priority:
+      darwin:
+        - brew
+        - mise
+      linux:
+        - brew
+        - mise
+      windows:
+        - scoop
+        - winget
+
+  yamlfmt:
+    name: yamlfmt
+    description: YAML formatter and linter
+    kind: system
+    detect_command: yamlfmt --version
+    platforms:
+      - darwin
+      - linux
+      - windows
+    version_args:
+      - --version
+    check_args:
+      - --help
+    installer_priority:
+      darwin:
+        - brew
+      linux:
+        - brew
+      windows:
+        - scoop

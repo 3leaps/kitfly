@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kitfly.app/schemas/v0/site.schema.json",
+  "$version": "0.1.0",
+  "title": "Site Configuration",
+  "description": "Configuration for Kitfly static site generator",
+  "type": "object",
+  "required": ["title", "brand", "sections"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version this config targets (for migration detection)",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "default": "0.1.0"
+    },
+    "docroot": {
+      "type": "string",
+      "description": "Root directory for content (relative to repo root)",
+      "default": "."
+    },
+    "title": {
+      "type": "string",
+      "description": "Site title shown in browser tab and header",
+      "maxLength": 60
+    },
+    "home": {
+      "type": "string",
+      "description": "Home page file (rendered as index.html, not in nav)"
+    },
+    "brand": {
+      "type": "object",
+      "description": "Brand configuration for logo and links",
+      "required": ["name", "url"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Brand name shown in sidebar",
+          "maxLength": 30
+        },
+        "url": {
+          "type": "string",
+          "description": "URL for brand logo link"
+        },
+        "external": {
+          "type": "boolean",
+          "description": "Open brand link in new tab (target=_blank)",
+          "default": false
+        },
+        "logo": {
+          "type": "string",
+          "description": "Path to logo image (relative to site root)",
+          "default": "assets/brand/logo.png"
+        },
+        "favicon": {
+          "type": "string",
+          "description": "Path to favicon image (relative to site root)",
+          "default": "assets/brand/favicon.png"
+        },
+        "logoType": {
+          "type": "string",
+          "description": "Logo type: icon (square) or wordmark (wide)",
+          "enum": ["icon", "wordmark"],
+          "default": "icon"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sections": {
+      "type": "array",
+      "description": "Navigation sections and their content sources",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Section name shown in navigation",
+            "maxLength": 20
+          },
+          "path": {
+            "type": "string",
+            "description": "Directory path relative to docroot"
+          },
+          "files": {
+            "type": "array",
+            "description": "Specific files to include (for root-level sections)",
+            "items": { "type": "string" }
+          },
+          "maxDepth": {
+            "type": "integer",
+            "description": "Maximum directory depth for auto-discovery",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 4
+          },
+          "exclude": {
+            "type": "array",
+            "description": "Glob patterns to exclude from auto-discovery",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "server": {
+      "type": "object",
+      "description": "Development server configuration",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Default port for dev server",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 3333
+        },
+        "host": {
+          "type": "string",
+          "description": "Default host for dev server",
+          "default": "localhost"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
