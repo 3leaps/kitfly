@@ -32,13 +32,20 @@ This checklist covers the full release process for kitfly, from preparation thro
   ```bash
   git push origin main
   ```
-- [ ] Create and push tag:
+- [ ] Create tag:
   ```bash
-  git tag v0.2.0
+  git tag -a v0.2.0 -m "v0.2.0 — description"
+  ```
+- [ ] Verify tag matches VERSION (pre-flight):
+  ```bash
+  make release-guard-tag-version
+  ```
+- [ ] Push tag:
+  ```bash
   git push origin v0.2.0
   ```
 - [ ] Wait for `release.yml` workflow to complete
-- [ ] Verify draft release created on GitHub with tarball attached
+- [ ] Verify draft release created on GitHub with binaries + tarball attached
 
 ## 3. Sign Release (Local Machine)
 

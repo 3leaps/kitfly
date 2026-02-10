@@ -20,7 +20,7 @@ SFETCH_INSTALL_URL ?= https://github.com/3leaps/sfetch/releases/latest/download/
 .PHONY: fmt lint typecheck test test-watch check-all quality precommit prepush
 .PHONY: license-audit license-check vuln-scan sbom public-readiness
 .PHONY: validate-schemas version version-set version-sync
-.PHONY: release-clean release-download release-checksums release-verify-checksums release-sign
+.PHONY: release-guard-tag-version release-clean release-download release-checksums release-verify-checksums release-sign
 .PHONY: release-verify-signatures release-export-minisign-key release-export-gpg-key release-export-keys
 .PHONY: release-verify-gpg-key release-verify-minisign-key release-verify-keys release-verify
 .PHONY: release-notes release-upload release-upload-all release-undraft release-all
@@ -313,6 +313,9 @@ RELEASE_DIR := dist/release
 PUBLIC_KEY_NAME := kitfly-release-signing-key.asc
 MINISIGN_PUB_NAME := kitfly-minisign.pub
 
+release-guard-tag-version: ## Guard: ensure tag matches VERSION (CI-friendly)
+	@./scripts/release/release-guard-tag-version.sh
+
 release-clean: ## Clean release artifacts
 	rm -rf $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)
@@ -413,5 +416,5 @@ release-undraft: ## Mark release as published (no longer draft)
 	@test -n "$(KITFLY_RELEASE_TAG)" || (echo "KITFLY_RELEASE_TAG required" && exit 1)
 	gh release edit $(KITFLY_RELEASE_TAG) --draft=false
 
-release-all: release-clean release-download release-checksums release-verify-checksums release-sign release-verify-signatures release-export-keys release-verify-keys release-notes release-upload release-undraft ## Full signing workflow
+release-all: release-guard-tag-version release-clean release-download release-checksums release-verify-checksums release-sign release-verify-signatures release-export-keys release-verify-keys release-notes release-upload release-undraft ## Full signing workflow
 	@echo "[ok] Release $(KITFLY_RELEASE_TAG) signed and published"
