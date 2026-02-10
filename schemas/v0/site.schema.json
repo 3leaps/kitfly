@@ -23,6 +23,11 @@
       "description": "Site title shown in browser tab and header",
       "maxLength": 60
     },
+    "version": {
+      "type": "string",
+      "description": "Site version displayed in footer provenance",
+      "examples": ["1.0.0", "2024.03", "draft"]
+    },
     "home": {
       "type": "string",
       "description": "Home page file (rendered as index.html, not in nav)"

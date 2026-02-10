@@ -17,7 +17,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
-import { ENGINE_ASSETS_DIR, ENGINE_ROOT } from "../src/engine.ts";
+import { ENGINE_ASSETS_DIR } from "../src/engine.ts";
 import {
 	buildBundleFooter,
 	// Navigation/template building
@@ -34,6 +34,7 @@ import {
 	loadSiteConfig,
 	// Markdown utilities
 	parseFrontmatter,
+	resolveSiteVersion,
 	resolveStylesPath,
 	type SiteConfig,
 	slugify,
@@ -294,10 +295,15 @@ function buildBundleNav(files: ContentFile[], config: SiteConfig): string {
 	return html;
 }
 
-function buildBundleSidebarHeader(config: SiteConfig, version: string, brandLogo: string): string {
+function buildBundleSidebarHeader(
+	config: SiteConfig,
+	version: string | undefined,
+	brandLogo: string,
+): string {
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const productHref = config.home ? "#home" : "#";
+	const versionLabel = version ? `v${version}` : "unversioned";
 
 	return `
       <div class="sidebar-header">
@@ -320,10 +326,10 @@ function buildBundleSidebarHeader(config: SiteConfig, version: string, brandLogo
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          <div class="sidebar-meta">
-            <span class="meta-version">v${version}</span>
-            <span class="meta-branch">bundle</span>
-          </div>
+	          <div class="sidebar-meta">
+	            <span class="meta-version">${versionLabel}</span>
+	            <span class="meta-branch">bundle</span>
+	          </div>
         </div>
       </div>`;
 }
@@ -344,15 +350,6 @@ async function inlineBrandAsset(assetPath: string): Promise<string> {
 		}
 	}
 	return assetPath;
-}
-
-// Get version from VERSION file
-async function getVersion(): Promise<string> {
-	try {
-		return (await readFile(join(ENGINE_ROOT, "VERSION"), "utf-8")).trim();
-	} catch {
-		return "0.0.0";
-	}
 }
 
 // Fetch and cache external scripts for offline bundle
@@ -410,8 +407,8 @@ async function bundle() {
 	const assets = await fetchExternalAssets(prismUrls);
 	console.log("  ✓ Fetched external assets (Prism, Mermaid)");
 
-	// Get version
-	const version = await getVersion();
+	// Resolve site version (site.yaml version, then git tag)
+	const version = await resolveSiteVersion(ROOT, config.version);
 
 	// Build navigation and content sections
 	const sections: Map<string, { id: string; title: string; html: string }[]> = new Map();

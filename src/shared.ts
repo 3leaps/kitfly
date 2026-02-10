@@ -7,7 +7,7 @@
 
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { ENGINE_ROOT, ENGINE_SITE_DIR, siteOverridePath } from "./engine.ts";
+import { ENGINE_SITE_DIR, siteOverridePath } from "./engine.ts";
 
 // ---------------------------------------------------------------------------
 // Type definitions
@@ -65,6 +65,7 @@ export interface SiteServer {
 export interface SiteConfig {
 	docroot: string;
 	title: string;
+	version?: string;
 	home?: string;
 	brand: SiteBrand;
 	sections: SiteSection[];
@@ -73,7 +74,7 @@ export interface SiteConfig {
 }
 
 export interface Provenance {
-	version: string;
+	version?: string;
 	buildDate: string;
 	gitCommit: string;
 	gitCommitDate: string;
@@ -916,13 +917,16 @@ export function buildFooter(provenance: Provenance, config: SiteConfig): string 
 				.join('<span class="footer-separator">·</span>')
 		: `<a href="${escapeHtml(config.brand.url)}" class="footer-link"${config.brand.external ? ' target="_blank" rel="noopener"' : ""}>${escapeHtml(brandLinkText)}</a>`;
 	const attributionEnabled = footer.attribution !== false;
+	const versionHtml = provenance.version
+		? `<span class="footer-version">v${escapeHtml(provenance.version)}</span>
+          <span class="footer-separator">·</span>`
+		: "";
 
 	return `
     <footer class="site-footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span class="footer-version">v${escapeHtml(provenance.version)}</span>
-          <span class="footer-separator">·</span>
+          ${versionHtml}
           <span class="footer-commit" title="Commit: ${escapeHtml(provenance.gitCommit)}">Published ${commitDate}</span>
         </div>
         <div class="footer-center">
@@ -943,7 +947,7 @@ export function buildFooter(provenance: Provenance, config: SiteConfig): string 
 /**
  * Build bundle footer HTML.
  */
-export function buildBundleFooter(version: string, config: SiteConfig): string {
+export function buildBundleFooter(version: string | undefined, config: SiteConfig): string {
 	const footer = config.footer || {};
 	const copyrightText = footer.copyright
 		? escapeHtml(footer.copyright)
@@ -964,13 +968,16 @@ export function buildBundleFooter(version: string, config: SiteConfig): string {
 				.join('<span class="footer-separator">·</span>')
 		: `<a href="${escapeHtml(config.brand.url)}" class="footer-link"${config.brand.external ? ' target="_blank" rel="noopener"' : ""}>${escapeHtml(brandLinkText)}</a>`;
 	const attributionEnabled = footer.attribution !== false;
+	const versionHtml = version
+		? `<span class="footer-version">v${escapeHtml(version)}</span>
+        <span class="footer-separator">·</span>`
+		: "";
 
 	return `
   <footer class="site-footer">
     <div class="footer-content">
       <div class="footer-left">
-        <span class="footer-version">v${version}</span>
-        <span class="footer-separator">·</span>
+        ${versionHtml}
         <span class="footer-commit">Published (offline bundle)</span>
       </div>
       <div class="footer-center">
@@ -1069,18 +1076,43 @@ export async function getGitInfo(
 	}
 }
 
+export async function resolveSiteVersion(
+	root: string,
+	configuredVersion?: string,
+): Promise<string | undefined> {
+	if (typeof configuredVersion === "string" && configuredVersion.trim() !== "") {
+		return configuredVersion.trim();
+	}
+
+	try {
+		const proc = Bun.spawn(["git", "describe", "--tags", "--exact-match", "HEAD"], {
+			cwd: root,
+			stdout: "pipe",
+			stderr: "ignore",
+		});
+		const out = (await new Response(proc.stdout).text()).trim();
+		const code = await proc.exited;
+		if (code === 0 && out) {
+			return out.replace(/^v/, "");
+		}
+	} catch {
+		// No git tag fallback available
+	}
+
+	return undefined;
+}
+
 /**
  * Generate provenance information
  * @param root - The root directory
  * @param devMode - If true, use dev-friendly defaults
  */
-export async function generateProvenance(root: string, devMode = false): Promise<Provenance> {
-	let version = "0.0.0";
-	try {
-		version = (await readFile(join(ENGINE_ROOT, "VERSION"), "utf-8")).trim();
-	} catch {
-		// Use default
-	}
+export async function generateProvenance(
+	root: string,
+	devMode = false,
+	siteVersion?: string,
+): Promise<Provenance> {
+	const version = await resolveSiteVersion(root, siteVersion);
 	const gitInfo = await getGitInfo(root, devMode);
 
 	return {
@@ -1139,6 +1171,7 @@ export async function loadSiteConfig(
 		const configPath = join(root, "site.yaml");
 		const content = await readFile(configPath, "utf-8");
 		const parsed = parseYaml(content) as unknown as SiteConfig;
+		const parsedRecord = parsed as unknown as Record<string, unknown>;
 
 		// Validate required fields
 		if (!parsed.title || !parsed.brand || !parsed.sections) {
@@ -1148,6 +1181,7 @@ export async function loadSiteConfig(
 		return {
 			docroot: parsed.docroot || ".",
 			title: parsed.title,
+			version: typeof parsedRecord.version === "string" ? parsedRecord.version : undefined,
 			home: parsed.home as string | undefined,
 			brand: {
 				...parsed.brand,
@@ -1156,7 +1190,7 @@ export async function loadSiteConfig(
 				logoType: parsed.brand.logoType || "icon",
 			},
 			sections: parsed.sections,
-			footer: normalizeFooter((parsed as unknown as Record<string, unknown>).footer),
+			footer: normalizeFooter(parsedRecord.footer),
 			server: parsed.server,
 		};
 	} catch (e) {

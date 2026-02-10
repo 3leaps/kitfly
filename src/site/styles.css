@@ -384,13 +384,18 @@ body {
 }
 
 .sidebar-nav .nav-group::before {
-  content: "▸ ";
-  font-size: 0.7em;
+  content: "›";
   display: inline-block;
+  width: 1em;
+  margin-right: 0.15em;
+  text-align: center;
+  font-size: 0.85em;
+  transform-origin: center;
+  transition: transform 150ms ease;
 }
 
 .sidebar-nav details[open] > .nav-group::before {
-  content: "▾ ";
+  transform: rotate(90deg);
 }
 
 .sidebar-nav .nav-group a {

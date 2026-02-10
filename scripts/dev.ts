@@ -195,6 +195,7 @@ async function renderPage(
 	config: SiteConfig,
 	theme: Theme,
 ): Promise<string> {
+	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const content = await readFile(filePath, "utf-8");
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
 
@@ -253,7 +254,7 @@ async function renderPage(
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
 		.replace(/\{\{SITE_TITLE\}\}/g, config.title)
 		.replace("{{TITLE}}", title)
-		.replace("{{VERSION}}", `v${provenance.version}`)
+		.replace("{{VERSION}}", uiVersion)
 		.replace("{{BRANCH}}", provenance.gitBranch)
 		.replace("{{BREADCRUMBS}}", breadcrumbs)
 		.replace("{{PAGE_META}}", pageMeta)
@@ -273,6 +274,7 @@ async function renderGettingStarted(
 	config: SiteConfig,
 	theme: Theme,
 ): Promise<string> {
+	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
 	const htmlContent = `
     <h1>Getting Started</h1>
@@ -321,7 +323,7 @@ sections:
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
 		.replace(/\{\{SITE_TITLE\}\}/g, config.title)
 		.replace("{{TITLE}}", "Getting Started")
-		.replace("{{VERSION}}", `v${provenance.version}`)
+		.replace("{{VERSION}}", uiVersion)
 		.replace("{{BRANCH}}", provenance.gitBranch)
 		.replace("{{BREADCRUMBS}}", "")
 		.replace("{{PAGE_META}}", "")
@@ -539,7 +541,7 @@ async function main() {
 	logInfo(`Loaded theme: "${theme.name || "default"}"`);
 
 	// Generate provenance once at startup (dev mode)
-	const provenance = await generateProvenance(ROOT, true);
+	const provenance = await generateProvenance(ROOT, true, config.version);
 
 	// Check port availability before starting server
 	await checkPortOrExit(PORT, HOST);
@@ -681,7 +683,7 @@ async function main() {
 		// Daemon mode — structured log lines, no ANSI
 		logInfo(`Server started on ${serverUrl}`);
 		logInfo(`Content root: ${ROOT}`);
-		logInfo(`Version: v${provenance.version}`);
+		logInfo(`Version: ${provenance.version ? `v${provenance.version}` : "unversioned"}`);
 		if (HOST === "0.0.0.0") {
 			logWarn("Binding to all interfaces (0.0.0.0)");
 		}
@@ -693,7 +695,7 @@ async function main() {
 │   ${config.title.padEnd(35)}│
 │                                         │
 │   Local:   ${serverUrl.padEnd(28)}│
-│   Version: v${provenance.version.padEnd(27)}│
+│   Version: ${(provenance.version ? `v${provenance.version}` : "unversioned").padEnd(29)}│
 │                                         │
 │   Hot reload enabled - edit any .md     │
 │   or .yaml file to see changes          │

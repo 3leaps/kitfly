@@ -15,6 +15,7 @@ Kitfly uses `site.yaml` for configuration. Everything is optional - sensible def
 schemaVersion: "0.1.0"
 docroot: "content"
 title: "My Documentation"
+version: "2.4.1"
 home: "index.md"
 
 brand:
@@ -65,6 +66,20 @@ Site title. Appears in browser tab and header.
 ```yaml
 title: "My Documentation"
 ```
+
+### version
+
+Site/content version shown in the footer provenance zone.
+
+```yaml
+version: "2.4.1"
+```
+
+Version resolution order:
+
+1. `site.yaml` `version`
+2. Git tag on `HEAD` (exact match, `v` prefix removed)
+3. Omitted from footer provenance if neither is available
 
 ### home
 

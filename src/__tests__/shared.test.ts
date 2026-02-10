@@ -31,6 +31,7 @@ import {
 	parseFrontmatter,
 	parseValue,
 	parseYaml,
+	resolveSiteVersion,
 	type SiteConfig,
 	slugify,
 	stripQuotes,
@@ -827,6 +828,7 @@ describe("loadSiteConfig", () => {
 			await writeFile(
 				join(dir, "site.yaml"),
 				`title: Test
+version: "1.2.0"
 brand:
   name: Test
   url: /
@@ -844,6 +846,7 @@ footer:
 			);
 
 			const config = await loadSiteConfig(dir);
+			expect(config.version).toBe("1.2.0");
 			expect(config.footer?.copyright).toBe("© 2026 Test");
 			expect(config.footer?.attribution).toBe(false);
 			expect(config.footer?.links).toEqual([{ text: "Privacy", url: "/privacy" }]);
@@ -935,10 +938,55 @@ describe("getGitInfo", () => {
 });
 
 describe("generateProvenance", () => {
-	it("generates provenance with default version when VERSION file not found", async () => {
+	it("uses site.yaml version when present", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-config-"));
+		try {
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Test
+version: "2.4.1"
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Guide
+    path: guide
+`,
+				"utf-8",
+			);
+
+			const result = await generateProvenance(dir, true, "2.4.1");
+			expect(result.version).toBe("2.4.1");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to git tag when site.yaml version is not set", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-tag-"));
+		try {
+			const run = async (args: string[]) => {
+				const proc = Bun.spawn(["git", ...args], { cwd: dir, stdout: "pipe", stderr: "ignore" });
+				await proc.exited;
+			};
+			await run(["init"]);
+			await run(["config", "user.email", "test@example.com"]);
+			await run(["config", "user.name", "Kitfly Test"]);
+			await writeFile(join(dir, "README.md"), "# test\n", "utf-8");
+			await run(["add", "README.md"]);
+			await run(["commit", "-m", "init"]);
+			await run(["tag", "v3.5.7"]);
+
+			const result = await generateProvenance(dir, false);
+			expect(result.version).toBe("3.5.7");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("returns empty version when neither site.yaml version nor git tag exist", async () => {
 		const result = await generateProvenance("/nonexistent/path", true);
-		// Version comes from the engine (kitfly) VERSION file, not the site root.
-		expect(result.version).toMatch(/^[0-9]+\.[0-9]+\.[0-9]+$/);
+		expect(result.version).toBeUndefined();
 		expect(result.buildDate).toBeDefined();
 		expect(result.gitCommit).toBe("dev");
 		expect(result.gitBranch).toBe("local");
@@ -949,6 +997,18 @@ describe("generateProvenance", () => {
 		expect(result.gitCommit).toBe("unknown");
 		expect(result.gitBranch).toBe("unknown");
 		expect(result.gitCommitDate).toBe("unknown");
+	});
+});
+
+describe("resolveSiteVersion", () => {
+	it("returns empty string when no config and no tag", async () => {
+		const version = await resolveSiteVersion("/nonexistent/path");
+		expect(version).toBeUndefined();
+	});
+
+	it("returns provided site version without git lookup", async () => {
+		const version = await resolveSiteVersion("/nonexistent/path", "9.9.9");
+		expect(version).toBe("9.9.9");
 	});
 });
 
@@ -1006,6 +1066,12 @@ describe("buildFooter", () => {
 	it("includes version number", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
 		expect(result).toContain("v1.2.3");
+	});
+
+	it("omits version span when provenance version is empty", () => {
+		const result = buildFooter({ ...baseProvenance, version: "" }, baseConfig);
+		expect(result).not.toContain('class="footer-version"');
+		expect(result).toContain("Published 2024-06-14");
 	});
 
 	it("includes formatted commit date", () => {
@@ -1179,6 +1245,12 @@ describe("buildBundleFooter", () => {
 		const result = buildBundleFooter("0.1.1", baseConfig);
 		expect(result).toContain("Published (offline bundle)");
 		expect(result).toContain(`Built with ${KITFLY_BRAND.name}`);
+	});
+
+	it("omits version span when bundle version is empty", () => {
+		const result = buildBundleFooter("", baseConfig);
+		expect(result).not.toContain('class="footer-version"');
+		expect(result).toContain("Published (offline bundle)");
 	});
 
 	it("respects attribution opt-out", () => {

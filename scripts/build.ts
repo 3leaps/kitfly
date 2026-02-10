@@ -162,6 +162,7 @@ async function renderFile(
 	config: SiteConfig,
 	theme: Theme,
 ): Promise<string> {
+	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const content = await readFile(filePath, "utf-8");
 
 	let title = basename(filePath, extname(filePath));
@@ -208,7 +209,7 @@ async function renderFile(
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
 		.replace(/\{\{SITE_TITLE\}\}/g, config.title)
 		.replace("{{TITLE}}", title)
-		.replace("{{VERSION}}", `v${provenance.version}`)
+		.replace("{{VERSION}}", uiVersion)
 		.replace("{{BRANCH}}", provenance.gitBranch)
 		.replace("{{BREADCRUMBS}}", breadcrumbs)
 		.replace("{{PAGE_META}}", pageMeta)
@@ -229,6 +230,7 @@ function renderGettingStarted(
 	config: SiteConfig,
 	theme: Theme,
 ): string {
+	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const htmlContent = `
     <h1>Getting Started</h1>
     <p>Welcome! To configure your kitfly site, create a <code>site.yaml</code> file in the repository root:</p>
@@ -268,7 +270,7 @@ sections:
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
 		.replace(/\{\{SITE_TITLE\}\}/g, config.title)
 		.replace("{{TITLE}}", "Getting Started")
-		.replace("{{VERSION}}", `v${provenance.version}`)
+		.replace("{{VERSION}}", uiVersion)
 		.replace("{{BRANCH}}", provenance.gitBranch)
 		.replace("{{BREADCRUMBS}}", "")
 		.replace("{{PAGE_META}}", "")
@@ -322,9 +324,11 @@ async function buildSite() {
 	await mkdir(DIST, { recursive: true });
 
 	// Generate provenance (build mode)
-	const provenance = await generateProvenance(ROOT, false);
+	const provenance = await generateProvenance(ROOT, false, config.version);
 	await writeFile(join(DIST, "provenance.json"), JSON.stringify(provenance, null, 2));
-	console.log(`  ✓ provenance.json (v${provenance.version}, ${provenance.gitCommit})`);
+	console.log(
+		`  ✓ provenance.json (${provenance.version ? `v${provenance.version}` : "unversioned"}, ${provenance.gitCommit})`,
+	);
 
 	// Read template
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
