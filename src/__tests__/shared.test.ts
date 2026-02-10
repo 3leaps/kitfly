@@ -962,7 +962,13 @@ sections:
 		}
 	});
 
-	it("falls back to git tag when site.yaml version is not set", async () => {
+	// resolveSiteVersion() uses Bun.spawn for git tag detection, so this test
+	// can only pass under the Bun runtime. v8 coverage requires Node, where
+	// Bun globals don't exist. Once Bun supports node:inspector coverage APIs
+	// we can remove the skipIf and run this unconditionally.
+	it.skipIf(typeof globalThis.Bun === "undefined")(
+		"falls back to git tag when site.yaml version is not set",
+		async () => {
 		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-tag-"));
 		try {
 			const run = async (args: string[]) => {

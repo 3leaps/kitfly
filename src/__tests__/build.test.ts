@@ -175,7 +175,7 @@ describe("build", () => {
 		expect(await exists(provPath)).toBe(true);
 
 		const prov = JSON.parse(await readFile(provPath, "utf-8"));
-		expect(prov).toHaveProperty("version");
+		// version is omitted when no site.yaml version or git tag exists
 		expect(prov).toHaveProperty("buildDate");
 		expect(prov).toHaveProperty("gitCommit");
 		expect(prov).toHaveProperty("gitBranch");
