@@ -19,6 +19,7 @@ import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR, ENGINE_ROOT } from "../src/engine.ts";
 import {
+	buildBundleFooter,
 	// Navigation/template building
 	buildSectionNav,
 	// Types
@@ -513,7 +514,6 @@ async function bundle() {
 		}
 	}
 
-	const year = new Date().getFullYear();
 	const themeCSS = generateThemeCSS(theme);
 
 	// Inline brand assets for self-contained bundle
@@ -583,18 +583,7 @@ ${buildBundleSidebarHeader(config, version, brandLogo)}
       </article>
     </main>
   </div>
-  <footer class="site-footer">
-    <div class="footer-content">
-      <div class="footer-left">
-        <span class="footer-version">v${version}</span>
-        <span class="footer-separator">·</span>
-        <span class="footer-commit">offline bundle</span>
-      </div>
-      <div class="footer-right">
-        <span class="footer-copyright">© ${year} ${config.brand.name}</span>
-      </div>
-    </div>
-  </footer>
+  ${buildBundleFooter(version, config)}
   <script>
 ${assets.prismCore}
   </script>

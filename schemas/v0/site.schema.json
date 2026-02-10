@@ -103,6 +103,46 @@
         "additionalProperties": false
       }
     },
+    "footer": {
+      "type": "object",
+      "description": "Footer configuration for copyright, links, and attribution",
+      "properties": {
+        "copyright": {
+          "type": "string",
+          "description": "Override footer copyright text"
+        },
+        "copyrightUrl": {
+          "type": "string",
+          "description": "Make copyright text a clickable link to this URL"
+        },
+        "links": {
+          "type": "array",
+          "description": "Custom footer links (replaces default brand URL link)",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": ["text", "url"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Footer link label"
+              },
+              "url": {
+                "type": "string",
+                "description": "Footer link destination URL"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "attribution": {
+          "type": "boolean",
+          "description": "Show Built with Kitfly attribution",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
     "server": {
       "type": "object",
       "description": "Development server configuration",

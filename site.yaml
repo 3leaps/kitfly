@@ -24,3 +24,7 @@ sections:
   - name: "Schemas"
     path: "../schemas"
     exclude: ["site.schema.json", "theme.schema.json"]
+
+footer:
+  copyright: "© 2026 3 Leaps, LLC"
+  copyrightUrl: "https://3leaps.net"

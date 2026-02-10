@@ -74,7 +74,7 @@ describe("buildBundleSidebarHeader", () => {
 			docroot: ".",
 			title: "Bundle Test",
 			home: "index.md",
-			brand: { name: "Engage3", url: "/", logoType: "wordmark" },
+			brand: { name: "Acme Corp", url: "/", logoType: "wordmark" },
 			sections: [],
 		};
 

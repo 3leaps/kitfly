@@ -27,6 +27,15 @@ sections:
     path: "guide"
   - name: "API"
     path: "api"
+
+footer:
+  copyright: "© 2026 My Project. All rights reserved."
+  links:
+    - text: "Privacy"
+      url: "/privacy"
+    - text: "Terms"
+      url: "/terms"
+  attribution: true
 ```
 
 ## Settings
@@ -125,6 +134,61 @@ sections:
     path: "."
     files: ["README.md", "CHANGELOG.md"]
 ```
+
+### footer
+
+Footer has three zones: provenance (left), copyright and links (center), and Kitfly attribution (right). Each field is independent — setting one does not affect the others.
+
+```
+v0.1.1 · Published 2026-02-10     © 2026 Acme Inc. · acme.com     Built with Kitfly
+← provenance (automatic)          ← copyright + links (configurable) → ← attribution →
+```
+
+| Field | Default | What it controls |
+|-------|---------|-----------------|
+| `copyright` | `© {publish-year} {brand.name}` | The copyright text in the center zone |
+| `copyrightUrl` | *(none)* | Makes the copyright text a clickable link |
+| `links` | Your `brand.url` shown as a link | Links after the copyright text (max 10) |
+| `attribution` | `true` | "Built with Kitfly" on the right |
+
+**Common case: product name differs from copyright holder.** The default copyright uses `brand.name`, which is your product title (shown in the header). If your legal entity is different, override it:
+
+```yaml
+# brand.name is "Acme Productbook" — that's the product title
+# but the copyright holder is the company
+footer:
+  copyright: "© 2026 Acme, Inc."
+```
+
+This changes only the copyright. The brand URL link and attribution are unaffected.
+
+**Make the copyright clickable:**
+
+```yaml
+footer:
+  copyright: "© 2026 3 Leaps, LLC"
+  copyrightUrl: "https://3leaps.net"
+```
+
+When `copyrightUrl` is set, the copyright text becomes a link. When omitted, it renders as plain text.
+
+**Full example with all options:**
+
+```yaml
+footer:
+  copyright: "© 2026 My Company, Inc."
+  copyrightUrl: "https://mycompany.com"
+  links:
+    - text: "Privacy"
+      url: "/privacy"
+    - text: "Terms"
+      url: "/terms"
+  attribution: true
+```
+
+When `links` is set, it replaces the default brand URL link. When `links` is omitted, your `brand.url` appears as a link (with the protocol stripped — `https://acme.com` displays as `acme.com`).
+
+Set `footer.attribution: false` to remove the "Built with Kitfly" text from the footer entirely.
 
 ## Frontmatter
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Upload only provenance assets (manifests, signatures, keys, notes) to a
-# GitHub release. Does NOT upload tarballs — CI handles those.
+# Upload only provenance assets (checksums, signatures, keys, notes) to a
+# GitHub release. Does NOT upload binaries or tarballs — CI handles those.
 #
 # Usage: upload-release-provenance.sh <tag> [dir]
 

@@ -30,6 +30,33 @@ export interface SiteBrand {
 	logoType?: "icon" | "wordmark"; // icon = square, wordmark = wide
 }
 
+export interface KitflyBrand {
+	readonly name: string;
+	readonly url: string;
+	readonly logo: string;
+	readonly favicon: string;
+}
+
+export const KITFLY_BRAND: Readonly<KitflyBrand> = {
+	name: "Kitfly",
+	url: "https://kitfly.dev",
+	logo: "assets/brand/kitfly-neon-128.png",
+	favicon: "assets/brand/kitfly-favicon-32.png",
+} as const;
+
+export interface FooterLink {
+	text: string;
+	url: string;
+}
+
+export interface SiteFooter {
+	copyright?: string;
+	copyrightUrl?: string;
+	links?: FooterLink[];
+	attribution?: boolean;
+	// social?: SocialLinks; // Reserved for future
+}
+
 export interface SiteServer {
 	port?: number; // Default dev server port
 	host?: string; // Default dev server host
@@ -41,6 +68,7 @@ export interface SiteConfig {
 	home?: string;
 	brand: SiteBrand;
 	sections: SiteSection[];
+	footer?: SiteFooter;
 	server?: SiteServer;
 }
 
@@ -865,22 +893,99 @@ export function buildPageMeta(frontmatter: Record<string, unknown>): string {
  */
 export function buildFooter(provenance: Provenance, config: SiteConfig): string {
 	const commitDate = formatDate(provenance.gitCommitDate);
-	const year = new Date().getFullYear();
+	const publishYear = Number.isNaN(new Date(provenance.gitCommitDate).getTime())
+		? new Date().getFullYear().toString()
+		: new Date(provenance.gitCommitDate).getUTCFullYear().toString();
+	const footer = config.footer || {};
+	const copyrightText = footer.copyright
+		? escapeHtml(footer.copyright)
+		: `© ${publishYear} ${escapeHtml(config.brand.name)}`;
+	const copyrightHtml = footer.copyrightUrl
+		? `<a href="${escapeHtml(footer.copyrightUrl)}" class="footer-link">${copyrightText}</a>`
+		: copyrightText;
+	const hasCustomLinks = Array.isArray(footer.links);
+	const brandLinkText = /^https?:\/\//.test(config.brand.url)
+		? config.brand.url.replace(/^https?:\/\//, "")
+		: config.brand.name;
+	const linksHtml = hasCustomLinks
+		? (footer.links ?? [])
+				.map(
+					(link) =>
+						`<a href="${escapeHtml(link.url)}" class="footer-link">${escapeHtml(link.text)}</a>`,
+				)
+				.join('<span class="footer-separator">·</span>')
+		: `<a href="${escapeHtml(config.brand.url)}" class="footer-link"${config.brand.external ? ' target="_blank" rel="noopener"' : ""}>${escapeHtml(brandLinkText)}</a>`;
+	const attributionEnabled = footer.attribution !== false;
+
 	return `
     <footer class="site-footer">
       <div class="footer-content">
         <div class="footer-left">
-          <span class="footer-version">v${provenance.version}</span>
+          <span class="footer-version">v${escapeHtml(provenance.version)}</span>
           <span class="footer-separator">·</span>
-          <span class="footer-commit" title="Commit: ${provenance.gitCommit}">${commitDate}</span>
+          <span class="footer-commit" title="Commit: ${escapeHtml(provenance.gitCommit)}">Published ${commitDate}</span>
         </div>
-        <div class="footer-right">
-          <span class="footer-copyright">© ${year} ${config.brand.name}</span>
-          <span class="footer-separator">·</span>
-          <a href="${config.brand.url}" class="footer-link"${config.brand.external ? ' target="_blank" rel="noopener"' : ""}>${config.brand.url.replace(/^https?:\/\//, "")}</a>
+        <div class="footer-center">
+          <span class="footer-copyright">${copyrightHtml}</span>
+          ${linksHtml ? `<span class="footer-separator">·</span>${linksHtml}` : ""}
         </div>
+        ${
+					attributionEnabled
+						? `<div class="footer-right">
+          <a href="${KITFLY_BRAND.url}" class="footer-link">Built with ${KITFLY_BRAND.name}</a>
+        </div>`
+						: ""
+				}
       </div>
     </footer>`;
+}
+
+/**
+ * Build bundle footer HTML.
+ */
+export function buildBundleFooter(version: string, config: SiteConfig): string {
+	const footer = config.footer || {};
+	const copyrightText = footer.copyright
+		? escapeHtml(footer.copyright)
+		: `© ${new Date().getFullYear()} ${escapeHtml(config.brand.name)}`;
+	const copyrightHtml = footer.copyrightUrl
+		? `<a href="${escapeHtml(footer.copyrightUrl)}" class="footer-link">${copyrightText}</a>`
+		: copyrightText;
+	const hasCustomLinks = Array.isArray(footer.links);
+	const brandLinkText = /^https?:\/\//.test(config.brand.url)
+		? config.brand.url.replace(/^https?:\/\//, "")
+		: config.brand.name;
+	const linksHtml = hasCustomLinks
+		? (footer.links ?? [])
+				.map(
+					(link) =>
+						`<a href="${escapeHtml(link.url)}" class="footer-link">${escapeHtml(link.text)}</a>`,
+				)
+				.join('<span class="footer-separator">·</span>')
+		: `<a href="${escapeHtml(config.brand.url)}" class="footer-link"${config.brand.external ? ' target="_blank" rel="noopener"' : ""}>${escapeHtml(brandLinkText)}</a>`;
+	const attributionEnabled = footer.attribution !== false;
+
+	return `
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <span class="footer-version">v${version}</span>
+        <span class="footer-separator">·</span>
+        <span class="footer-commit">Published (offline bundle)</span>
+      </div>
+      <div class="footer-center">
+        <span class="footer-copyright">${copyrightHtml}</span>
+        ${linksHtml ? `<span class="footer-separator">·</span>${linksHtml}` : ""}
+      </div>
+      ${
+				attributionEnabled
+					? `<div class="footer-right">
+        <a href="${KITFLY_BRAND.url}" class="footer-link">Built with ${KITFLY_BRAND.name}</a>
+      </div>`
+					: ""
+			}
+    </div>
+  </footer>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -991,6 +1096,35 @@ export async function generateProvenance(root: string, devMode = false): Promise
 // Site configuration
 // ---------------------------------------------------------------------------
 
+function normalizeFooter(footer: unknown): SiteFooter | undefined {
+	if (!footer || typeof footer !== "object") return undefined;
+	const raw = footer as Record<string, unknown>;
+	let links: FooterLink[] | undefined;
+
+	if (Array.isArray(raw.links)) {
+		links = raw.links
+			.filter(
+				(link): link is FooterLink =>
+					typeof link === "object" &&
+					link !== null &&
+					typeof (link as Record<string, unknown>).text === "string" &&
+					typeof (link as Record<string, unknown>).url === "string",
+			)
+			.slice(0, 10);
+
+		if (raw.links.length > 10) {
+			console.warn("⚠ site.yaml footer.links supports at most 10 links; truncating extras.");
+		}
+	}
+
+	return {
+		copyright: typeof raw.copyright === "string" ? raw.copyright : undefined,
+		copyrightUrl: typeof raw.copyrightUrl === "string" ? raw.copyrightUrl : undefined,
+		links,
+		attribution: typeof raw.attribution === "boolean" ? raw.attribution : undefined,
+	};
+}
+
 /**
  * Load site configuration with fallback chain
  * @param root - The root directory
@@ -1022,6 +1156,7 @@ export async function loadSiteConfig(
 				logoType: parsed.brand.logoType || "icon",
 			},
 			sections: parsed.sections,
+			footer: normalizeFooter((parsed as unknown as Record<string, unknown>).footer),
 			server: parsed.server,
 		};
 	} catch (e) {

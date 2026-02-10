@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Upload ALL release assets (tarballs + provenance) to GitHub.
+# Upload ALL release assets (binaries, tarballs, and provenance) to GitHub.
 #
 # CAUTION: Only use when a release was built locally and all assets need
 # transfer. Each file is a separate API call — uploading many assets in
 # rapid succession can trigger GitHub's secondary rate limits (HTTP 429).
 #
 # For the normal workflow use upload-release-provenance.sh instead — CI
-# uploads tarballs, and provenance-only upload keeps API calls minimal.
+# uploads binaries and tarballs, provenance-only upload keeps API calls minimal.
 #
 # Usage: upload-release-assets.sh <tag> [dir]
 
@@ -29,6 +29,13 @@ fi
 shopt -s nullglob
 
 assets=()
+
+# Platform binaries (kitfly-linux-amd64, kitfly-windows-amd64.exe, etc.)
+for f in "$DIR"/kitfly-*; do
+    # Skip npm tarballs, checksums, signatures, keys — handled below
+    case "$f" in *.tgz|SHA*|*.sig|*.minisig|*.asc|*.pub|*.md) continue ;; esac
+    [ -f "$f" ] && assets+=("$f")
+done
 
 # Tarballs and checksums
 assets+=("$DIR"/*.tgz)

@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildBreadcrumbsSimple,
 	buildBreadcrumbsStatic,
+	buildBundleFooter,
 	buildFooter,
 	buildNavSimple,
 	buildNavStatic,
@@ -24,6 +25,7 @@ import {
 	formatDate,
 	generateProvenance,
 	getGitInfo,
+	KITFLY_BRAND,
 	loadSiteConfig,
 	type Provenance,
 	parseFrontmatter,
@@ -818,6 +820,70 @@ describe("loadSiteConfig", () => {
 		expect(result.brand.name).toBe("Handbook");
 		expect(result.sections).toEqual([]);
 	});
+
+	it("parses footer config fields from site.yaml", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-footer-config-"));
+		try {
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Test
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Guide
+    path: guide
+footer:
+  copyright: "© 2026 Test"
+  attribution: false
+  links:
+    - text: Privacy
+      url: /privacy
+`,
+				"utf-8",
+			);
+
+			const config = await loadSiteConfig(dir);
+			expect(config.footer?.copyright).toBe("© 2026 Test");
+			expect(config.footer?.attribution).toBe(false);
+			expect(config.footer?.links).toEqual([{ text: "Privacy", url: "/privacy" }]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("truncates footer links to max 10", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-footer-links-"));
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const links = Array.from(
+				{ length: 12 },
+				(_, i) => `    - text: Link${i + 1}\n      url: /l${i + 1}`,
+			).join("\n");
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Test
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Guide
+    path: guide
+footer:
+  links:
+${links}
+`,
+				"utf-8",
+			);
+
+			const config = await loadSiteConfig(dir);
+			expect(config.footer?.links).toHaveLength(10);
+			expect(warn).toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -944,7 +1010,7 @@ describe("buildFooter", () => {
 
 	it("includes formatted commit date", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
-		expect(result).toContain("2024-06-14");
+		expect(result).toContain("Published 2024-06-14");
 	});
 
 	it("includes commit hash in title attribute", () => {
@@ -957,7 +1023,7 @@ describe("buildFooter", () => {
 		expect(result).toContain("Acme Corp");
 	});
 
-	it("includes brand URL as link text without protocol", () => {
+	it("includes default brand URL link text without protocol", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
 		expect(result).toContain(">acme.com</a>");
 		expect(result).toContain('href="https://acme.com"');
@@ -969,7 +1035,14 @@ describe("buildFooter", () => {
 		expect(result).toContain(">example.org</a>");
 	});
 
-	it("adds target=_blank for external brands", () => {
+	it("uses brand name as link text when brand URL is relative", () => {
+		const config = { ...baseConfig, brand: { name: "My Product", url: "/" } };
+		const result = buildFooter(baseProvenance, config);
+		expect(result).toContain(">My Product</a>");
+		expect(result).not.toContain(">/</a>");
+	});
+
+	it("adds target=_blank for external brands on default brand link", () => {
 		const config = {
 			...baseConfig,
 			brand: { name: "Ext", url: "https://ext.com", external: true },
@@ -979,10 +1052,100 @@ describe("buildFooter", () => {
 		expect(result).toContain('rel="noopener"');
 	});
 
-	it("does not add target=_blank for internal brands", () => {
+	it("renders attribution by default", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
-		expect(result).not.toContain('target="_blank"');
-		expect(result).not.toContain('rel="noopener"');
+		expect(result).toContain(`Built with ${KITFLY_BRAND.name}`);
+		expect(result).toContain(`href="${KITFLY_BRAND.url}"`);
+	});
+
+	it("removes attribution when footer.attribution is false", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { attribution: false },
+		});
+		expect(result).not.toContain("Built with Kitfly");
+		expect(result).not.toContain('class="footer-right"');
+	});
+
+	it("uses custom copyright text verbatim", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { copyright: "Copyright 2024-2026 Acme Corp" },
+		});
+		expect(result).toContain("Copyright 2024-2026 Acme Corp");
+	});
+
+	it("wraps copyright in link when copyrightUrl is set", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { copyright: "© 2026 3 Leaps, LLC", copyrightUrl: "https://3leaps.net" },
+		});
+		expect(result).toContain('href="https://3leaps.net"');
+		expect(result).toContain(">© 2026 3 Leaps, LLC</a>");
+	});
+
+	it("renders copyright as plain text when copyrightUrl is absent", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { copyright: "© 2026 Acme" },
+		});
+		expect(result).toContain(">© 2026 Acme</span>");
+		expect(result).not.toContain('">© 2026 Acme</a>');
+	});
+
+	it("uses footer.links when provided", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: {
+				links: [
+					{ text: "Privacy", url: "/privacy" },
+					{ text: "Terms", url: "/terms" },
+				],
+			},
+		});
+		expect(result).toContain('href="/privacy"');
+		expect(result).toContain(">Privacy</a>");
+		expect(result).toContain('href="/terms"');
+		expect(result).toContain(">Terms</a>");
+		expect(result).not.toContain('href="https://acme.com"');
+	});
+
+	it("suppresses all center links when footer.links is empty array", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { links: [] },
+		});
+		expect(result).not.toContain('href="https://acme.com"');
+		expect(result).not.toContain(">acme.com</a>");
+	});
+
+	it("escapes HTML in custom copyright text", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { copyright: '© 2026 <script>alert("xss")</script>' },
+		});
+		expect(result).toContain("&lt;script&gt;");
+		expect(result).not.toContain("<script>");
+	});
+
+	it("escapes HTML in copyrightUrl attribute", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: { copyright: "Test", copyrightUrl: 'https://example.com" onclick="alert(1)' },
+		});
+		expect(result).toContain("&quot;");
+		expect(result).not.toContain('onclick="alert(1)"');
+	});
+
+	it("escapes HTML in footer link text and url", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: {
+				links: [{ text: "<b>Bold</b>", url: '/test">' }],
+			},
+		});
+		expect(result).toContain("&lt;b&gt;Bold&lt;/b&gt;");
+		expect(result).toContain("/test&quot;&gt;");
 	});
 
 	it("includes footer structure classes", () => {
@@ -990,6 +1153,7 @@ describe("buildFooter", () => {
 		expect(result).toContain('class="site-footer"');
 		expect(result).toContain('class="footer-content"');
 		expect(result).toContain('class="footer-left"');
+		expect(result).toContain('class="footer-center"');
 		expect(result).toContain('class="footer-right"');
 		expect(result).toContain('class="footer-version"');
 		expect(result).toContain('class="footer-commit"');
@@ -997,10 +1161,65 @@ describe("buildFooter", () => {
 		expect(result).toContain('class="footer-link"');
 	});
 
-	it("uses current year in copyright", () => {
+	it("uses publish date year in default copyright", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
-		const currentYear = new Date().getFullYear().toString();
-		expect(result).toContain(`\u00A9 ${currentYear}`);
+		expect(result).toContain("© 2024 Acme Corp");
+	});
+});
+
+describe("buildBundleFooter", () => {
+	const baseConfig: SiteConfig = {
+		docroot: ".",
+		title: "Bundle Test",
+		brand: { name: "Acme Corp", url: "https://acme.com" },
+		sections: [],
+	};
+
+	it("includes attribution by default", () => {
+		const result = buildBundleFooter("0.1.1", baseConfig);
+		expect(result).toContain("Published (offline bundle)");
+		expect(result).toContain(`Built with ${KITFLY_BRAND.name}`);
+	});
+
+	it("respects attribution opt-out", () => {
+		const result = buildBundleFooter("0.1.1", {
+			...baseConfig,
+			footer: { attribution: false },
+		});
+		expect(result).not.toContain("Built with Kitfly");
+		expect(result).not.toContain('class="footer-right"');
+	});
+
+	it("wraps copyright in link when copyrightUrl is set", () => {
+		const result = buildBundleFooter("0.1.1", {
+			...baseConfig,
+			footer: { copyright: "© 2026 3 Leaps, LLC", copyrightUrl: "https://3leaps.net" },
+		});
+		expect(result).toContain('href="https://3leaps.net"');
+		expect(result).toContain(">© 2026 3 Leaps, LLC</a>");
+	});
+
+	it("suppresses all center links when footer.links is empty array", () => {
+		const result = buildBundleFooter("0.1.1", {
+			...baseConfig,
+			footer: { links: [] },
+		});
+		expect(result).not.toContain('href="https://acme.com"');
+		expect(result).not.toContain(">acme.com</a>");
+	});
+
+	it("escapes HTML in custom copyright and link fields", () => {
+		const result = buildBundleFooter("0.1.1", {
+			...baseConfig,
+			footer: {
+				copyright: '<img src=x onerror="alert(1)">',
+				links: [{ text: "<em>XSS</em>", url: "/ok" }],
+			},
+		});
+		expect(result).toContain("&lt;img");
+		expect(result).not.toContain("<img");
+		expect(result).toContain("&lt;em&gt;");
+		expect(result).not.toContain("<em>");
 	});
 });
 
