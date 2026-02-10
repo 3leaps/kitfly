@@ -16,8 +16,11 @@ import { loadSiteConfig } from "./shared.ts";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-// Read version from VERSION file
+// Version: injected at compile time via --define, falls back to VERSION file
+declare const __KITFLY_VERSION__: string | undefined;
+
 function getVersion(): string {
+	if (typeof __KITFLY_VERSION__ !== "undefined") return __KITFLY_VERSION__;
 	try {
 		return readFileSync(join(ROOT, "VERSION"), "utf-8").trim();
 	} catch {

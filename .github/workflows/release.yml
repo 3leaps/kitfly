@@ -1,36 +1,54 @@
+# Release Artifact Generation
+#
+# Triggered when a semver tag (v*.*.*) is pushed.
+# Validates VERSION, runs quality gates, builds cross-platform binaries,
+# packages npm tarball, generates checksums, and creates a DRAFT GitHub release.
+#
+# Cross-compilation note:
+#   Bun's --compile --target flag can cross-compile from a single Linux runner
+#   to linux-x64, linux-arm64, darwin-arm64, and windows-x64. However, Bun does
+#   NOT support cross-compiling to windows-arm64 (bun-windows-aarch64). That
+#   target must be built natively. Use release-windows-arm64.yml to add it to
+#   an existing draft release when needed.
+#
+# After CI creates the draft, the maintainer runs the local signing workflow:
+#   1. (Optional) Run release-windows-arm64.yml to add the win-arm64 binary
+#   2. make release-download KITFLY_RELEASE_TAG=vX.Y.Z
+#   3. make release-checksums
+#   4. make release-verify-checksums
+#   5. make release-sign KITFLY_RELEASE_TAG=vX.Y.Z
+#   6. make release-export-keys
+#   7. make release-upload KITFLY_RELEASE_TAG=vX.Y.Z
+---
 name: Release
 
-on:
+"on":
   push:
-    tags: ["v*"]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 permissions:
   contents: write
 
 jobs:
-  validate-version:
+  release:
+    name: Build & Draft Release
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Validate VERSION matches tag
-        id: version
+      - name: Verify tag matches VERSION
         run: |
-          FILE_VERSION=$(cat VERSION)
-          TAG_VERSION=${GITHUB_REF_NAME#v}
-          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::VERSION ($FILE_VERSION) != tag ($TAG_VERSION)"
+          VERSION=$(cat VERSION)
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match VERSION file ($VERSION)"
             exit 1
           fi
-          echo "version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
-
-  build:
-    needs: validate-version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          echo "version=$VERSION" >> "$GITHUB_ENV"
+          echo "Tag matches VERSION: $VERSION"
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -46,58 +64,62 @@ jobs:
           bun run typecheck
           bun run test
 
-      - name: Build
-        run: bun run build
+      - name: Build cross-platform binaries
+        run: bun run build:all
 
-      - name: Package
-        run: npm pack
+      - name: Package npm tarball
+        run: |
+          npm pack --pack-destination dist/release/
 
-      - name: Upload tarball artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-package
-          path: kitfly-${{ needs.validate-version.outputs.version }}.tgz
+      - name: Generate checksums
+        run: ./scripts/generate-checksums.sh dist/release kitfly
 
-  create-release:
-    needs: [validate-version, build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+      - name: List release artifacts
+        run: ls -la dist/release/
 
-      - name: Download tarball
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: npm-package
-          path: release/
+      - name: Create draft GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${version}"
 
-      - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          draft: true
-          generate_release_notes: true
-          body: |
-            ## kitfly v${{ needs.validate-version.outputs.version }}
+          echo "Creating draft release for ${TAG}..."
 
-            **Note:** This release is unsigned. Signed checksums will be uploaded after manual signing.
+          # shellcheck disable=SC2086
+          gh release create "${TAG}" \
+            --title "${TAG}" \
+            --draft \
+            --verify-tag \
+            --notes "## kitfly ${TAG}
 
-            ### Installation
+          ### Download
 
-            ```bash
-            bun install -g kitfly
-            # or
-            npm install -g kitfly
-            ```
+          | Platform | Binary |
+          |----------|--------|
+          | Linux x64 | \`kitfly-linux-amd64\` |
+          | Linux arm64 | \`kitfly-linux-arm64\` |
+          | macOS arm64 | \`kitfly-darwin-arm64\` |
+          | Windows x64 | \`kitfly-windows-amd64.exe\` |
+          | npm | \`kitfly-${version}.tgz\` |
 
-            ### Verification
+          ### Install from npm
 
-            Once signed artifacts are available:
-            ```bash
-            # Verify checksum signature
-            minisign -Vm SHA256SUMS -p kitfly-minisign.pub
+          \`\`\`bash
+          bun install -g kitfly
+          # or
+          npm install -g kitfly
+          \`\`\`
 
-            # Verify package checksum
-            shasum -a 256 -c SHA256SUMS
-            ```
+          ### Verification
+
+          Once signed artifacts are available:
+          \`\`\`bash
+          # Verify checksum signature
+          minisign -Vm SHA256SUMS -p kitfly-minisign.pub
+
+          # Verify package checksum
+          shasum -a 256 -c SHA256SUMS
+          \`\`\`" \
+            dist/release/*
+
+          echo "Draft release created: https://github.com/${{ github.repository }}/releases/tag/${TAG}"

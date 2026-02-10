@@ -317,13 +317,13 @@ release-clean: ## Clean release artifacts
 	rm -rf $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)
 
-release-download: ## Download release tarball from GitHub
+release-download: ## Download release artifacts from GitHub (binaries + tarball)
 	@test -n "$(KITFLY_RELEASE_TAG)" || (echo "KITFLY_RELEASE_TAG required (e.g. KITFLY_RELEASE_TAG=v0.2.0)" && exit 1)
-	gh release download $(KITFLY_RELEASE_TAG) --dir $(RELEASE_DIR) --pattern "*.tgz"
+	gh release download $(KITFLY_RELEASE_TAG) --dir $(RELEASE_DIR) \
+		--pattern "kitfly-*" --pattern "SHA256SUMS" --pattern "SHA512SUMS"
 
 release-checksums: ## Generate SHA256 and SHA512 checksums
-	cd $(RELEASE_DIR) && shasum -a 256 *.tgz > SHA256SUMS
-	cd $(RELEASE_DIR) && shasum -a 512 *.tgz > SHA512SUMS
+	./scripts/generate-checksums.sh $(RELEASE_DIR) kitfly
 
 release-verify-checksums: ## Verify checksums in release directory (pre-sign)
 	@if [ ! -d "$(RELEASE_DIR)" ]; then echo "error: $(RELEASE_DIR) not found (run make release-download first)" >&2; exit 1; fi
