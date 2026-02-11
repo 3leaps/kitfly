@@ -30,8 +30,9 @@ async function writeSiteYaml(dir: string, extra: Record<string, unknown> = {}): 
 	const brand = extra.brand ?? "  name: Test\n  url: /";
 	const sections = extra.sections ?? "  - name: Docs\n    path: docs";
 	const title = extra.title ?? "Test Site";
+	const version = extra.version ? `version: ${extra.version}\n` : "";
 	const home = extra.home ? `home: ${extra.home}\n` : "";
-	const yaml = `title: ${title}\nbrand:\n${brand}\n${home}sections:\n${sections}\n`;
+	const yaml = `title: ${title}\n${version}brand:\n${brand}\n${home}sections:\n${sections}\n`;
 	await writeFile(join(dir, "site.yaml"), yaml);
 }
 
@@ -179,6 +180,33 @@ describe("build", () => {
 		expect(prov).toHaveProperty("buildDate");
 		expect(prov).toHaveProperty("gitCommit");
 		expect(prov).toHaveProperty("gitBranch");
+	});
+
+	it("uses configured site version in rendered sidebar and provenance", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { version: '"2.4.1"' });
+		await writeMd(siteDir, "docs/page.md", "# Page");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain("v2.4.1");
+
+		const prov = JSON.parse(await readFile(join(siteDir, outDir, "provenance.json"), "utf-8"));
+		expect(prov.version).toBe("2.4.1");
+	});
+
+	it("shows unversioned in sidebar when no site version or tag is available", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir);
+		await writeMd(siteDir, "docs/page.md", "# Page");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain("unversioned");
 	});
 
 	it("generates AI accessibility files (content-index.json, llms.txt, _raw/)", async () => {

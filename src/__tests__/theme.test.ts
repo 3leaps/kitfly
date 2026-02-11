@@ -2,21 +2,26 @@
  * Tests for theme loading and CSS generation
  */
 
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_THEME, generateThemeCSS, getPrismUrls, loadTheme, type Theme } from "../theme.ts";
 
-// Mock fs/promises
-vi.mock("node:fs/promises", () => ({
-	readFile: vi.fn(),
-}));
+const tempDirs: string[] = [];
 
-import { readFile } from "node:fs/promises";
+async function makeTempDir(): Promise<string> {
+	const dir = await mkdtemp(join(tmpdir(), "kitfly-theme-test-"));
+	tempDirs.push(dir);
+	return dir;
+}
 
-const mockedReadFile = readFile as unknown as {
-	mockRejectedValue: (err: unknown) => void;
-	mockResolvedValue: (val: string) => void;
-};
+afterEach(async () => {
+	for (const d of tempDirs) {
+		await rm(d, { recursive: true, force: true }).catch(() => {});
+	}
+	tempDirs.length = 0;
+});
 
 describe("DEFAULT_THEME", () => {
 	it("has required structure", () => {
@@ -67,23 +72,22 @@ describe("DEFAULT_THEME", () => {
 		expect(typo?.baseSize).toBe("16px");
 		expect(typo?.scale).toBe("1.25");
 	});
+
+	it("has layout defaults", () => {
+		expect(DEFAULT_THEME.layout?.sidebarWidth).toBe("280px");
+	});
 });
 
 describe("loadTheme", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("returns DEFAULT_THEME when no theme.yaml exists", async () => {
-		mockedReadFile.mockRejectedValue(new Error("ENOENT"));
-
-		const theme = await loadTheme("/some/path");
+		const projectDir = await makeTempDir();
+		const theme = await loadTheme(projectDir);
 
 		expect(theme).toEqual(DEFAULT_THEME);
-		expect(mockedReadFile).toHaveBeenCalledWith(join("/some/path", "theme.yaml"), "utf-8");
 	});
 
 	it("merges custom theme with defaults", async () => {
+		const projectDir = await makeTempDir();
 		const customTheme = `
 name: Custom Theme
 colors:
@@ -91,9 +95,9 @@ colors:
     background: "#f0f0f0"
     primary: "#ff0000"
 `;
-		mockedReadFile.mockResolvedValue(customTheme);
+		await writeFile(join(projectDir, "theme.yaml"), customTheme);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.name).toBe("Custom Theme");
 		expect(theme.colors.light.background).toBe("#f0f0f0");
@@ -104,29 +108,31 @@ colors:
 	});
 
 	it("parses quoted values correctly", async () => {
+		const projectDir = await makeTempDir();
 		const themeYaml = `
 colors:
   light:
     background: "#ffffff"
     text: '#333333'
 `;
-		mockedReadFile.mockResolvedValue(themeYaml);
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.colors.light.background).toBe("#ffffff");
 		expect(theme.colors.light.text).toBe("#333333");
 	});
 
 	it("handles nested typography settings", async () => {
+		const projectDir = await makeTempDir();
 		const themeYaml = `
 typography:
   body: serif
   baseSize: 18px
 `;
-		mockedReadFile.mockResolvedValue(themeYaml);
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.typography?.body).toBe("serif");
 		expect(theme.typography?.baseSize).toBe("18px");
@@ -134,21 +140,36 @@ typography:
 		expect(theme.typography?.headings).toBe("system");
 	});
 
+	it("handles nested layout settings", async () => {
+		const projectDir = await makeTempDir();
+		const themeYaml = `
+layout:
+  sidebarWidth: 320px
+`;
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
+
+		const theme = await loadTheme(projectDir);
+
+		expect(theme.layout?.sidebarWidth).toBe("320px");
+	});
+
 	it("handles code theme settings", async () => {
+		const projectDir = await makeTempDir();
 		const themeYaml = `
 code:
   light: solarized-light
   dark: dracula
 `;
-		mockedReadFile.mockResolvedValue(themeYaml);
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.code?.light).toBe("solarized-light");
 		expect(theme.code?.dark).toBe("dracula");
 	});
 
 	it("ignores comments in YAML", async () => {
+		const projectDir = await makeTempDir();
 		const themeYaml = `
 # This is a comment
 name: Test Theme
@@ -158,15 +179,16 @@ colors:
     # Color comment
     background: "#fff"
 `;
-		mockedReadFile.mockResolvedValue(themeYaml);
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.name).toBe("Test Theme");
 		expect(theme.colors.light.background).toBe("#fff");
 	});
 
 	it("handles empty lines in YAML", async () => {
+		const projectDir = await makeTempDir();
 		const themeYaml = `
 name: Test Theme
 
@@ -176,9 +198,9 @@ colors:
     background: "#fff"
 
 `;
-		mockedReadFile.mockResolvedValue(themeYaml);
+		await writeFile(join(projectDir, "theme.yaml"), themeYaml);
 
-		const theme = await loadTheme("/project");
+		const theme = await loadTheme(projectDir);
 
 		expect(theme.name).toBe("Test Theme");
 		expect(theme.colors.light.background).toBe("#fff");
@@ -222,6 +244,19 @@ describe("generateThemeCSS", () => {
 		expect(css).toContain("--font-sans:");
 		expect(css).toContain("--font-headings:");
 		expect(css).toContain("--font-mono:");
+	});
+
+	it("includes default sidebar width variable", () => {
+		const css = generateThemeCSS(DEFAULT_THEME);
+		expect(css).toContain("--sidebar-width: 280px");
+	});
+
+	it("includes custom sidebar width variable", () => {
+		const css = generateThemeCSS({
+			...DEFAULT_THEME,
+			layout: { sidebarWidth: "320px" },
+		});
+		expect(css).toContain("--sidebar-width: 320px");
 	});
 
 	it("sets html font-size from baseSize", () => {

@@ -205,6 +205,20 @@ When `links` is set, it replaces the default brand URL link. When `links` is omi
 
 Set `footer.attribution: false` to remove the "Built with Kitfly" text from the footer entirely.
 
+### theme layout (`theme.yaml`)
+
+`theme.yaml` can override layout variables, including sidebar width.
+
+```yaml
+# theme.yaml
+layout:
+  sidebarWidth: "320px"
+```
+
+This sets `--sidebar-width` and applies to dev server, static builds, and bundles.
+
+Recommended range: `240px` to `400px` depending on logo and nav label length.
+
 ## Frontmatter
 
 Each markdown file can have YAML frontmatter:

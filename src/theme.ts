@@ -20,6 +20,9 @@ export interface ThemeColors {
 
 export interface Theme {
 	name?: string;
+	layout?: {
+		sidebarWidth?: string;
+	};
 	colors: {
 		light: ThemeColors;
 		dark: ThemeColors;
@@ -67,6 +70,9 @@ export const DEFAULT_THEME: Theme = {
 	code: {
 		light: "default",
 		dark: "okaidia",
+	},
+	layout: {
+		sidebarWidth: "280px",
 	},
 	typography: {
 		body: "system",
@@ -179,11 +185,13 @@ export function generateThemeCSS(theme: Theme): string {
 	const light = theme.colors.light;
 	const dark = theme.colors.dark;
 	const typo = theme.typography ?? DEFAULT_THEME.typography ?? {};
+	const layout = theme.layout ?? DEFAULT_THEME.layout ?? {};
 
 	const fontSans = FONT_STACKS[typo.body || "system"];
 	const fontHeadings = FONT_STACKS[typo.headings || "system"];
 	const fontMono = FONT_STACKS.mono;
 	const baseSize = typo.baseSize || "16px";
+	const sidebarWidth = layout.sidebarWidth || "280px";
 
 	// Map theme colors to CSS variables
 	const lightVars = `
@@ -197,6 +205,7 @@ export function generateThemeCSS(theme: Theme): string {
     --color-accent: ${light.heading};
     --color-code-bg: ${light.surface};
     --color-logo: ${light.heading};
+    --sidebar-width: ${sidebarWidth};
     --font-sans: ${fontSans};
     --font-headings: ${fontHeadings};
     --font-mono: ${fontMono};

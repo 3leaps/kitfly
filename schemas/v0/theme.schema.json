@@ -16,6 +16,20 @@
       "maxLength": 50,
       "examples": ["Kitfly Default", "GitHub", "Paper"]
     },
+    "layout": {
+      "type": "object",
+      "description": "Layout dimensions and spacing",
+      "properties": {
+        "sidebarWidth": {
+          "type": "string",
+          "description": "Sidebar width (CSS length value)",
+          "pattern": "^[0-9]+(px|rem|em|%)$",
+          "default": "280px",
+          "examples": ["280px", "320px", "18rem"]
+        }
+      },
+      "additionalProperties": false
+    },
     "colors": {
       "type": "object",
       "description": "Color palettes for light and dark modes",
@@ -153,6 +167,9 @@
     {
       "$schema": "./schemas/v0/theme.schema.json",
       "name": "Kitfly Default",
+      "layout": {
+        "sidebarWidth": "280px"
+      },
       "colors": {
         "light": {
           "background": "#ffffff",

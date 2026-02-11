@@ -969,26 +969,27 @@ sections:
 	it.skipIf(typeof globalThis.Bun === "undefined")(
 		"falls back to git tag when site.yaml version is not set",
 		async () => {
-		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-tag-"));
-		try {
-			const run = async (args: string[]) => {
-				const proc = Bun.spawn(["git", ...args], { cwd: dir, stdout: "pipe", stderr: "ignore" });
-				await proc.exited;
-			};
-			await run(["init"]);
-			await run(["config", "user.email", "test@example.com"]);
-			await run(["config", "user.name", "Kitfly Test"]);
-			await writeFile(join(dir, "README.md"), "# test\n", "utf-8");
-			await run(["add", "README.md"]);
-			await run(["commit", "-m", "init"]);
-			await run(["tag", "v3.5.7"]);
+			const dir = await mkdtemp(join(tmpdir(), "kitfly-version-tag-"));
+			try {
+				const run = async (args: string[]) => {
+					const proc = Bun.spawn(["git", ...args], { cwd: dir, stdout: "pipe", stderr: "ignore" });
+					await proc.exited;
+				};
+				await run(["init"]);
+				await run(["config", "user.email", "test@example.com"]);
+				await run(["config", "user.name", "Kitfly Test"]);
+				await writeFile(join(dir, "README.md"), "# test\n", "utf-8");
+				await run(["add", "README.md"]);
+				await run(["commit", "-m", "init"]);
+				await run(["tag", "v3.5.7"]);
 
-			const result = await generateProvenance(dir, false);
-			expect(result.version).toBe("3.5.7");
-		} finally {
-			await rm(dir, { recursive: true, force: true });
-		}
-	});
+				const result = await generateProvenance(dir, false);
+				expect(result.version).toBe("3.5.7");
+			} finally {
+				await rm(dir, { recursive: true, force: true });
+			}
+		},
+	);
 
 	it("returns empty version when neither site.yaml version nor git tag exist", async () => {
 		const result = await generateProvenance("/nonexistent/path", true);

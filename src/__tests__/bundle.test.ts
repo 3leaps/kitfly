@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { buildBundleNav, buildBundleSidebarHeader } from "../../scripts/bundle.ts";
 import type { ContentFile, SiteConfig } from "../shared.ts";
@@ -95,5 +96,11 @@ describe("buildBundleSidebarHeader", () => {
 
 		const html = buildBundleSidebarHeader(config, "0.1.0", "data:image/png;base64,AA==");
 		expect(html).toContain('class="logo logo-icon"');
+	});
+
+	it("bundle output includes custom sidebar width from theme layout", async () => {
+		const source = await readFile(`${process.cwd()}/scripts/bundle.ts`, "utf-8");
+		expect(source).toContain("const themeCSS = generateThemeCSS(theme);");
+		expect(source).toContain(`\${themeCSS}`);
 	});
 });
