@@ -720,7 +720,17 @@ export interface BundleOptions {
 
 let INCLUDE_RAW = true;
 
-export { buildBundleNav, buildBundleSidebarHeader };
+export {
+	buildBundleNav,
+	buildBundleSidebarHeader,
+	fileToDataUri,
+	imageMime,
+	inlineBrandAsset,
+	inlineLocalImages,
+	parseArgs,
+	resolveLocalImage,
+	rewriteContentLinks,
+};
 
 export async function bundleSite(options: BundleOptions = {}) {
 	if (options.folder) {
