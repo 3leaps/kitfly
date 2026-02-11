@@ -2,6 +2,26 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.1.2] - 2026-02-10
+
+### Added
+
+- Configurable sidebar width via `theme.yaml` `layout.sidebarWidth` (default `280px`)
+- Site version in footer provenance: reads from `site.yaml` `version` field, falls back to git tag
+- Schema support for `version` field in `site.schema.json`
+- Schema support for `layout.sidebarWidth` in `theme.schema.json`
+- Comprehensive test coverage: 466 → 1174 tests, 56.9% → 68.7% statements, 42.3% → 79.6% functions
+- Template test suites: crucible, pipeline, productbook, runbook, servicebook (all 100% coverage)
+- Bundle test suite: parseArgs, imageMime, rewriteContentLinks, fileToDataUri, inlineLocalImages
+
+### Fixed
+
+- Footer provenance now displays site version instead of kitfly engine version
+- Sidebar folder indicators: replaced tiny `▸`/`▾` triangles with `›` chevron + 150ms rotation transition
+- Test suite: removed fs mocks from theme tests (eliminated cross-file mock contamination)
+- Test suite: fixed Bun/Node dual-runtime compatibility for coverage runs
+- Lint: eliminated 541 non-null assertion warnings across test files
+
 ## [0.1.1] - 2026-02-10
 
 ### Added

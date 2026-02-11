@@ -1,52 +1,56 @@
-# Kitfly v0.1.1
+# Kitfly v0.1.2
 
 **Release date:** 2026-02-10
 
 ## What's new
 
-Kitfly v0.1.1 adds full footer customization. You can now control copyright text, add footer links, and toggle Kitfly attribution — all from `site.yaml`.
+Kitfly v0.1.2 fixes the footer provenance display, improves sidebar navigation UX, adds configurable sidebar width, and dramatically expands test coverage.
 
-### Footer customization
+### Provenance fix
 
-Add a `footer:` block to your `site.yaml`:
+The footer previously showed the kitfly engine version (e.g., `v0.1.2`) — every kitfly-powered site displayed the same number. Now it shows **your site's version**:
 
 ```yaml
-footer:
-  copyright: "© 2026 My Company, Inc."
-  copyrightUrl: "https://mycompany.com"
-  links:
-    - text: "Privacy"
-      url: "/privacy"
-    - text: "Terms"
-      url: "/terms"
-  attribution: true
+# site.yaml
+version: "2.4.1"
 ```
 
-The footer now has three zones:
+Resolution order: `site.yaml` version → git tag on HEAD → omit version entirely. The kitfly engine version is no longer displayed in site provenance.
 
+### Sidebar folder indicators
+
+Collapsible folder indicators in the sidebar nav were hard to see (`▸`/`▾` at 70% font size). Replaced with a `›` chevron at 85% size with a smooth 150ms rotation on open/close.
+
+### Configurable sidebar width
+
+Sidebar width is now configurable via `theme.yaml`:
+
+```yaml
+# theme.yaml
+layout:
+  sidebarWidth: "320px"
 ```
-v0.1.1 · Published 2026-02-10     © 2026 My Company · Privacy · Terms     Built with Kitfly
-← provenance                      ← copyright + links                     ← attribution →
-```
 
-All fields are optional. Without any config, you get a sensible default: auto-generated copyright from `brand.name`, your brand URL as a link, and Kitfly attribution.
+Default remains `280px`. Recommended range: `240px`–`400px`. Works in dev server, static builds, and bundles.
 
-Set `footer.attribution: false` to remove "Built with Kitfly". Set `footer.links: []` to remove all center links.
+### Test coverage
 
-### Bundle parity
+Major investment in test quality:
 
-All footer options work identically in bundles. The productbook team has validated full parity across dev server and bundled output.
+| Metric | Before | After |
+|--------|-------:|------:|
+| Tests | 466 | 1,174 |
+| Statement coverage | 56.9% | 68.7% |
+| Function coverage | 42.3% | 79.6% |
 
-### Platform binaries
-
-Release now includes pre-built binaries for Linux x64/arm64, macOS arm64, and Windows x64/arm64.
+All five template modules (crucible, pipeline, productbook, runbook, servicebook) now have 100% test coverage.
 
 ## Bug fixes
 
-- Relative brand URLs (like `/`) now show `brand.name` as link text instead of the raw URL
-- Footer no longer overflows on narrow viewports when content wraps to multiple lines
-- All config-sourced strings are HTML-escaped to prevent markup injection
+- Footer provenance displayed kitfly engine version instead of site version
+- Sidebar folder indicators too small and lacked animation
+- Theme test suite used `vi.mock()` causing cross-file mock contamination
 
 ## Full changelog
 
-See [CHANGELOG.md](CHANGELOG.md) or [docs/releases/v0.1.1.md](docs/releases/v0.1.1.md) for the complete list.
+See [CHANGELOG.md](CHANGELOG.md) or [docs/releases/v0.1.2.md](docs/releases/v0.1.2.md) for the complete list.
