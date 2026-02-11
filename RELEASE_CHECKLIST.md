@@ -46,6 +46,15 @@ This checklist covers the full release process for kitfly, from preparation thro
   ```
 - [ ] Wait for `release.yml` workflow to complete
 - [ ] Verify draft release created on GitHub with binaries + tarball attached
+- [ ] Trigger Windows ARM64 build (manual workflow):
+  ```bash
+  gh workflow run release-windows-arm64.yml -f tag=v0.2.0
+  gh run watch    # wait for completion
+  ```
+  > **Note:** Bun cannot cross-compile to windows-arm64. This runs natively on
+  > a Windows ARM64 runner and uploads `kitfly-windows-arm64.exe` to the draft
+  > release. Must complete before `make release-download` so checksums cover
+  > all binaries.
 
 ## 3. Sign Release (Local Machine)
 
@@ -167,7 +176,7 @@ make release-all
    - Go to package settings → Publishing access → Trusted Publishers
    - Add GitHub Actions:
      - Repository: `3leaps/kitfly`
-     - Workflow: `publish.yml`
+     - Workflow: `typescript-npm-publish.yml`
      - Environment: `publish-npm`
 
 3. **Create GitHub environment**:
