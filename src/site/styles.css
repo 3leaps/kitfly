@@ -173,6 +173,26 @@ body {
   }
 }
 
+.logo-icon.logo-fallback,
+.mobile-logo.logo-fallback {
+  width: 2rem;
+  height: 2rem;
+  max-width: none;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+}
+
+.logo-icon.logo-fallback::before,
+.mobile-logo.logo-fallback::before {
+  content: attr(data-initial);
+  color: var(--color-bg);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .logo-text {
   display: flex;
   flex-direction: column;

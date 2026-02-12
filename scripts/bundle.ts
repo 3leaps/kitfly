@@ -356,12 +356,13 @@ function buildBundleSidebarHeader(
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const productHref = config.home ? "#home" : "#";
 	const versionLabel = version ? `v${version}` : "unversioned";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return `
       <div class="sidebar-header">
         <div class="logo ${logoClass}">
-          <a href="${config.brand.url}" class="logo-icon"${brandTarget}>
-            <img src="${brandLogo}" alt="${config.brand.name}" class="logo-img">
+          <a href="${config.brand.url}" class="logo-icon" data-initial="${brandInitial}"${brandTarget}>
+            <img src="${brandLogo}" alt="${config.brand.name}" class="logo-img" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('logo-fallback')">
           </a>
           <span class="logo-text">
             <a href="${config.brand.url}" class="brand"${brandTarget}>${config.brand.name}</a>

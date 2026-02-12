@@ -690,6 +690,31 @@ describe("buildBundleSidebarHeader", () => {
 		expect(html).toContain('alt="My Company"');
 	});
 
+	it("includes initial fallback metadata and onerror handler", () => {
+		const config: SiteConfig = {
+			docroot: ".",
+			title: "Test",
+			brand: { name: "Acme", url: "/" },
+			sections: [],
+		};
+
+		const html = buildBundleSidebarHeader(config, "1.0", "logo.png");
+		expect(html).toContain('data-initial="A"');
+		expect(html).toContain("classList.add('logo-fallback')");
+	});
+
+	it("escapes initial fallback character in data attribute", () => {
+		const config: SiteConfig = {
+			docroot: ".",
+			title: "Test",
+			brand: { name: '"quoted', url: "/" },
+			sections: [],
+		};
+
+		const html = buildBundleSidebarHeader(config, "1.0", "logo.png");
+		expect(html).toContain('data-initial="&quot;"');
+	});
+
 	it("links brand to brand URL", () => {
 		const config: SiteConfig = {
 			docroot: ".",

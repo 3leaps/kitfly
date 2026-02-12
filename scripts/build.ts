@@ -201,6 +201,7 @@ async function renderFile(
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -208,6 +209,7 @@ async function renderFile(
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
@@ -263,6 +265,7 @@ sections:
 	const prismUrls = getPrismUrls(theme);
 	const pathPrefix = "./";
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -270,6 +273,7 @@ sections:
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
@@ -345,6 +349,7 @@ async function renderSlidesIndex(
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-slides")
@@ -352,6 +357,7 @@ async function renderSlidesIndex(
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)

@@ -246,6 +246,7 @@ async function renderPage(
 </script>`;
 
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -253,6 +254,7 @@ async function renderPage(
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
@@ -340,6 +342,7 @@ async function renderSlidesPage(
   es.onerror = () => setTimeout(() => location.reload(), 1000);
 </script>`;
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-slides")
@@ -347,6 +350,7 @@ async function renderSlidesPage(
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
@@ -410,6 +414,7 @@ sections:
 </script>`;
 
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -417,6 +422,7 @@ sections:
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_INITIAL\}\}/g, brandInitial)
 		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
