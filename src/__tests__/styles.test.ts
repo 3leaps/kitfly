@@ -26,6 +26,17 @@ describe("slide layout primitives CSS", () => {
 		expect(css).toContain(".block-grid.cols-4");
 	});
 
+	it("includes shape modifiers for block visuals", async () => {
+		const css = await readFile(join(process.cwd(), "src/site/styles.css"), "utf-8");
+		expect(css).toContain(".block.circle");
+		expect(css).toContain(".block.pill");
+		expect(css).toContain(".block.diamond");
+		expect(css).toContain(".block.chevron");
+		expect(css).toContain(".block.hexagon");
+		expect(css).toContain(".block.triangle");
+		expect(css).toContain(".block.block-arrow");
+	});
+
 	it("keeps non-active layout-class slides hidden", async () => {
 		const css = await readFile(join(process.cwd(), "src/site/styles.css"), "utf-8");
 		expect(css).toContain(".slide {");
