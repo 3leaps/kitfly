@@ -6,7 +6,7 @@
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
-import { basename, extname, join, resolve, sep } from "node:path";
+import { basename, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { ENGINE_SITE_DIR, siteOverridePath } from "./engine.ts";
 
 // ---------------------------------------------------------------------------
@@ -1356,7 +1356,32 @@ export async function resolveSiteVersion(
 	configuredVersion?: string,
 ): Promise<string | undefined> {
 	if (typeof configuredVersion === "string" && configuredVersion.trim() !== "") {
-		return configuredVersion.trim();
+		const value = configuredVersion.trim();
+		const lower = value.toLowerCase();
+
+		if (lower === "auto") {
+			const autoVersion = await readVersionLine(join(root, "VERSION"));
+			if (autoVersion) return autoVersion;
+		} else if (lower.startsWith("file:")) {
+			const rawPath = value.slice(5).trim();
+			if (!rawPath) {
+				console.warn("version file: path is empty");
+			} else if (isAbsoluteVersionPath(rawPath)) {
+				console.warn(`version file: absolute paths are not allowed: ${rawPath}`);
+			} else {
+				const normalizedRoot = resolve(root);
+				const resolvedPath = resolve(root, rawPath);
+				const rel = relative(normalizedRoot, resolvedPath);
+				if (rel.startsWith("..") || rel === ".." || rel.includes(`${sep}..${sep}`)) {
+					console.warn(`version file: path escapes site root: ${rawPath}`);
+				} else {
+					const fileVersion = await readVersionLine(resolvedPath);
+					if (fileVersion) return fileVersion;
+				}
+			}
+		} else {
+			return value;
+		}
 	}
 
 	try {
@@ -1374,6 +1399,23 @@ export async function resolveSiteVersion(
 		// No git tag fallback available
 	}
 
+	return undefined;
+}
+
+function isAbsoluteVersionPath(pathValue: string): boolean {
+	return isAbsolute(pathValue) || /^[A-Za-z]:[\\/]/.test(pathValue) || pathValue.startsWith("\\\\");
+}
+
+async function readVersionLine(path: string): Promise<string | undefined> {
+	try {
+		const content = await readFile(path, "utf-8");
+		for (const line of content.split(/\r?\n/)) {
+			const trimmed = line.trim();
+			if (trimmed) return trimmed;
+		}
+	} catch {
+		// Fall through to git tag resolution
+	}
 	return undefined;
 }
 

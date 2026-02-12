@@ -1329,6 +1329,70 @@ describe("resolveSiteVersion", () => {
 		const version = await resolveSiteVersion("/nonexistent/path", "9.9.9");
 		expect(version).toBe("9.9.9");
 	});
+
+	it("resolves auto from VERSION first non-empty line", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-auto-"));
+		try {
+			await writeFile(join(dir, "VERSION"), "\n \n 1.2.3 \n2.0.0\n", "utf-8");
+			const version = await resolveSiteVersion(dir, "auto");
+			expect(version).toBe("1.2.3");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolves version from file path with spaces", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-file-"));
+		try {
+			await mkdir(join(dir, "meta"), { recursive: true });
+			await writeFile(join(dir, "meta", "site version.txt"), "2026.02.12\n", "utf-8");
+			const version = await resolveSiteVersion(dir, "file:./meta/site version.txt");
+			expect(version).toBe("2026.02.12");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects absolute file path and falls back", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const version = await resolveSiteVersion("/nonexistent/path", "file:/etc/hostname");
+			expect(version).toBeUndefined();
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining("version file: absolute paths are not allowed"),
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("rejects windows absolute file path and falls back", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const version = await resolveSiteVersion("/nonexistent/path", "file:C:\\temp\\VERSION");
+			expect(version).toBeUndefined();
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining("version file: absolute paths are not allowed"),
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("rejects path that escapes site root and falls back", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-escape-"));
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const version = await resolveSiteVersion(dir, "file:../../etc/passwd");
+			expect(version).toBeUndefined();
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining("version file: path escapes site root"),
+			);
+		} finally {
+			warn.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
 });
 
 // ---------------------------------------------------------------------------

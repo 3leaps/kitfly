@@ -25,8 +25,8 @@
     },
     "version": {
       "type": "string",
-      "description": "Site version displayed in footer provenance",
-      "examples": ["1.0.0", "2024.03", "draft"]
+      "description": "Site version shown in footer provenance. Supports literal values, auto (read VERSION in site root), or file:<path> (read from relative file).",
+      "examples": ["1.0.0", "2024.03", "draft", "auto", "file:VERSION", "file:./meta/site version.txt"]
     },
     "mode": {
       "type": "string",
