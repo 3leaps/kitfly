@@ -8,12 +8,29 @@ last_updated: "2026-02-12"
 
 This recipe is intentionally labeled **advanced**.
 
-If you want the simplest Cloudflare experience for a static site, Cloudflare Pages is usually the easiest path. R2 is great when you want object storage as your origin and you’re comfortable wiring edge routing/caching.
+If you want the simplest Cloudflare experience for a static site, Cloudflare Pages is usually the easiest path:
+- [Recipe: Cloudflare Pages](content/deployment/recipes/cloudflare-pages.html)
+
+R2 is great when you want object storage as your origin and you’re comfortable wiring edge routing/caching.
 
 ## When to use this
 
 - You’re already using Cloudflare (DNS, Workers, caching)
 - You want `dist/` stored as objects and served at the edge
+
+## Pages vs R2 (which should I choose?)
+
+### Choose Cloudflare Pages when…
+
+- You want a “deploy and host” product for static sites
+- You’re fine with “connect a repo and publish `dist/`” as your workflow
+- You want custom domains + HTTPS without a lot of plumbing
+
+### Choose Cloudflare R2 when…
+
+- You specifically want object storage as the source of truth for site files
+- You already have (or want) a Worker/edge layer in front
+- You care about storing and serving lots of assets and want S3-like primitives
 
 ## High-level shape
 

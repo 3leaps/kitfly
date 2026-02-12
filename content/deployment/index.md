@@ -44,6 +44,9 @@ Use this as a quick menu:
 
 ### Easiest (beginner-friendly)
 
+- **Cloudflare Pages** — a clean “static site host” with great CDN + custom domains.  
+  Recipe: [Cloudflare Pages](content/deployment/recipes/cloudflare-pages.html)
+
 - **Netlify** — simplest “upload `dist/`” flow, easy custom domains.  
   Recipe: [Netlify](content/deployment/recipes/netlify.html)
 
@@ -55,7 +58,7 @@ Use this as a quick menu:
 - **AWS S3** — straightforward static hosting; best if your org is already in AWS.  
   Recipe: [AWS S3](content/deployment/recipes/aws-s3.html)
 
-- **Cloudflare R2** — advanced; typically paired with a Worker/Pages for routing/caching.  
+- **Cloudflare R2** — advanced; object storage that you usually put behind Pages/Workers.  
   Recipe: [Cloudflare R2](content/deployment/recipes/cloudflare-r2.html)
 
 ### “I want an app host”
