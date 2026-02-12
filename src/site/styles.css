@@ -505,8 +505,8 @@ body {
 }
 
 .slide.two-column {
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  column-count: 2;
+  column-gap: 1.5rem;
 }
 
 .slide.active.centered {
@@ -514,7 +514,43 @@ body {
 }
 
 .slide.active.two-column {
-  display: grid;
+  display: block;
+}
+
+.slide.active.two-column > h1,
+.slide.active.two-column > h2,
+.slide.active.two-column > h3 {
+  column-span: all;
+}
+
+.slide.active.two-column > * {
+  break-inside: avoid;
+}
+
+.slide.active.title-slide {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-link) 12%, var(--color-bg));
+  border: 1px solid color-mix(in srgb, var(--color-link) 40%, var(--color-border));
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.slide.active.section-header {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-link) 6%, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 2rem;
 }
 
 .slide.title-slide h1,
@@ -1104,7 +1140,7 @@ body {
   }
 
   .slide.two-column {
-    grid-template-columns: 1fr;
+    column-count: 1;
   }
 
   .slide-progress {

@@ -51,6 +51,7 @@ describe("template registry", () => {
 		const ids = templates.map((t) => t.id);
 
 		expect(ids).toContain("minimal");
+		expect(ids).toContain("deck");
 		expect(ids).toContain("handbook");
 		expect(templates.length).toBeGreaterThanOrEqual(2);
 	});
@@ -254,6 +255,40 @@ describe("handbook template", () => {
 
 		expect(manifest.template).toBe("handbook");
 		expect(manifest.standalone).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Deck Template (slides mode)
+// ---------------------------------------------------------------------------
+
+describe("deck template", () => {
+	const projectName = "test-deck";
+
+	it("creates slides-focused starter files", async () => {
+		await runTemplate({
+			name: projectName,
+			template: "deck",
+			git: false,
+		});
+
+		expect(generatedExists(projectName, "site.yaml")).toBe(true);
+		expect(generatedExists(projectName, "content/slides/briefing.md")).toBe(true);
+		expect(generatedExists(projectName, "CUSTOMIZING.md")).toBe(true);
+	});
+
+	it("configures site.yaml for slides mode", async () => {
+		await runTemplate({
+			name: projectName,
+			template: "deck",
+			git: false,
+		});
+
+		const siteYaml = await readGenerated(projectName, "site.yaml");
+		expect(siteYaml).toContain("mode: slides");
+		expect(siteYaml).toContain('aspect: "16/9"');
+		expect(siteYaml).toContain('name: "Slides"');
+		expect(siteYaml).toContain('path: "content/slides"');
 	});
 });
 

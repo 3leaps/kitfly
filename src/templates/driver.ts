@@ -12,6 +12,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crucible } from "./crucible.ts";
+import { deck } from "./deck.ts";
 import { handbook } from "./handbook.ts";
 import { minimal } from "./minimal.ts";
 import { pipeline } from "./pipeline.ts";
@@ -53,6 +54,7 @@ export function listTemplates(): TemplateDef[] {
 
 // Register built-in templates
 registerTemplate(minimal);
+registerTemplate(deck);
 registerTemplate(handbook);
 registerTemplate(pipeline);
 registerTemplate(productbook);
