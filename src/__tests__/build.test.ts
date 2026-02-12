@@ -31,8 +31,10 @@ async function writeSiteYaml(dir: string, extra: Record<string, unknown> = {}): 
 	const sections = extra.sections ?? "  - name: Docs\n    path: docs";
 	const title = extra.title ?? "Test Site";
 	const version = extra.version ? `version: ${extra.version}\n` : "";
+	const mode = extra.mode ? `mode: ${extra.mode}\n` : "";
+	const aspect = extra.aspect ? `aspect: ${extra.aspect}\n` : "";
 	const home = extra.home ? `home: ${extra.home}\n` : "";
-	const yaml = `title: ${title}\n${version}brand:\n${brand}\n${home}sections:\n${sections}\n`;
+	const yaml = `title: ${title}\n${version}${mode}${aspect}brand:\n${brand}\n${home}sections:\n${sections}\n`;
 	await writeFile(join(dir, "site.yaml"), yaml);
 }
 
@@ -207,6 +209,41 @@ describe("build", () => {
 
 		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
 		expect(html).toContain("unversioned");
+	});
+
+	it("builds a single-page hash-routed deck when mode is slides", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, {
+			mode: "slides",
+			aspect: '"4/3"',
+			sections: "  - name: Slides\n    path: slides",
+		});
+		await writeMd(
+			siteDir,
+			"slides/deck.md",
+			`---
+title: Intro
+---
+
+# Intro
+![Diagram](./img/diagram.png)
+[Report](../files/report.pdf)
+--- slide ---
+# Next`,
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('class="mode-slides"');
+		expect(html).toContain('id="slide-1"');
+		expect(html).toContain('id="slide-2"');
+		expect(html).toContain('href="#slide-1"');
+		expect(html).toContain('href="#slide-2"');
+		expect(html).toContain('src="./slides/img/diagram.png"');
+		expect(html).toContain('href="./files/report.pdf"');
+		expect(await exists(join(siteDir, outDir, "slides", "deck.html"))).toBe(false);
 	});
 
 	it("generates AI accessibility files (content-index.json, llms.txt, _raw/)", async () => {

@@ -648,6 +648,12 @@ describe("buildBundleSidebarHeader", () => {
 		expect(source).toContain(`\${themeCSS}`);
 	});
 
+	it("bundle script keeps docs-mode smooth anchor scrolling", async () => {
+		const source = await readFile(`${process.cwd()}/scripts/bundle.ts`, "utf-8");
+		expect(source).toContain("if (!shell) {");
+		expect(source).toContain("scrollIntoView({ behavior: 'smooth', block: 'start' });");
+	});
+
 	it("shows version label with v prefix when version is provided", () => {
 		const config: SiteConfig = {
 			docroot: ".",

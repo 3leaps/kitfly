@@ -14,9 +14,11 @@ import {
 	buildNavSimple,
 	buildNavStatic,
 	buildPageMeta,
+	buildSlideNav,
 	buildToc,
 	type ContentFile,
 	collectFiles,
+	collectSlides,
 	envBool,
 	envInt,
 	envString,
@@ -32,8 +34,11 @@ import {
 	parseValue,
 	parseYaml,
 	resolveSiteVersion,
+	rewriteRelativeAssetUrls,
 	type SiteConfig,
+	segmentSlides,
 	slugify,
+	splitSlides,
 	stripQuotes,
 	toUrlPath,
 	validatePath,
@@ -87,6 +92,259 @@ description: A test page
 		const { frontmatter, body } = parseFrontmatter(content);
 		expect(Object.keys(frontmatter)).toHaveLength(0);
 		expect(body).toBe(content);
+	});
+});
+
+describe("splitSlides", () => {
+	it("splits markdown on explicit slide delimiter", () => {
+		const input = `# One
+
+--- slide ---
+
+# Two`;
+		const slides = splitSlides(input);
+		expect(slides).toHaveLength(2);
+		expect(slides[0]).toContain("# One");
+		expect(slides[1]).toContain("# Two");
+	});
+
+	it("does not split on plain horizontal rules", () => {
+		const input = `# One
+
+---
+
+Still one slide`;
+		const slides = splitSlides(input);
+		expect(slides).toHaveLength(1);
+	});
+
+	it("ignores delimiter text inside fenced code blocks", () => {
+		const input = `# One
+
+\`\`\`md
+--- slide ---
+\`\`\`
+
+--- slide ---
+
+# Two`;
+		const slides = splitSlides(input);
+		expect(slides).toHaveLength(2);
+		expect(slides[0]).toContain("```md");
+		expect(slides[0]).toContain("--- slide ---");
+	});
+
+	it("does not break on 4-backtick fences containing 3-backtick lines", () => {
+		const input = `\`\`\`\`md
+\`\`\` still code
+--- slide ---
+\`\`\`\`
+--- slide ---
+# Real slide`;
+		const slides = splitSlides(input);
+		expect(slides).toHaveLength(2);
+		expect(slides[0]).toContain("--- slide ---");
+		expect(slides[1].trim()).toBe("# Real slide");
+	});
+});
+
+describe("segmentSlides", () => {
+	it("uses frontmatter title and class when present", () => {
+		const input = `---
+title: Intro Slide
+class: two-column
+---
+
+# Welcome`;
+		const segments = segmentSlides(input, "Deck");
+		expect(segments).toHaveLength(1);
+		expect(segments[0].title).toBe("Intro Slide");
+		expect(segments[0].className).toBe("two-column");
+	});
+
+	it("falls back to first heading when frontmatter title is missing", () => {
+		const input = `# Architecture Overview
+
+Body`;
+		const segments = segmentSlides(input, "Deck");
+		expect(segments[0].title).toBe("Architecture Overview");
+	});
+
+	it("ignores headings inside fenced code blocks when deriving title", () => {
+		const input = `\`\`\`md
+# Not a real heading
+\`\`\`
+
+# Real Heading`;
+		const segments = segmentSlides(input, "Deck");
+		expect(segments[0].title).toBe("Real Heading");
+	});
+
+	it("falls back to indexed title when no frontmatter title or heading exists", () => {
+		const input = `Just text
+--- slide ---
+More text`;
+		const segments = segmentSlides(input, "Runbook Deck");
+		expect(segments).toHaveLength(2);
+		expect(segments[0].title).toBe("Runbook Deck (1)");
+		expect(segments[1].title).toBe("Runbook Deck (2)");
+	});
+
+	it("parses frontmatter per slide segment", () => {
+		const input = `---
+title: First
+---
+
+# One
+--- slide ---
+---
+title: Second
+class: centered
+---
+
+# Two`;
+		const segments = segmentSlides(input, "Deck");
+		expect(segments).toHaveLength(2);
+		expect(segments[0].title).toBe("First");
+		expect(segments[1].title).toBe("Second");
+		expect(segments[1].className).toBe("centered");
+	});
+
+	it("sanitizes frontmatter class to safe class tokens", () => {
+		const input = `---
+class: centered two-column "><img src=x onerror=alert(1)>
+---
+
+# Safe classes only`;
+		const segments = segmentSlides(input, "Deck");
+		expect(segments[0].className).toBe("centered two-column");
+	});
+});
+
+describe("collectSlides and buildSlideNav", () => {
+	const tempDirs: string[] = [];
+
+	afterEach(async () => {
+		for (const dir of tempDirs) {
+			await rm(dir, { recursive: true, force: true });
+		}
+		tempDirs.length = 0;
+	});
+
+	it("collects segmented markdown slides and assigns sequential ids", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-slides-collect-"));
+		tempDirs.push(dir);
+		const mdPath = join(dir, "deck.md");
+		await writeFile(
+			mdPath,
+			`---
+title: Intro
+---
+
+# Intro
+--- slide ---
+# Next`,
+			"utf-8",
+		);
+
+		const files: ContentFile[] = [
+			{ path: mdPath, urlPath: "slides/deck", section: "Slides", sectionBase: "slides" },
+		];
+
+		const slides = await collectSlides(files);
+		expect(slides).toHaveLength(2);
+		expect(slides[0].id).toBe("slide-1");
+		expect(slides[1].id).toBe("slide-2");
+		expect(slides[0].title).toBe("Intro");
+		expect(slides[1].title).toBe("Next");
+		expect(slides[0].kind).toBe("markdown");
+	});
+
+	it("collects yaml/json files as single non-markdown slides", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-slides-kinds-"));
+		tempDirs.push(dir);
+		const yamlPath = join(dir, "config.yaml");
+		const jsonPath = join(dir, "data.json");
+		await writeFile(yamlPath, "name: test\n", "utf-8");
+		await writeFile(jsonPath, '{"ok":true}\n', "utf-8");
+
+		const files: ContentFile[] = [
+			{ path: yamlPath, urlPath: "ref/config", section: "Reference", sectionBase: "ref" },
+			{ path: jsonPath, urlPath: "ref/data", section: "Reference", sectionBase: "ref" },
+		];
+		const slides = await collectSlides(files);
+		expect(slides).toHaveLength(2);
+		expect(slides[0].kind).toBe("yaml");
+		expect(slides[1].kind).toBe("json");
+		expect(slides[0].title).toBe("config");
+		expect(slides[1].title).toBe("data");
+	});
+
+	it("builds slide nav grouped by section using slide ids", () => {
+		const nav = buildSlideNav(
+			[
+				{
+					index: 0,
+					frontmatter: {},
+					body: "# A",
+					title: "Slide A",
+					id: "slide-1",
+					section: "Slides",
+					sourcePath: "/tmp/a.md",
+					sourceUrlPath: "slides/a",
+					kind: "markdown",
+				},
+				{
+					index: 1,
+					frontmatter: {},
+					body: "# B",
+					title: "Slide B",
+					id: "slide-2",
+					section: "Slides",
+					sourcePath: "/tmp/b.md",
+					sourceUrlPath: "slides/b",
+					kind: "markdown",
+				},
+			],
+			{
+				docroot: ".",
+				title: "Deck",
+				brand: { name: "Test", url: "/" },
+				sections: [{ name: "Slides", path: "slides" }],
+			},
+			"slide-2",
+		);
+		expect(nav).toContain('<a href="#slide-1">Slide A</a>');
+		expect(nav).toContain('<a href="#slide-2" class="active">Slide B</a>');
+		expect(nav).toContain('<span class="nav-section">Slides</span>');
+	});
+});
+
+describe("rewriteRelativeAssetUrls", () => {
+	it("rewrites image sources relative to the source markdown path", () => {
+		const html = '<p><img src="./img/diagram.png" alt="diagram"></p>';
+		const rewritten = rewriteRelativeAssetUrls(html, "slides/deck", "/");
+		expect(rewritten).toContain('src="/slides/img/diagram.png"');
+	});
+
+	it("preserves external and anchor refs", () => {
+		const html = '<a href="https://example.com">ext</a> <a href="#slide-2">hash</a>';
+		const rewritten = rewriteRelativeAssetUrls(html, "slides/deck", "./");
+		expect(rewritten).toContain('href="https://example.com"');
+		expect(rewritten).toContain('href="#slide-2"');
+	});
+
+	it("keeps query/hash suffix when rewriting", () => {
+		const html = '<a href="../files/report.pdf?dl=1#v2">report</a>';
+		const rewritten = rewriteRelativeAssetUrls(html, "slides/deck", "./");
+		expect(rewritten).toContain('href="./files/report.pdf?dl=1#v2"');
+	});
+
+	it("does not rewrite non-asset href links", () => {
+		const html = '<a href="other.md">doc</a> <a href="./other.md">doc2</a>';
+		const rewritten = rewriteRelativeAssetUrls(html, "slides/deck", "./");
+		expect(rewritten).toContain('href="other.md"');
+		expect(rewritten).toContain('href="./other.md"');
 	});
 });
 
@@ -818,6 +1076,8 @@ describe("loadSiteConfig", () => {
 		const result = await loadSiteConfig("/nonexistent/path", "Default Title");
 		expect(result.docroot).toBe(".");
 		expect(result.title).toBe("Default Title");
+		expect(result.mode).toBe("docs");
+		expect(result.aspect).toBe("16/9");
 		expect(result.brand.name).toBe("Handbook");
 		expect(result.sections).toEqual([]);
 	});
@@ -884,6 +1144,58 @@ ${links}
 			expect(warn).toHaveBeenCalled();
 		} finally {
 			warn.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("parses slides mode and aspect from site.yaml", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-slides-config-"));
+		try {
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Slides
+mode: slides
+aspect: "4/3"
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Deck
+    path: slides
+`,
+				"utf-8",
+			);
+
+			const config = await loadSiteConfig(dir);
+			expect(config.mode).toBe("slides");
+			expect(config.aspect).toBe("4/3");
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to default docs mode and aspect when invalid", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-slides-defaults-"));
+		try {
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Defaults
+mode: invalid
+aspect: "21/9"
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Deck
+    path: slides
+`,
+				"utf-8",
+			);
+
+			const config = await loadSiteConfig(dir);
+			expect(config.mode).toBe("docs");
+			expect(config.aspect).toBe("16/9");
+		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
 	});

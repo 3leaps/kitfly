@@ -12,3 +12,27 @@ describe("sidebar folder indicator CSS", () => {
 		expect(css).toContain("transform: rotate(90deg)");
 	});
 });
+
+describe("slide layout primitives CSS", () => {
+	it("includes core block-flow/grid/stack primitives", async () => {
+		const css = await readFile(join(process.cwd(), "src/site/styles.css"), "utf-8");
+		expect(css).toContain(".block-flow");
+		expect(css).toContain(".block-grid");
+		expect(css).toContain(".block-stack");
+		expect(css).toContain(".block-label");
+		expect(css).toContain(".block-flow:not(.vertical) .block:not(:last-child)::after");
+		expect(css).toContain(".block-flow.vertical .block:not(:last-child)::after");
+		expect(css).toContain(".block-grid.cols-3");
+		expect(css).toContain(".block-grid.cols-4");
+	});
+
+	it("keeps non-active layout-class slides hidden", async () => {
+		const css = await readFile(join(process.cwd(), "src/site/styles.css"), "utf-8");
+		expect(css).toContain(".slide {");
+		expect(css).toContain("display: none;");
+		expect(css).toContain(".slide.active.centered");
+		expect(css).toContain(".slide.active.two-column");
+		expect(css).not.toContain(".slide.centered {\n  min-height: 100%;\n  display: flex;");
+		expect(css).not.toContain(".slide.two-column {\n  display: grid;");
+	});
+});

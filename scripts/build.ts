@@ -21,10 +21,12 @@ import {
 	buildFooter,
 	buildNavStatic,
 	buildPageMeta,
+	buildSlideNav,
 	buildToc,
 	type ContentFile,
-	// Navigation/template building
 	collectFiles,
+	// Navigation/template building
+	collectSlides,
 	envBool,
 	// Config helpers
 	envString,
@@ -41,6 +43,7 @@ import {
 	parseFrontmatter,
 	resolveStylesPath,
 	resolveTemplatePath,
+	rewriteRelativeAssetUrls,
 	// Types
 	type SiteConfig,
 	slugify,
@@ -200,6 +203,7 @@ async function renderFile(
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 
 	return template
+		.replace("{{BODY_CLASS}}", "mode-docs")
 		.replace(/\{\{PATH_PREFIX\}\}/g, pathPrefix)
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
@@ -261,6 +265,7 @@ sections:
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 
 	return template
+		.replace("{{BODY_CLASS}}", "mode-docs")
 		.replace(/\{\{PATH_PREFIX\}\}/g, pathPrefix)
 		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
 		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
@@ -275,6 +280,88 @@ sections:
 		.replace("{{BREADCRUMBS}}", "")
 		.replace("{{PAGE_META}}", "")
 		.replace("{{NAV}}", "<ul></ul>")
+		.replace("{{CONTENT}}", htmlContent)
+		.replace("{{TOC}}", "")
+		.replace("{{FOOTER}}", buildFooter(provenance, config))
+		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
+		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
+		.replace("{{HOT_RELOAD_SCRIPT}}", "");
+}
+
+async function renderSlidesIndex(
+	template: string,
+	files: ContentFile[],
+	provenance: Provenance,
+	config: SiteConfig,
+	theme: Theme,
+): Promise<string> {
+	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
+	const pathPrefix = "./";
+	const slides = await collectSlides(files);
+	const renderedSlides = await Promise.all(
+		slides.map(async (slide, i) => {
+			let inner = "";
+			if (slide.kind === "markdown") {
+				inner = marked.parse(slide.body) as string;
+			} else if (slide.kind === "yaml") {
+				inner = `<pre><code class="language-yaml">${escapeHtml(slide.body)}</code></pre>`;
+			} else {
+				let prettyJson = slide.body;
+				try {
+					prettyJson = JSON.stringify(JSON.parse(slide.body), null, 2);
+				} catch {
+					// Use original if not valid JSON
+				}
+				inner = `<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
+			}
+			inner = rewriteRelativeAssetUrls(inner, slide.sourceUrlPath, pathPrefix);
+
+			const activeClass = i === 0 ? " active" : "";
+			const classToken = slide.className ? ` ${slide.className}` : "";
+			return `<section id="${slide.id}" class="slide${classToken}${activeClass}" data-slide-index="${i}">${inner}</section>`;
+		}),
+	);
+
+	const htmlContent = `
+        <div class="slides-shell" style="--slide-aspect: ${config.aspect || "16/9"}">
+          <div class="slide-viewport">
+            <div class="slide-frame">
+              ${renderedSlides.join("\n")}
+            </div>
+          </div>
+          <div class="slide-nav" aria-label="Slide navigation">
+            <button class="slide-prev" type="button" aria-label="Previous slide">Prev</button>
+            <span class="slide-counter">1 / ${slides.length}</span>
+            <button class="slide-next" type="button" aria-label="Next slide">Next</button>
+            <div class="slide-progress" role="presentation">
+              <span class="slide-progress-bar" style="width: ${(1 / slides.length) * 100}%"></span>
+            </div>
+          </div>
+        </div>`;
+
+	const nav = buildSlideNav(slides, config, "slide-1");
+	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
+	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
+	const themeCSS = generateThemeCSS(theme);
+	const prismUrls = getPrismUrls(theme);
+
+	return template
+		.replace("{{BODY_CLASS}}", "mode-slides")
+		.replace(/\{\{PATH_PREFIX\}\}/g, pathPrefix)
+		.replace(/\{\{BRAND_URL\}\}/g, config.brand.url)
+		.replace(/\{\{BRAND_TARGET\}\}/g, brandTarget)
+		.replace(/\{\{BRAND_NAME\}\}/g, config.brand.name)
+		.replace(/\{\{BRAND_LOGO\}\}/g, config.brand.logo || "assets/brand/logo.png")
+		.replace(/\{\{BRAND_FAVICON\}\}/g, config.brand.favicon || "assets/brand/favicon.png")
+		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, logoClass)
+		.replace(/\{\{SITE_TITLE\}\}/g, config.title)
+		.replace("{{TITLE}}", config.title)
+		.replace("{{VERSION}}", uiVersion)
+		.replace("{{BRANCH}}", provenance.gitBranch)
+		.replace("{{BREADCRUMBS}}", "")
+		.replace("{{PAGE_META}}", "")
+		.replace("{{NAV}}", nav)
 		.replace("{{CONTENT}}", htmlContent)
 		.replace("{{TOC}}", "")
 		.replace("{{FOOTER}}", buildFooter(provenance, config))
@@ -374,6 +461,16 @@ async function buildSite() {
 		await writeFile(join(DIST, "index.html"), html);
 		console.log("  ✓ index.html (Getting Started)");
 		console.log(`\n\x1b[33mNo content found. Create site.yaml or content/ directory.\x1b[0m`);
+		return;
+	}
+
+	if (config.mode === "slides") {
+		const html = await renderSlidesIndex(template, files, provenance, config, theme);
+		await writeFile(join(DIST, "index.html"), html);
+		console.log(`  ✓ index.html (slides mode, ${files.length} source files)`);
+		await generateAIAccessibility(DIST, files, config, provenance);
+		console.log(`\n\x1b[32mBuild complete! Output in ${OUT_DIR}/\x1b[0m`);
+		console.log(`\nTo view locally: open ${OUT_DIR}/index.html`);
 		return;
 	}
 

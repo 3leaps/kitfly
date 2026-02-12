@@ -6,7 +6,7 @@
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { basename, extname, join, resolve, sep } from "node:path";
 import { ENGINE_SITE_DIR, siteOverridePath } from "./engine.ts";
 
 // ---------------------------------------------------------------------------
@@ -62,10 +62,15 @@ export interface SiteServer {
 	host?: string; // Default dev server host
 }
 
+export type SiteMode = "docs" | "slides";
+export type SlideAspect = "16/9" | "4/3" | "3/2" | "16/10";
+
 export interface SiteConfig {
 	docroot: string;
 	title: string;
 	version?: string;
+	mode?: SiteMode;
+	aspect?: SlideAspect;
 	home?: string;
 	brand: SiteBrand;
 	sections: SiteSection[];
@@ -86,6 +91,22 @@ export interface ContentFile {
 	urlPath: string;
 	section: string;
 	sectionBase?: string;
+}
+
+export interface SlideSegment {
+	index: number;
+	frontmatter: Record<string, unknown>;
+	body: string;
+	title: string;
+	className?: string;
+}
+
+export interface SlideContent extends SlideSegment {
+	id: string;
+	section: string;
+	sourcePath: string;
+	sourceUrlPath: string;
+	kind: "markdown" | "yaml" | "json";
 }
 
 // ---------------------------------------------------------------------------
@@ -419,6 +440,260 @@ export function slugify(text: string): string {
 		.replace(/\s+/g, "-")
 		.replace(/-+/g, "-")
 		.trim();
+}
+
+interface FenceState {
+	char: "`" | "~";
+	length: number;
+}
+
+interface FenceMarker extends FenceState {
+	trailer: string;
+}
+
+function parseFenceMarker(trimmed: string): FenceMarker | null {
+	const match = trimmed.match(/^([`~]{3,})(.*)$/);
+	if (!match) return null;
+	const marker = match[1];
+	if (!marker.split("").every((ch) => ch === marker[0])) return null;
+	const char = marker[0] as "`" | "~";
+	return { char, length: marker.length, trailer: match[2] };
+}
+
+function updateFenceState(trimmed: string, fence: FenceState | null): FenceState | null {
+	const marker = parseFenceMarker(trimmed);
+	if (!marker) return fence;
+
+	if (!fence) {
+		return { char: marker.char, length: marker.length };
+	}
+
+	// Markdown closing fences must use the same fence character and at least the same length.
+	if (marker.char === fence.char && marker.length >= fence.length && marker.trailer.trim() === "") {
+		return null;
+	}
+
+	return fence;
+}
+
+/**
+ * Split markdown content into slide chunks using explicit delimiter.
+ * Delimiter lines inside fenced code blocks are ignored.
+ */
+export function splitSlides(content: string): string[] {
+	const lines = content.split(/\r?\n/);
+	const slides: string[] = [];
+	let current: string[] = [];
+	let fence: FenceState | null = null;
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		fence = updateFenceState(trimmed, fence);
+
+		if (!fence && trimmed === "--- slide ---") {
+			slides.push(current.join("\n"));
+			current = [];
+			continue;
+		}
+
+		current.push(line);
+	}
+	slides.push(current.join("\n"));
+
+	return slides.filter((s) => s.trim() !== "");
+}
+
+function extractHeadingTitle(markdown: string): string | undefined {
+	const lines = markdown.split(/\r?\n/);
+	let fence: FenceState | null = null;
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		fence = updateFenceState(trimmed, fence);
+
+		if (fence) continue;
+		const match = trimmed.match(/^#{1,6}\s+(.+)$/);
+		if (match) {
+			return match[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
+		}
+	}
+
+	return undefined;
+}
+
+function asNonEmptyString(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim();
+	return trimmed === "" ? undefined : trimmed;
+}
+
+function sanitizeClassNameList(value: unknown): string | undefined {
+	const classList = asNonEmptyString(value);
+	if (!classList) return undefined;
+
+	const safeTokens = classList
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean)
+		.filter((token) => /^[A-Za-z0-9_-]+$/.test(token));
+
+	return safeTokens.length > 0 ? safeTokens.join(" ") : undefined;
+}
+
+/**
+ * Parse markdown into slide segments with resolved titles and optional classes.
+ * Title precedence: frontmatter.title -> first heading -> fallback title.
+ */
+export function segmentSlides(content: string, fallbackTitle: string): SlideSegment[] {
+	const parts = splitSlides(content);
+	const total = parts.length;
+
+	return parts.map((part, index) => {
+		const { frontmatter, body } = parseFrontmatter(part);
+		const fmTitle = asNonEmptyString(frontmatter.title);
+		const headingTitle = extractHeadingTitle(body);
+		const autoFallback = total > 1 ? `${fallbackTitle} (${index + 1})` : fallbackTitle;
+		const title = fmTitle || headingTitle || autoFallback;
+		const className = sanitizeClassNameList(frontmatter.class);
+
+		return {
+			index,
+			frontmatter,
+			body,
+			title,
+			className,
+		};
+	});
+}
+
+/**
+ * Collect slide content objects from discovered content files.
+ * Markdown files can produce multiple slides via explicit delimiters.
+ */
+export async function collectSlides(files: ContentFile[]): Promise<SlideContent[]> {
+	const slides: SlideContent[] = [];
+	let index = 0;
+
+	for (const file of files) {
+		const raw = await readFile(file.path, "utf-8");
+		const stem = basename(file.path, extname(file.path));
+
+		if (file.path.endsWith(".md")) {
+			const segments = segmentSlides(raw, stem);
+			for (const segment of segments) {
+				index += 1;
+				slides.push({
+					...segment,
+					id: `slide-${index}`,
+					section: file.section,
+					sourcePath: file.path,
+					sourceUrlPath: file.urlPath,
+					kind: "markdown",
+				});
+			}
+			continue;
+		}
+
+		index += 1;
+		slides.push({
+			index: 0,
+			frontmatter: {},
+			body: raw,
+			title: stem,
+			className: undefined,
+			id: `slide-${index}`,
+			section: file.section,
+			sourcePath: file.path,
+			sourceUrlPath: file.urlPath,
+			kind: file.path.endsWith(".yaml") ? "yaml" : "json",
+		});
+	}
+
+	return slides;
+}
+
+export function buildSlideNav(
+	slides: SlideContent[],
+	config: SiteConfig,
+	currentSlideId?: string,
+): string {
+	const grouped = new Map<string, SlideContent[]>();
+	for (const slide of slides) {
+		if (!grouped.has(slide.section)) grouped.set(slide.section, []);
+		grouped.get(slide.section)?.push(slide);
+	}
+
+	let html = "<ul>";
+	for (const section of config.sections) {
+		const items = grouped.get(section.name);
+		if (!items || items.length === 0) continue;
+		html += `<li><span class="nav-section">${escapeHtml(section.name)}</span><ul>`;
+		for (const slide of items) {
+			const active = currentSlideId === slide.id ? ' class="active"' : "";
+			html += `<li><a href="#${slide.id}"${active}>${escapeHtml(slide.title)}</a></li>`;
+		}
+		html += "</ul></li>";
+	}
+	html += "</ul>";
+	return html;
+}
+
+function resolveRelativeContentPath(pathOrRef: string, currentUrlPath?: string): string {
+	let cleaned = pathOrRef;
+	if (currentUrlPath && !cleaned.startsWith("/")) {
+		const base = currentUrlPath.includes("/")
+			? currentUrlPath.slice(0, currentUrlPath.lastIndexOf("/"))
+			: "";
+		cleaned = base ? `${base}/${cleaned}` : cleaned;
+	}
+
+	const segments = cleaned.split("/");
+	const resolved: string[] = [];
+	for (const segment of segments) {
+		if (!segment || segment === ".") continue;
+		if (segment === "..") resolved.pop();
+		else resolved.push(segment);
+	}
+	return resolved.join("/");
+}
+
+function splitUrlSuffix(url: string): { path: string; suffix: string } {
+	const idx = url.search(/[?#]/);
+	if (idx < 0) return { path: url, suffix: "" };
+	return { path: url.slice(0, idx), suffix: url.slice(idx) };
+}
+
+function isExternalOrAnchorRef(ref: string): boolean {
+	return /^(https?:|mailto:|tel:|data:|javascript:|#|\/\/)/i.test(ref);
+}
+
+// Rewrite relative href/src URLs so slide assets resolve from their source folder.
+export function rewriteRelativeAssetUrls(
+	html: string,
+	currentUrlPath?: string,
+	pathPrefix = "/",
+): string {
+	const assetHrefPattern =
+		/\.(pdf|png|jpe?g|gif|webp|svg|ico|bmp|avif|json|ya?ml|csv|txt|zip|mp4|webm|mov|mp3|wav|ogg)$/i;
+
+	return html.replace(/\b(href|src)="([^"]+)"/g, (_m, attr, value: string) => {
+		if (isExternalOrAnchorRef(value) || value.startsWith("/")) {
+			return `${attr}="${value}"`;
+		}
+		if (attr === "href") {
+			const isExplicitRelative = value.startsWith("./") || value.startsWith("../");
+			const { path } = splitUrlSuffix(value);
+			if (!isExplicitRelative || !assetHrefPattern.test(path)) {
+				return `${attr}="${value}"`;
+			}
+		}
+
+		const { path, suffix } = splitUrlSuffix(value);
+		const resolved = resolveRelativeContentPath(path, currentUrlPath);
+		const prefix = pathPrefix.endsWith("/") ? pathPrefix : `${pathPrefix}/`;
+		const rewritten = `${prefix}${resolved}${suffix}`;
+		return `${attr}="${rewritten}"`;
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -1182,6 +1457,14 @@ export async function loadSiteConfig(
 			docroot: parsed.docroot || ".",
 			title: parsed.title,
 			version: typeof parsedRecord.version === "string" ? parsedRecord.version : undefined,
+			mode: parsedRecord.mode === "slides" ? "slides" : "docs",
+			aspect:
+				parsedRecord.aspect === "4/3" ||
+				parsedRecord.aspect === "3/2" ||
+				parsedRecord.aspect === "16/10" ||
+				parsedRecord.aspect === "16/9"
+					? parsedRecord.aspect
+					: "16/9",
 			home: parsed.home as string | undefined,
 			brand: {
 				...parsed.brand,
@@ -1221,6 +1504,8 @@ export async function loadSiteConfig(
 			return {
 				docroot: "content",
 				title: "Documentation",
+				mode: "docs",
+				aspect: "16/9",
 				brand: { name: "Docs", url: "/" },
 				sections,
 			};
@@ -1233,6 +1518,8 @@ export async function loadSiteConfig(
 	return {
 		docroot: ".",
 		title: defaultTitle,
+		mode: "docs",
+		aspect: "16/9",
 		brand: { name: "Handbook", url: "/" },
 		sections: [],
 	};

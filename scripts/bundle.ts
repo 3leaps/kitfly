@@ -20,11 +20,13 @@ import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR } from "../src/engine.ts";
 import {
 	buildBundleFooter,
-	// Navigation/template building
 	buildSectionNav,
+	// Navigation/template building
+	buildSlideNav,
 	// Types
 	type ContentFile,
 	collectFiles,
+	collectSlides,
 	envBool,
 	// Config helpers
 	envString,
@@ -295,6 +297,52 @@ function buildBundleNav(files: ContentFile[], config: SiteConfig): string {
 	return html;
 }
 
+async function buildSlidesBundleContent(files: ContentFile[], config: SiteConfig): Promise<string> {
+	const slides = await collectSlides(files);
+	const renderedSlides = await Promise.all(
+		slides.map(async (slide, i) => {
+			let inner = "";
+			if (slide.kind === "markdown") {
+				inner = marked.parse(slide.body) as string;
+			} else if (slide.kind === "yaml") {
+				inner = `<pre><code class="language-yaml">${escapeHtml(slide.body)}</code></pre>`;
+			} else {
+				let prettyJson = slide.body;
+				try {
+					prettyJson = JSON.stringify(JSON.parse(slide.body), null, 2);
+				} catch {
+					// Keep original text
+				}
+				inner = `<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
+			}
+
+			inner = await inlineLocalImages(inner, config);
+			inner = rewriteContentLinks(inner, files, slide.sourceUrlPath, config.docroot);
+
+			const activeClass = i === 0 ? " active" : "";
+			const classToken = slide.className ? ` ${slide.className}` : "";
+			return `<section id="${slide.id}" class="slide${classToken}${activeClass}" data-slide-index="${i}">${inner}</section>`;
+		}),
+	);
+
+	return `
+        <div class="slides-shell" style="--slide-aspect: ${config.aspect || "16/9"}">
+          <div class="slide-viewport">
+            <div class="slide-frame">
+              ${renderedSlides.join("\n")}
+            </div>
+          </div>
+          <div class="slide-nav" aria-label="Slide navigation">
+            <button class="slide-prev" type="button" aria-label="Previous slide">Prev</button>
+            <span class="slide-counter">1 / ${slides.length}</span>
+            <button class="slide-next" type="button" aria-label="Next slide">Next</button>
+            <div class="slide-progress" role="presentation">
+              <span class="slide-progress-bar" style="width: ${(1 / slides.length) * 100}%"></span>
+            </div>
+          </div>
+        </div>`;
+}
+
 function buildBundleSidebarHeader(
 	config: SiteConfig,
 	version: string | undefined,
@@ -410,29 +458,6 @@ async function bundle() {
 	// Resolve site version (site.yaml version, then git tag)
 	const version = await resolveSiteVersion(ROOT, config.version);
 
-	// Build navigation and content sections
-	const sections: Map<string, { id: string; title: string; html: string }[]> = new Map();
-
-	// Add home page as first item if specified
-	if (config.home) {
-		const homePath = validatePath(ROOT, config.docroot, config.home);
-		if (homePath) {
-			try {
-				await stat(homePath);
-				const content = await readFile(homePath, "utf-8");
-				const { frontmatter, body } = parseFrontmatter(content);
-				const title = (frontmatter.title as string) || "Home";
-				let htmlContent = marked.parse(body) as string;
-				htmlContent = await inlineLocalImages(htmlContent, config);
-				htmlContent = rewriteContentLinks(htmlContent, files, undefined, config.docroot);
-				sections.set("Home", [{ id: "home", title, html: htmlContent }]);
-				console.log(`  ✓ Added home page: ${config.home}`);
-			} catch {
-				console.warn(`  ⚠ Home page ${config.home} not found`);
-			}
-		}
-	}
-
 	// Collect page metadata and raw content for AI accessibility
 	const pageIndex: {
 		path: string;
@@ -441,73 +466,116 @@ async function bundle() {
 		description?: string;
 	}[] = [];
 	const rawMarkdown: { path: string; content: string }[] = [];
+	let navHtml = "";
+	let contentHtml = "";
 
-	for (const file of files) {
-		const content = await readFile(file.path, "utf-8");
-		let title = basename(file.path).replace(/\.(md|yaml|json)$/, "");
-		let description: string | undefined;
-		let htmlContent: string;
-
-		if (file.path.endsWith(".yaml")) {
-			htmlContent = `<pre><code class="language-yaml">${escapeHtml(content)}</code></pre>`;
-		} else if (file.path.endsWith(".json")) {
-			// Render JSON as code block (pretty-printed)
-			let prettyJson = content;
-			try {
-				prettyJson = JSON.stringify(JSON.parse(content), null, 2);
-			} catch {
-				// Use original if not valid JSON
-			}
-			htmlContent = `<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
-		} else {
-			const { frontmatter, body } = parseFrontmatter(content);
-			if (frontmatter.title) {
-				title = frontmatter.title as string;
-			}
-			if (frontmatter.description) {
-				description = frontmatter.description as string;
-			}
-			htmlContent = marked.parse(body) as string;
-
-			// Collect raw markdown for AI accessibility
-			if (INCLUDE_RAW) {
+	if (config.mode === "slides") {
+		const slides = await collectSlides(files);
+		for (const file of files) {
+			const content = await readFile(file.path, "utf-8");
+			if (INCLUDE_RAW && file.path.endsWith(".md")) {
 				rawMarkdown.push({ path: file.urlPath, content });
 			}
 		}
-
-		// Collect page metadata for content index
-		pageIndex.push({
-			path: file.urlPath,
-			title,
-			section: file.section,
-			description,
-		});
-
-		// Inline any SVG references
-		htmlContent = await inlineLocalImages(htmlContent, config);
-		htmlContent = rewriteContentLinks(htmlContent, files, file.urlPath, config.docroot);
-
-		const sectionId = slugify(file.urlPath);
-
-		if (!sections.has(file.section)) {
-			sections.set(file.section, []);
+		for (const slide of slides) {
+			pageIndex.push({
+				path: slide.id,
+				title: slide.title,
+				section: slide.section,
+			});
 		}
-		sections.get(file.section)?.push({ id: sectionId, title, html: htmlContent });
-	}
+		navHtml = buildSlideNav(slides, config, "slide-1");
+		contentHtml = await buildSlidesBundleContent(files, config);
+	} else {
+		// Build navigation and content sections
+		const sections: Map<string, { id: string; title: string; html: string }[]> = new Map();
 
-	// Build navigation HTML from shared hierarchical nav tree
-	const navHtml = buildBundleNav(files, config);
+		// Add home page as first item if specified
+		if (config.home) {
+			const homePath = validatePath(ROOT, config.docroot, config.home);
+			if (homePath) {
+				try {
+					await stat(homePath);
+					const content = await readFile(homePath, "utf-8");
+					const { frontmatter, body } = parseFrontmatter(content);
+					const title = (frontmatter.title as string) || "Home";
+					let htmlContent = marked.parse(body) as string;
+					htmlContent = await inlineLocalImages(htmlContent, config);
+					htmlContent = rewriteContentLinks(htmlContent, files, undefined, config.docroot);
+					sections.set("Home", [{ id: "home", title, html: htmlContent }]);
+					console.log(`  ✓ Added home page: ${config.home}`);
+				} catch {
+					console.warn(`  ⚠ Home page ${config.home} not found`);
+				}
+			}
+		}
 
-	// Build content HTML
-	let contentHtml = "";
-	for (const [, items] of sections) {
-		for (const item of items) {
-			contentHtml += `
+		for (const file of files) {
+			const content = await readFile(file.path, "utf-8");
+			let title = basename(file.path).replace(/\.(md|yaml|json)$/, "");
+			let description: string | undefined;
+			let htmlContent: string;
+
+			if (file.path.endsWith(".yaml")) {
+				htmlContent = `<pre><code class="language-yaml">${escapeHtml(content)}</code></pre>`;
+			} else if (file.path.endsWith(".json")) {
+				// Render JSON as code block (pretty-printed)
+				let prettyJson = content;
+				try {
+					prettyJson = JSON.stringify(JSON.parse(content), null, 2);
+				} catch {
+					// Use original if not valid JSON
+				}
+				htmlContent = `<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
+			} else {
+				const { frontmatter, body } = parseFrontmatter(content);
+				if (frontmatter.title) {
+					title = frontmatter.title as string;
+				}
+				if (frontmatter.description) {
+					description = frontmatter.description as string;
+				}
+				htmlContent = marked.parse(body) as string;
+
+				// Collect raw markdown for AI accessibility
+				if (INCLUDE_RAW) {
+					rawMarkdown.push({ path: file.urlPath, content });
+				}
+			}
+
+			// Collect page metadata for content index
+			pageIndex.push({
+				path: file.urlPath,
+				title,
+				section: file.section,
+				description,
+			});
+
+			// Inline any SVG references
+			htmlContent = await inlineLocalImages(htmlContent, config);
+			htmlContent = rewriteContentLinks(htmlContent, files, file.urlPath, config.docroot);
+
+			const sectionId = slugify(file.urlPath);
+
+			if (!sections.has(file.section)) {
+				sections.set(file.section, []);
+			}
+			sections.get(file.section)?.push({ id: sectionId, title, html: htmlContent });
+		}
+
+		// Build navigation HTML from shared hierarchical nav tree
+		navHtml = buildBundleNav(files, config);
+
+		// Build content HTML
+		for (const [, items] of sections) {
+			for (const item of items) {
+				contentHtml += `
         <section id="${item.id}" class="bundle-section">
           <h1 class="section-title">${item.title}</h1>
           ${item.html}
         </section>
       `;
+			}
 		}
 	}
 
@@ -566,7 +634,7 @@ ${assets.prismCssDark}
     })();
   </script>
 </head>
-<body>
+<body class="${config.mode === "slides" ? "mode-slides" : "mode-docs"}">
   <div class="layout">
     <nav class="sidebar">
 ${buildBundleSidebarHeader(config, version, brandLogo)}
@@ -647,17 +715,78 @@ ${assets.mermaid}
       }
     }
 
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-          history.pushState(null, '', this.getAttribute('href'));
+    // Slides mode hash routing
+    (function initSlidesMode() {
+      const shell = document.querySelector('.slides-shell');
+      if (!shell) {
+        // Docs mode: retain smooth in-page anchor scrolling.
+        document.querySelectorAll('a[href^="#"]').forEach((link) => {
+          link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href') || '';
+            if (href.length <= 1) return;
+            const target = document.querySelector(href);
+            if (!target) return;
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.replaceState(null, '', href);
+          });
+        });
+        return;
+      }
+
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      if (!slides.length) return;
+
+      const prevBtn = document.querySelector('.slide-prev');
+      const nextBtn = document.querySelector('.slide-next');
+      const counter = document.querySelector('.slide-counter');
+      const progressBar = document.querySelector('.slide-progress-bar');
+      const navLinks = Array.from(document.querySelectorAll('.sidebar-nav a[href^="#slide-"]'));
+      let current = 0;
+
+      function setActive(n) {
+        current = Math.max(0, Math.min(n, slides.length - 1));
+        slides.forEach((slide, idx) => slide.classList.toggle('active', idx === current));
+        navLinks.forEach((link) => {
+          const active = link.getAttribute('href') === '#' + slides[current].id;
+          link.classList.toggle('active', active);
+        });
+        if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+        if (progressBar) progressBar.style.width = (((current + 1) / slides.length) * 100) + '%';
+        if (prevBtn) prevBtn.disabled = current === 0;
+        if (nextBtn) nextBtn.disabled = current === slides.length - 1;
+        history.replaceState(null, '', '#'+slides[current].id);
+      }
+
+      function setFromHash() {
+        const hash = window.location.hash || '';
+        const idx = slides.findIndex((s) => '#'+s.id === hash);
+        if (idx >= 0) setActive(idx);
+        else setActive(0);
+      }
+
+      prevBtn?.addEventListener('click', () => setActive(current - 1));
+      nextBtn?.addEventListener('click', () => setActive(current + 1));
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          setActive(current + 1);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setActive(current - 1);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          setActive(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          setActive(slides.length - 1);
         }
       });
-    });
+
+      window.addEventListener('hashchange', setFromHash);
+      setFromHash();
+    })();
   </script>
   <!-- AI Accessibility: Content Index -->
   <script type="application/json" id="kitfly-content-index">

@@ -28,7 +28,7 @@
     })();
   </script>
 </head>
-<body>
+<body class="{{BODY_CLASS}}">
   <div class="mobile-header">
     <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -158,6 +158,65 @@
         window.reinitMermaid();
       }
     }
+
+    // Slides mode hash routing
+    (function initSlidesMode() {
+      const shell = document.querySelector('.slides-shell');
+      if (!shell) return;
+
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      if (!slides.length) return;
+
+      const prevBtn = document.querySelector('.slide-prev');
+      const nextBtn = document.querySelector('.slide-next');
+      const counter = document.querySelector('.slide-counter');
+      const progressBar = document.querySelector('.slide-progress-bar');
+      const navLinks = Array.from(document.querySelectorAll('.sidebar-nav a[href^="#slide-"]'));
+      let current = 0;
+
+      function setActive(n) {
+        current = Math.max(0, Math.min(n, slides.length - 1));
+        slides.forEach((slide, idx) => slide.classList.toggle('active', idx === current));
+        navLinks.forEach((link) => {
+          const active = link.getAttribute('href') === '#' + slides[current].id;
+          link.classList.toggle('active', active);
+        });
+        if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+        if (progressBar) progressBar.style.width = (((current + 1) / slides.length) * 100) + '%';
+        if (prevBtn) prevBtn.disabled = current === 0;
+        if (nextBtn) nextBtn.disabled = current === slides.length - 1;
+        history.replaceState(null, '', '#' + slides[current].id);
+      }
+
+      function setFromHash() {
+        const hash = window.location.hash || '';
+        const idx = slides.findIndex((s) => '#' + s.id === hash);
+        if (idx >= 0) setActive(idx);
+        else setActive(0);
+      }
+
+      prevBtn?.addEventListener('click', () => setActive(current - 1));
+      nextBtn?.addEventListener('click', () => setActive(current + 1));
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          e.preventDefault();
+          setActive(current + 1);
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setActive(current - 1);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          setActive(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          setActive(slides.length - 1);
+        }
+      });
+
+      window.addEventListener('hashchange', setFromHash);
+      setFromHash();
+    })();
 
     // Copy code button
     document.querySelectorAll('.prose pre code').forEach(block => {

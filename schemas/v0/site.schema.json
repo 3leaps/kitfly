@@ -28,6 +28,18 @@
       "description": "Site version displayed in footer provenance",
       "examples": ["1.0.0", "2024.03", "draft"]
     },
+    "mode": {
+      "type": "string",
+      "description": "Site layout mode",
+      "enum": ["docs", "slides"],
+      "default": "docs"
+    },
+    "aspect": {
+      "type": "string",
+      "description": "Slide aspect ratio (only applies when mode is slides)",
+      "enum": ["16/9", "4/3", "3/2", "16/10"],
+      "default": "16/9"
+    },
     "home": {
       "type": "string",
       "description": "Home page file (rendered as index.html, not in nav)"
