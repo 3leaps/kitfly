@@ -18,7 +18,9 @@ Proposed
 
 Kitfly generates slidesites — fixed-aspect pages that are not “infinite scroll” documents. A key use case is AI agents generating presentation-quality slides, including infographic-style layouts with shapes, connectors, and composed visual patterns. (If content is long, it may scroll *within* the slide frame; the page layout remains slide-like.)
 
-We need to decide how far to push CSS-based layout primitives before delegating to diagramming engines (Mermaid, PlantUML, or similar). The risk on one side is rebuilding a diagramming engine inside CSS; the risk on the other is forcing all visual compositions through tools whose auto-layout is difficult for agents to control precisely.
+Kitfly is not trying to recreate diagram engines like Mermaid or PlantUML. Those tools compute layout from relationships, which is powerful but hard to control precisely in slide composition and hard for agents to predict.
+
+We need to decide how far to push CSS-based shapes and figures before delegating to diagram engines. The risk on one side is rebuilding a diagram engine inside CSS; the risk on the other is forcing all visual compositions through tools whose auto-layout is difficult for agents to control precisely.
 
 ### Observed Problems
 
@@ -44,7 +46,7 @@ Examples: cycle-wheel, quadrant-grid, layer-cake, funnel, hub-spoke, horizontal-
 
 ### The Boundary Rule
 
-> **If the agent can enumerate all elements and their positions (or slot assignments) at authoring time, it belongs in the primitive/figure system. If element positions must be computed from relationships between an unknown or variable set of nodes, it belongs in a diagramming engine.**
+> **If you can name the pieces and where they go (explicit positions or slots), it is a figure. If layout must be computed from relationships between a variable set of nodes, it is a diagram engine.**
 
 | Criterion | Primitives / Figures | Diagramming Engine |
 |---|---|---|

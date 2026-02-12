@@ -101,5 +101,6 @@ Rejected: too much ambiguity and high breakage risk once plugins exist in the wi
 
 ## References
 
-- v0.2.0 plugin architecture plan (`.plans/active/v0.2.0/`)
+- [DDR-0005: Deterministic Layout Boundary](DDR-0005-deterministic-layout-boundary.md)
+- [Design Catalog: Shapes and Figures](../../content/reference/design-catalog.md)
 - [ADR-0001: Minimalist Site Code](ADR-0001-minimalist-site-code.md)
