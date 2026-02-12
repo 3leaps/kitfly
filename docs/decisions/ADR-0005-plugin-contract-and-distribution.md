@@ -18,6 +18,8 @@ Proposed
 
 Kitfly v0.2.0 introduces optional plugin capabilities to support advanced use cases (starting with slides and live-slide extensions) without bloating core site code.
 
+As of M1.1, basic slide **shape primitives** remain core CSS. Plugin scope starts at higher-level figures/widgets and engine integrations where deterministic core CSS stops.
+
 Two operational choices must be explicit:
 
 1. **Contract stability**: plugin authors and site operators need a clear, versioned interface that remains predictable.

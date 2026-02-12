@@ -65,6 +65,12 @@ For compositions that cross the boundary (flowcharts with variable branching, or
 
 ## Consequences
 
+### Implementation Notes (M1.1)
+
+- Core ships **shape primitives** as `.block` modifiers (for example `circle`, `diamond`, `chevron`, `block-arrow`) with deterministic CSS-only behavior.
+- Simple directional flows use existing `block-flow` glyph arrows plus directional shapes; general connector routing remains deferred to plugin/engine phases.
+- This keeps Tier 1 in core without crossing into layout-engine responsibilities.
+
 ### Benefits
 
 1. **Agent reliability** — Agents produce consistent, predictable visual output for common infographic patterns that are deterministic layouts.
