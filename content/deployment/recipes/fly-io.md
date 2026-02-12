@@ -6,9 +6,9 @@ last_updated: "2026-02-12"
 
 # Recipe: Fly.io
 
-Fly.io is best when you want your Kitfly site hosted like an “app” (for example: private/internal access, custom headers, or a future path to auth).
+Fly.io is best when you want your Kitfly site hosted like an "app" (for example: private/internal access, custom headers, or a future path to auth).
 
-This recipe assumes you’re comfortable with a small amount of Docker.
+This recipe assumes you're comfortable with a small amount of Docker.
 
 If all you want is public static hosting with a custom domain, Netlify or GitHub Pages is usually simpler.
 
@@ -41,13 +41,17 @@ flyctl deploy
 
 If `flyctl launch` asks for a port, you typically want `80` for a static nginx container.
 
-## DNS basics
+## Custom domain (DNS basics)
 
 Typical pattern:
+
 - `docs.example.com` → **CNAME** to the Fly-provided hostname
 
-## Rollback
+Fly provisions HTTPS automatically via Let's Encrypt for custom domains.
 
-Fly retains release history. You can usually roll back by promoting a previous release.
+## Verify + Rollback
 
-See: [Preflight and Rollback](content/deployment/preflight.html)
+- Verify: load the site, click a few pages, hard refresh, confirm HTTPS lock icon
+- Rollback: Fly retains release history — promote a previous release with `flyctl releases` and `flyctl deploy --image <previous-image>`
+
+See: [Preflight and Rollback](../preflight.html)

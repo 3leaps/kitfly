@@ -18,7 +18,7 @@ Examples:
 Kitfly’s output is static. Deployment tools often need credentials, and environment variables are a common way to provide them without putting secrets in files.
 
 Important: don’t commit secrets to git. See:
-- [Deployment: Secrets and Environment Variables](content/deployment/secrets-and-env-vars.html)
+- [Deployment: Secrets and Environment Variables](../deployment/secrets-and-env-vars.html)
 
 ## How to set an environment variable
 
