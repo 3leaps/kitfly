@@ -1403,7 +1403,7 @@ export async function resolveSiteVersion(
 }
 
 function isAbsoluteVersionPath(pathValue: string): boolean {
-	return isAbsolute(pathValue) || /^[A-Za-z]:[\\/]/.test(pathValue) || pathValue.startsWith("\\\\");
+	return isAbsolute(pathValue) || /^[A-Za-z]:/.test(pathValue) || pathValue.startsWith("\\\\");
 }
 
 async function readVersionLine(path: string): Promise<string | undefined> {

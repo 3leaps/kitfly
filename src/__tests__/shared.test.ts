@@ -1379,6 +1379,19 @@ describe("resolveSiteVersion", () => {
 		}
 	});
 
+	it("rejects windows drive-relative file path and falls back", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const version = await resolveSiteVersion("/nonexistent/path", "file:C:VERSION");
+			expect(version).toBeUndefined();
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining("version file: absolute paths are not allowed"),
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
 	it("rejects path that escapes site root and falls back", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-escape-"));
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -1390,6 +1403,38 @@ describe("resolveSiteVersion", () => {
 			);
 		} finally {
 			warn.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("warns for empty file path and falls back", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const version = await resolveSiteVersion("/nonexistent/path", "file:");
+			expect(version).toBeUndefined();
+			expect(warn).toHaveBeenCalledWith("version file: path is empty");
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it("falls back when auto VERSION file is missing", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-auto-missing-"));
+		try {
+			const version = await resolveSiteVersion(dir, "auto");
+			expect(version).toBeUndefined();
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back when auto VERSION file is empty", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-version-auto-empty-"));
+		try {
+			await writeFile(join(dir, "VERSION"), "\n \n\t\n", "utf-8");
+			const version = await resolveSiteVersion(dir, "auto");
+			expect(version).toBeUndefined();
+		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
 	});
