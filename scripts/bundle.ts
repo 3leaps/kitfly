@@ -4,13 +4,13 @@
  * Usage: bun run bundle [folder] [options]
  *
  * Options:
- *   -o, --out <dir>    Output directory [env: KITFLY_BUILD_OUT] [default: dist]
+ *   -o, --out <dir>    Output directory [env: KITFLY_BUNDLE_OUT] [default: bundles]
  *   -n, --name <file>  Bundle filename [env: KITFLY_BUNDLE_NAME] [default: bundle.html]
- *   --raw              Include raw markdown in bundle [env: KITFLY_BUILD_RAW] [default: true]
+ *   --raw              Include raw markdown in bundle [env: KITFLY_BUNDLE_RAW] [default: true]
  *   --no-raw           Don't include raw markdown
  *   --help             Show help message
  *
- * Creates dist/bundle.html - a single file containing all content,
+ * Creates bundles/bundle.html - a single file containing all content,
  * styles, and scripts for offline viewing.
  */
 
@@ -45,7 +45,7 @@ import {
 import { generateThemeCSS, getPrismUrls, loadTheme } from "../src/theme.ts";
 
 // Defaults
-const DEFAULT_OUT = "dist";
+const DEFAULT_OUT = "bundles";
 const DEFAULT_NAME = "bundle.html";
 
 let ROOT = process.cwd();
@@ -93,11 +93,15 @@ function getConfig(): {
 	raw: boolean;
 } {
 	const args = parseArgs(process.argv.slice(2));
+	const legacyOut = envString("KITFLY_BUILD_OUT", DEFAULT_OUT);
+	const out = args.out ?? envString("KITFLY_BUNDLE_OUT", legacyOut);
+	const legacyRaw = envBool("KITFLY_BUILD_RAW", true);
+	const raw = args.raw ?? envBool("KITFLY_BUNDLE_RAW", legacyRaw);
 	return {
 		folder: args.folder,
-		out: args.out ?? envString("KITFLY_BUILD_OUT", DEFAULT_OUT),
+		out,
 		name: args.name ?? envString("KITFLY_BUNDLE_NAME", DEFAULT_NAME),
-		raw: args.raw ?? envBool("KITFLY_BUILD_RAW", true),
+		raw,
 	};
 }
 
@@ -884,9 +888,9 @@ if (import.meta.main) {
 Usage: bun run bundle [folder] [options]
 
 Options:
-  -o, --out <dir>       Output directory [env: KITFLY_BUILD_OUT] [default: ${DEFAULT_OUT}]
+  -o, --out <dir>       Output directory [env: KITFLY_BUNDLE_OUT] [default: ${DEFAULT_OUT}]
   -n, --name <file>     Bundle filename [env: KITFLY_BUNDLE_NAME] [default: ${DEFAULT_NAME}]
-  --raw                 Include raw markdown in bundle [env: KITFLY_BUILD_RAW] [default: true]
+  --raw                 Include raw markdown in bundle [env: KITFLY_BUNDLE_RAW] [default: true]
   --no-raw              Don't include raw markdown
   --help                Show this help message
 
@@ -894,8 +898,9 @@ Examples:
   bun run bundle
   bun run bundle ./docs
   bun run bundle --name docs.html
-  bun run bundle ./docs --out ./public --name handbook.html
+  bun run bundle ./docs --out ./bundles --name handbook.html
   KITFLY_BUNDLE_NAME=docs.html bun run bundle
+  KITFLY_BUNDLE_OUT=release bun run bundle
 `);
 		process.exit(0);
 	}

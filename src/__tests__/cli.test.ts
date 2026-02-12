@@ -54,7 +54,7 @@ kitfly v${version} - Turn your writing into a website
 Usage:
   kitfly dev [folder]     Start dev server with hot reload
   kitfly build [folder]   Build static site to dist/
-  kitfly bundle [folder]  Build single-file HTML bundle
+  kitfly bundle [folder]  Build single-file HTML bundle to bundles/
   kitfly init [name]      Create new project from template
   kitfly servers          List running dev servers
   kitfly stop <port|all>  Stop dev server(s)
@@ -68,10 +68,14 @@ Dev options:
   --json        Output JSON (implies --daemon)
   --no-open     Don't open browser
 
-Build/bundle options:
+Build options:
   --out <dir>   Output directory [env: KITFLY_BUILD_OUT] (default: dist)
-  --name <file> Bundle filename (default: bundle.html)
   --no-raw      Don't include raw markdown
+
+Bundle options:
+  --out <dir>   Output directory [env: KITFLY_BUNDLE_OUT] (default: bundles)
+  --name <file> Bundle filename (default: bundle.html)
+  --no-raw      Don't include raw markdown [env: KITFLY_BUNDLE_RAW]
 
 Stop options:
   --force       Skip graceful shutdown, kill immediately
@@ -84,6 +88,7 @@ Examples:
   kitfly stop 4000
   kitfly stop all
   kitfly build ./docs --out ./public
+  kitfly bundle ./docs --out ./bundles --name docs.html
   kitfly init my-handbook
 
 Documentation: https://kitfly.app
@@ -646,6 +651,12 @@ describe("command argument defaults", () => {
 		const { flags } = routeCommand(["bundle"]);
 		const name = (flags.name as string) || "bundle.html";
 		expect(name).toBe("bundle.html");
+	});
+
+	it("bundle defaults out to bundles", () => {
+		const { flags } = routeCommand(["bundle"]);
+		const out = (flags.out as string) || "bundles";
+		expect(out).toBe("bundles");
 	});
 });
 

@@ -70,7 +70,7 @@ kitfly v${VERSION} - Turn your writing into a website
 Usage:
   kitfly dev [folder]     Start dev server with hot reload
   kitfly build [folder]   Build static site to dist/
-  kitfly bundle [folder]  Build single-file HTML bundle
+  kitfly bundle [folder]  Build single-file HTML bundle to bundles/
   kitfly init [name]      Create new project from template
   kitfly update [version] Update standalone site code
   kitfly servers          List running dev servers
@@ -86,10 +86,14 @@ Dev options:
   --json        Output JSON (implies --daemon)
   --no-open     Don't open browser
 
-Build/bundle options:
+Build options:
   --out <dir>   Output directory [env: KITFLY_BUILD_OUT] (default: dist)
-  --name <file> Bundle filename (default: bundle.html)
   --no-raw      Don't include raw markdown
+
+Bundle options:
+  --out <dir>   Output directory [env: KITFLY_BUNDLE_OUT] (default: bundles)
+  --name <file> Bundle filename (default: bundle.html)
+  --no-raw      Don't include raw markdown [env: KITFLY_BUNDLE_RAW]
 
 Stop options:
   --force       Skip graceful shutdown, kill immediately
@@ -117,6 +121,7 @@ Examples:
   kitfly logs 3340 --follow
   kitfly logs --clean
   kitfly build ./docs --out ./public
+  kitfly bundle ./docs --out ./bundles --name docs.html
   kitfly init my-handbook
   kitfly update --check
 
@@ -359,7 +364,7 @@ async function main() {
 
 		case "bundle": {
 			const folder = positional[0] || ".";
-			const out = (flags.out as string) || "dist";
+			const out = (flags.out as string) || "bundles";
 			const name = (flags.name as string) || "bundle.html";
 			const raw = flags.raw !== false; // --no-raw disables raw markdown
 			const { bundleSite } = await import("../scripts/bundle.ts");

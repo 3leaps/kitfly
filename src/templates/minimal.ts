@@ -70,6 +70,7 @@ This is your documentation site, powered by [Kitfly](https://github.com/3leaps/k
 			path: ".gitignore",
 			content: () => `# Build output
 dist/
+bundles/
 
 # Dependencies (if using kitfly as dependency)
 node_modules/

@@ -36,6 +36,7 @@ help: ## Show this help message
 	@echo "  make bootstrap      - Install dependencies and external tools"
 	@echo "  make dev            - Start development server with hot reload"
 	@echo "  make build          - Build static HTML site to dist/"
+	@echo "  make bundle         - Build single-file bundle to bundles/"
 	@echo ""
 	@echo "Quality:"
 	@echo "  make fmt            - Format code (Biome for TS, goneat for YAML/MD)"
@@ -168,10 +169,10 @@ build: ## Build static HTML site to dist/
 	@bun run build
 
 bundle: ## Build single-file HTML bundle
-	@bun run bundle
+	@bun run bundle --out bundles
 
 clean: ## Remove build artifacts
-	@rm -rf dist/ dist-cli/ coverage/ sbom/
+	@rm -rf dist/ bundles/ dist-cli/ coverage/ sbom/
 	@echo "Clean complete"
 
 # -----------------------------------------------------------------------------
