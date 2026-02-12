@@ -3,7 +3,7 @@ title: "Repository Documentation"
 description: "Meta-documentation for the Kitfly repository"
 author: "devlead"
 date: "2026-02-04"
-last_updated: "2026-02-04"
+last_updated: "2026-02-12"
 status: "approved"
 ---
 
@@ -21,6 +21,9 @@ docs/
 │   ├── ADR-XXXX-*.md    # Architecture decisions
 │   ├── SDR-XXXX-*.md    # Security decisions (future)
 │   └── DDR-XXXX-*.md    # Design decisions - frontend/web (future)
+├── releases/            # Release notes per version
+├── userguide/           # CLI and feature documentation
+├── development.md       # Contributor setup (prerequisites, bootstrap)
 └── README.md            # This file
 ```
 
@@ -58,7 +61,7 @@ For frontend/web design decisions: layout, accessibility, responsive behavior, v
 | Content | Location | Rendered by kitfly? |
 |---------|----------|---------------------|
 | Product docs (how to use kitfly) | `content/` | Yes |
-| Repo docs (decisions, contributing) | `docs/` | No |
+| Repo docs (decisions, contributing) | `docs/` | Some (this repo’s docs site exposes `docs/userguide` and `docs/decisions` via `site.yaml`) |
 | Agent guide | `AGENTS.md` | No |
 | Public README | `README.md` | No |
 
@@ -66,7 +69,7 @@ For frontend/web design decisions: layout, accessibility, responsive behavior, v
 
 | File | Purpose |
 |------|---------|
-| `VERSION` | Version number (appears in footer, used for provenance) |
+| `VERSION` | Repo version number (used by releases and `kitfly version`; sites can optionally display a site version via `site.yaml`) |
 | `site.yaml` | Site configuration for the kitfly docs site |
 | `theme.yaml` | Theme configuration for the kitfly docs site |
 | `src/site/template.html` | HTML template with `{{variables}}` |

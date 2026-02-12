@@ -12,6 +12,27 @@
 
 ---
 
+## Install
+
+Kitfly requires [Bun](https://bun.sh) as its runtime.
+
+```bash
+# Install Bun (if you don't have it)
+curl -fsSL https://bun.sh/install | bash
+
+# Install Kitfly globally
+bun install -g kitfly
+
+# Verify
+kitfly --version
+```
+
+Also available via npm (still requires Bun installed, because the CLI runs with Bun): `npm install -g kitfly`
+
+For contributor/development setup, see [docs/development.md](docs/development.md).
+
+---
+
 ## Three Ways to Use Kitfly
 
 | Approach | Best For | What You Get |
@@ -52,7 +73,7 @@ bun run dev
 
 The `content/` folder is the actual kitfly documentation. What you see is what you get.
 
-See [Kitfly Overview](content/guide/kitfly-overview.md) for the full picture.
+For full contributor setup (toolchain, bootstrap, local CLI), see [docs/development.md](docs/development.md). For the product overview, see [Kitfly Overview](content/guide/kitfly-overview.md).
 
 ---
 
@@ -72,6 +93,7 @@ See [Kitfly Overview](content/guide/kitfly-overview.md) for the full picture.
 | Navigation | Auto-generated from folder structure |
 | Table of contents | Extracted from headings |
 | Dark mode | System preference + toggle |
+| Slides mode | `mode: slides` for fixed-aspect decks (v0.2.0+) |
 | Diagrams | Mermaid via CDN |
 | Syntax highlighting | Prism.js via CDN |
 | Offline-ready | Static HTML, no server required |
@@ -96,6 +118,7 @@ Create `site.yaml` (optional):
 docroot: "content"
 title: "My Documentation"
 home: "index.md"
+mode: "docs" # or "slides" (v0.2.0+)
 
 brand:
   name: "My Project"

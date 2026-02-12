@@ -17,6 +17,8 @@ sections:
     path: "templates"
   - name: "Reference"
     path: "reference"
+  - name: "Deployment"
+    path: "deployment"
   - name: "User Guide"
     path: "../docs/userguide"
   - name: "Decisions"

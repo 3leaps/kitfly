@@ -69,3 +69,5 @@ The `docroot` setting in `site.yaml` controls what gets rendered.
 - [Kitfly Overview](content/guide/kitfly-overview.html) - Big picture and workflows
 - [Features](content/guide/features.html) - See what kitfly can do
 - [Configuration](content/reference/configuration.html) - Customize your site
+- [Deployment](content/deployment/index.html) - Publish your site safely
+- [Reference](content/reference/index.html) - Concepts, glossary, and lookups
