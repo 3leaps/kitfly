@@ -53,8 +53,111 @@ If element positions must be computed from relationships between a variable set 
 
 ## Where this is going
 
-This page is the entry point. During the v0.2.0 dev phase, we’ll extend it into:
-- a shape list (what exists, what each is for)
+This page is the entry point. During the v0.2.x cycle, we’ll extend it with:
+- a fuller shape list (what exists, what each is for)
 - a figure list (patterns, slot definitions, examples)
-- guidance on when to choose figures vs Mermaid
+- guidance on when to choose figures vs Mermaid (and when not to)
 
+## What ships now (current)
+
+Current core support focuses on **shapes** as `.block` modifiers:
+- `circle`
+- `pill`
+- `diamond`
+- `chevron`
+- `hexagon`
+- `triangle`
+- `block-arrow`
+
+For simple directional storytelling, use `block-flow` with directional shapes.  
+General connector routing remains deferred to plugin/engine phases.
+
+## How to use this (today)
+
+These examples use plain HTML inside Markdown. That’s intentional: it’s simple, deterministic, and easy for both AI agents and frontend authors to write and review.
+
+You can use these classes in slides mode (recommended) and in docs mode when you want a diagram-like block in the middle of a page.
+
+## Live Examples
+
+Use the theme toggle in the header to switch light/dark and see the same examples adapt automatically.
+
+### Shape gallery (atomic primitives)
+
+<div class="block-grid cols-4">
+  <div class="block">box</div>
+  <div class="block circle accent">1</div>
+  <div class="block pill accent">pill</div>
+  <div class="block diamond">diamond</div>
+  <div class="block chevron">chevron</div>
+  <div class="block hexagon">hex</div>
+  <div class="block triangle">tri</div>
+  <div class="block block-arrow accent">arrow</div>
+</div>
+
+```html
+<div class="block-grid cols-4">
+  <div class="block">box</div>
+  <div class="block circle accent">1</div>
+  <div class="block pill accent">pill</div>
+  <div class="block diamond">diamond</div>
+  <div class="block chevron">chevron</div>
+  <div class="block hexagon">hex</div>
+  <div class="block triangle">tri</div>
+  <div class="block block-arrow accent">arrow</div>
+</div>
+```
+
+### Directional flow (no connector engine)
+
+<div class="block-flow">
+  <div class="block chevron">Intake</div>
+  <div class="block block-arrow accent">Assess</div>
+  <div class="block chevron">Plan</div>
+  <div class="block block-arrow accent">Ship</div>
+</div>
+
+```html
+<div class="block-flow">
+  <div class="block chevron">Intake</div>
+  <div class="block block-arrow accent">Assess</div>
+  <div class="block chevron">Plan</div>
+  <div class="block block-arrow accent">Ship</div>
+</div>
+```
+
+### Modifier comparison (same base shape, side-by-side)
+
+<div class="block-grid cols-4">
+  <div class="block">default</div>
+  <div class="block accent">accent</div>
+  <div class="block outline">outline</div>
+  <div class="block muted">muted</div>
+</div>
+
+```html
+<div class="block-grid cols-4">
+  <div class="block">default</div>
+  <div class="block accent">accent</div>
+  <div class="block outline">outline</div>
+  <div class="block muted">muted</div>
+</div>
+```
+
+### Modifier comparison on one shape (circle)
+
+<div class="block-grid cols-4">
+  <div class="block circle">A</div>
+  <div class="block circle accent">A</div>
+  <div class="block circle outline">A</div>
+  <div class="block circle muted">A</div>
+</div>
+
+```html
+<div class="block-grid cols-4">
+  <div class="block circle">A</div>
+  <div class="block circle accent">A</div>
+  <div class="block circle outline">A</div>
+  <div class="block circle muted">A</div>
+</div>
+```
