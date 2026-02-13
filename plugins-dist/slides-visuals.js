@@ -481,6 +481,11 @@
         buckets[currentKey] = [];
 
         for (const li of node.querySelectorAll(":scope > li")) {
+          if ((type === "stat-grid" || type === "scorecard") && currentKey === "metrics") {
+            buckets[currentKey].push(parseListItemToValue(li));
+            continue;
+          }
+
           const textLines = String(li.textContent || "")
             .split(/\r?\n/)
             .map((l) => l.trim())
@@ -577,6 +582,7 @@
   if (typeof document === "undefined") {
     globalThis.__kitflySlidesVisualsTest = {
       parseBodyNodesWithFirstLines,
+      rowCells,
     };
   } else {
     function start() {

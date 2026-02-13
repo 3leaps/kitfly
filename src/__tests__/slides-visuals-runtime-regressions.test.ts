@@ -7,6 +7,7 @@ type SlidesVisualsTestHooks = {
 		end: any,
 		type: string,
 	) => Record<string, unknown>;
+	rowCells: (row: unknown) => string[];
 };
 
 class FakeElement {
@@ -72,4 +73,41 @@ test("slides-visuals: absorbed list marker preserves preceding item (comparison-
 
 	expect(out.headers).toEqual(["Feature", "Us", "Competitor A", "Competitor B"]);
 	expect(out.rows).toEqual(['["Real-time sync", "Yes", "Yes", "No"]']);
+});
+
+test("slides-visuals: strips trailing ::: from string list items (layer-cake)", async () => {
+	const { parseBodyNodesWithFirstLines } = await loadHooks();
+
+	const out = parseBodyNodesWithFirstLines(
+		["layers:"],
+		[],
+		new FakeElement("UL", "", [new FakeElement("LI", "Infrastructure :::")]),
+		"layer-cake",
+	);
+
+	expect(out.layers).toEqual(["Infrastructure"]);
+});
+
+test("slides-visuals: parses object list items for stat-grid metrics", async () => {
+	const { parseBodyNodesWithFirstLines } = await loadHooks();
+
+	const out = parseBodyNodesWithFirstLines(
+		["metrics:"],
+		[],
+		new FakeElement("UL", "", [
+			new FakeElement("LI", "label: Users\nvalue: 1.2M\ntrend: +6%"),
+			new FakeElement("LI", "label: MRR\nvalue: $240k"),
+		]),
+		"stat-grid",
+	);
+
+	expect(out.metrics).toEqual([
+		{ label: "Users", value: "1.2M", trend: "+6%" },
+		{ label: "MRR", value: "$240k" },
+	]);
+});
+
+test("slides-visuals: rowCells parses JSON array strings", async () => {
+	const hooks = await loadHooks();
+	expect(hooks.rowCells('["A", "B", "C"]')).toEqual(["A", "B", "C"]);
 });

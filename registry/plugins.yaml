@@ -33,5 +33,5 @@ plugins:
       js: "plugins-dist/slides-visuals.js"
       css: "plugins-dist/slides-visuals.css"
       assetSha256:
-        js: "sha256:c3d1d1530fefbcd2378d7c9364a2c3d86654433d5f1d17bfb4f56e89eb3ddbc4"
+        js: "sha256:d122e0a23d0a5edda4521e210b9d7ff98021c9690b9545635b1167f8a3db2f6a"
         css: "sha256:99f020d59c0c006c4941566d351067189eb69c53fe4ffa422fe7d62fc30d62d2"
