@@ -407,13 +407,20 @@ export function parseFrontmatter(content: string): {
 	frontmatter: Record<string, unknown>;
 	body: string;
 } {
-	const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-	if (!match) {
+	const leadingTrimmed = content.replace(/^\uFEFF/, "").replace(/^\s+/, "");
+	if (!leadingTrimmed.startsWith("---\n") && !leadingTrimmed.startsWith("---\r\n")) {
 		return { frontmatter: {}, body: content };
 	}
 
+	const normalized = leadingTrimmed.replaceAll("\r\n", "\n");
+	const end = normalized.indexOf("\n---\n", 4);
+	if (end === -1) return { frontmatter: {}, body: content };
+
+	const fmRaw = normalized.slice(4, end);
+	const body = normalized.slice(end + "\n---\n".length);
+
 	const frontmatter: Record<string, unknown> = {};
-	const lines = match[1].split("\n");
+	const lines = fmRaw.split("\n");
 	for (const line of lines) {
 		const colonIndex = line.indexOf(":");
 		if (colonIndex > 0) {
@@ -430,7 +437,7 @@ export function parseFrontmatter(content: string): {
 		}
 	}
 
-	return { frontmatter, body: match[2] };
+	return { frontmatter, body };
 }
 
 export function slugify(text: string): string {

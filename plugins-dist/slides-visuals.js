@@ -10,99 +10,6 @@
     return v;
   }
 
-  function indentOf(line) {
-    const m = line.match(/^ */);
-    return m ? m[0].length : 0;
-  }
-
-  function parseYamlLike(lines) {
-    const out = {};
-    let i = 0;
-
-    function parseList(start, listIndent) {
-      const items = [];
-      let j = start;
-      while (j < lines.length) {
-        const line = lines[j];
-        if (!line.trim()) {
-          j += 1;
-          continue;
-        }
-        const ind = indentOf(line);
-        if (ind < listIndent) break;
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("- ")) break;
-        const rest = trimmed.slice(2);
-        const kv = rest.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
-        if (kv) {
-          const obj = {};
-          obj[kv[1]] = parseScalar(kv[2]);
-          j += 1;
-          while (j < lines.length) {
-            const next = lines[j];
-            if (!next.trim()) {
-              j += 1;
-              continue;
-            }
-            const nextInd = indentOf(next);
-            if (nextInd <= listIndent) break;
-            const nextTrim = next.trim();
-            if (nextTrim.startsWith("- ")) break;
-            const more = nextTrim.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
-            if (more) obj[more[1]] = parseScalar(more[2]);
-            j += 1;
-          }
-          items.push(obj);
-        } else {
-          items.push(parseScalar(rest));
-          j += 1;
-        }
-      }
-      return { items, next: j };
-    }
-
-    while (i < lines.length) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) {
-        i += 1;
-        continue;
-      }
-      const kv = trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
-      if (!kv) {
-        i += 1;
-        continue;
-      }
-      const key = kv[1];
-      const value = kv[2];
-      if (value) {
-        out[key] = parseScalar(value);
-        i += 1;
-        continue;
-      }
-
-      // key: (block)
-      i += 1;
-      while (i < lines.length && !lines[i].trim()) i += 1;
-      if (i >= lines.length) {
-        out[key] = [];
-        break;
-      }
-
-      const ind = indentOf(lines[i]);
-      if (lines[i].trim().startsWith("- ")) {
-        const parsed = parseList(i, ind);
-        out[key] = parsed.items;
-        i = parsed.next;
-      } else {
-        out[key] = parseScalar(lines[i].trim());
-        i += 1;
-      }
-    }
-
-    return out;
-  }
-
   function parseFence(text) {
     const raw = String(text ?? "");
     const trimmed = raw.trim();
@@ -116,7 +23,88 @@
     if (!CLOSE_RE.test(tail)) return null;
     const type = m[1].toLowerCase();
     const body = lines.slice(1, -1);
-    return { type, data: parseYamlLike(body) };
+    return { type, data: parseLinesToObject(body) };
+  }
+
+  function parseLinesToObject(lines) {
+    const out = {};
+    let pendingKey = null;
+    for (const raw of lines) {
+      const line = String(raw ?? "");
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const kv = trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+      if (!kv) continue;
+      const key = kv[1];
+      const value = kv[2];
+      if (value) {
+        out[key] = parseScalar(value);
+        pendingKey = null;
+      } else {
+        pendingKey = key;
+        out[key] = out[key] ?? [];
+      }
+    }
+    return out;
+  }
+
+  function parseListItemToValue(li) {
+    const parts = [];
+    for (const child of li.querySelectorAll(":scope > p")) {
+      const t = (child.textContent || "").trim();
+      if (t) parts.push(t);
+    }
+    const raw = parts.length ? parts.join("\n") : (li.textContent || "").trim();
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const obj = {};
+    let any = false;
+    for (const line of lines) {
+      const kv = line.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+      if (!kv) continue;
+      any = true;
+      obj[kv[1]] = parseScalar(kv[2]);
+    }
+    return any ? obj : parseScalar(raw);
+  }
+
+  function parseBodyNodes(nodes) {
+    const out = {};
+    let pendingKey = null;
+
+    for (const node of nodes) {
+      const tag = String(node.tagName || "").toUpperCase();
+      if (tag === "P") {
+        const lines = (node.textContent || "").split(/\r?\n/);
+        for (const rawLine of lines) {
+          const trimmed = rawLine.trim();
+          if (!trimmed || trimmed.startsWith("#")) continue;
+          const kv = trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+          if (!kv) continue;
+          const key = kv[1];
+          const value = kv[2];
+          if (value) {
+            out[key] = parseScalar(value);
+            pendingKey = null;
+          } else {
+            pendingKey = key;
+            out[key] = [];
+          }
+        }
+        continue;
+      }
+
+      if ((tag === "UL" || tag === "OL") && pendingKey) {
+        const items = [];
+        for (const li of node.querySelectorAll(":scope > li")) {
+          items.push(parseListItemToValue(li));
+        }
+        out[pendingKey] = items;
+        pendingKey = null;
+        continue;
+      }
+    }
+
+    return out;
   }
 
   function el(tag, className, text) {
@@ -307,17 +295,73 @@
     }
   }
 
+  function tryReplaceSingleNode(node) {
+    const txt = node.textContent || "";
+    if (!txt.trimStart().startsWith(":::")) return false;
+    const parsed = parseFence(txt);
+    if (!parsed) return false;
+    const rendered = renderBlock(parsed.type, parsed.data);
+    if (!rendered) return false;
+    rendered.setAttribute("data-kitfly-visual", parsed.type);
+    node.replaceWith(rendered);
+    return true;
+  }
+
+  function tryReplaceFragmentedFence(start) {
+    const startTxt = (start.textContent || "").trim();
+    const m = startTxt.match(BLOCK_RE);
+    if (!m) return false;
+    const type = m[1].toLowerCase();
+
+    const between = [];
+    let end = null;
+    let cur = start.nextElementSibling;
+    while (cur) {
+      const t = (cur.textContent || "").trim();
+      if (CLOSE_RE.test(t)) {
+        end = cur;
+        break;
+      }
+      between.push(cur);
+      cur = cur.nextElementSibling;
+    }
+    if (!end) return false;
+
+    const data = parseBodyNodes(between);
+    const rendered = renderBlock(type, data);
+    if (!rendered) return false;
+    rendered.setAttribute("data-kitfly-visual", type);
+
+    start.parentNode.insertBefore(rendered, start);
+    const toRemove = [start, ...between, end];
+    for (const n of toRemove) n.remove();
+    return true;
+  }
+
   function apply(root) {
-    const nodes = root.querySelectorAll("p, pre, code");
-    for (const node of nodes) {
-      const txt = node.textContent || "";
-      if (!txt.trimStart().startsWith(":::")) continue;
-      const parsed = parseFence(txt);
-      if (!parsed) continue;
-      const rendered = renderBlock(parsed.type, parsed.data);
-      if (!rendered) continue;
-      rendered.setAttribute("data-kitfly-visual", parsed.type);
-      node.replaceWith(rendered);
+    const containers = root.querySelectorAll(".slide");
+    for (const container of containers) {
+      // First pass: handle single-node fences (flat key-values)
+      for (const node of container.querySelectorAll("p, pre, code")) {
+        if (node.closest(".kitfly-visual")) continue;
+        tryReplaceSingleNode(node);
+      }
+
+      // Second pass: handle fences split across siblings (lists turn into <ul><li>...)
+      let changed = true;
+      while (changed) {
+        changed = false;
+        const elems = container.querySelectorAll("p");
+        for (const p of elems) {
+          if (p.closest(".kitfly-visual")) continue;
+          const t = (p.textContent || "").trim();
+          if (!t.startsWith(":::")) continue;
+          if (tryReplaceFragmentedFence(p)) {
+            changed = true;
+            break;
+          }
+        }
+      }
     }
   }
 
