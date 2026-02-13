@@ -229,12 +229,18 @@ async function getPluginInjectionsCached(
 	let pluginAssetsMtime = "none";
 	try {
 		const mtimes: number[] = [];
-		const dir = join(ROOT, "plugins-dist");
-		const entries = await readdir(dir);
-		for (const name of entries) {
-			if (!/\.(js|css)$/i.test(name)) continue;
+		const dirs = [join(ROOT, "plugins-dist"), join(ENGINE_SITE_DIR, "..", "plugins-dist")];
+		for (const dir of dirs) {
 			try {
-				mtimes.push((await stat(join(dir, name))).mtimeMs);
+				const entries = await readdir(dir);
+				for (const name of entries) {
+					if (!/\.(js|css)$/i.test(name)) continue;
+					try {
+						mtimes.push((await stat(join(dir, name))).mtimeMs);
+					} catch {
+						// ignore
+					}
+				}
 			} catch {
 				// ignore
 			}
