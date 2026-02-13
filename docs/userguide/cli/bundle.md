@@ -66,6 +66,14 @@ A single HTML file containing:
 
 Bundle size depends on content volume and images. Typical documentation sites produce bundles of 100KB-1MB. Sites with many images will be larger due to base64 encoding (~33% overhead per image).
 
+## Plugin validation errors (triple-colon fences)
+
+Some plugins add special block syntax (for example, `slides-visuals` uses `:::` fences).
+
+When a plugin is enabled, kitfly may validate your content before bundling. If validation fails, `kitfly bundle` will exit with a clear error message so you can fix the content and re-run the bundle.
+
+See the exact contract (with examples): `../../../content/reference/plugins.html#triple-colon-fence-contract-slides-visuals`.
+
 ## See Also
 
 - [kitfly build](build.md) - Multi-file static build

@@ -70,6 +70,14 @@ By default, kitfly includes the original `.md` files alongside the generated HTM
 
 Use `--no-raw` to exclude these files if not needed.
 
+## Plugin validation errors (triple-colon fences)
+
+Some plugins add special block syntax (for example, `slides-visuals` uses `:::` fences).
+
+When a plugin is enabled, kitfly may validate your content during the build. If validation fails, `kitfly build` will exit with a clear error message so you can fix the content and re-run the build.
+
+See the exact contract (with examples): `../../../content/reference/plugins.html#triple-colon-fence-contract-slides-visuals`.
+
 ## See Also
 
 - [kitfly dev](dev.md) - Development server

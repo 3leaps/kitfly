@@ -107,3 +107,100 @@ metrics:
     trend: +0.3%
 :::
 ```
+
+### How to know it’s correct
+
+When `slides-visuals@...` is enabled, Kitfly validates your `:::` blocks before it renders pages.
+
+You know your fences are valid if:
+- `kitfly dev` starts successfully, and pages load normally
+- `kitfly build` completes successfully
+- `kitfly bundle` completes successfully
+
+If a block is invalid, Kitfly will fail fast with an error that points to the file and the specific contract rule you violated.
+
+### Common mistakes (and how to fix them)
+
+- **Indented fences**: `:::kpi` must start at column 0 (no spaces, no list indentation, no blockquote `>`).
+- **Blank lines inside the block**: remove empty lines between keys/items.
+- **Wrong list indentation**:
+  - list items must start with exactly two spaces then `- `
+  - fields under an item must use exactly four spaces
+- **Unknown type**: the opening fence `:::<type>` must be one of the supported types.
+
+### Examples (invalid → fixed)
+
+#### 1) Indented fence (invalid)
+
+```markdown
+  :::kpi
+  label: Users
+  value: 1,234
+  :::
+```
+
+Fixed:
+
+```markdown
+:::kpi
+label: Users
+value: 1,234
+:::
+```
+
+#### 2) Blank line inside block (invalid)
+
+```markdown
+:::kpi
+label: Users
+
+value: 1,234
+:::
+```
+
+Fixed:
+
+```markdown
+:::kpi
+label: Users
+value: 1,234
+:::
+```
+
+#### 3) Bad list indentation (invalid)
+
+```markdown
+:::stat-grid
+metrics:
+ - label: Users
+   value: 1,234
+:::
+```
+
+Fixed:
+
+```markdown
+:::stat-grid
+metrics:
+  - label: Users
+    value: 1,234
+:::
+```
+
+#### 4) Unknown type (invalid)
+
+```markdown
+:::stats
+label: Users
+value: 1,234
+:::
+```
+
+Fixed: use a supported type (for example `kpi`):
+
+```markdown
+:::kpi
+label: Users
+value: 1,234
+:::
+```

@@ -76,6 +76,14 @@ The dev server watches for changes to:
 
 Changes are reflected immediately without manual refresh.
 
+## Plugin validation errors (triple-colon fences)
+
+Some plugins add special block syntax (for example, `slides-visuals` uses `:::` fences).
+
+When a plugin is enabled, kitfly may validate your content before rendering. If validation fails, `kitfly dev` will exit with a clear error message so you can fix the content and restart.
+
+See the exact contract (with examples): `../../../content/reference/plugins.html#triple-colon-fence-contract-slides-visuals`.
+
 ## See Also
 
 - [kitfly build](build.md) - Build static site
