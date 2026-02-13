@@ -14,7 +14,7 @@
  */
 
 import { watch } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR, ENGINE_SITE_DIR } from "../src/engine.ts";
@@ -226,7 +226,25 @@ async function getPluginInjectionsCached(
 		// Uses engine registry by default.
 	}
 
-	const key = `${mode}:${configMtime}:${registryMtime}`;
+	let pluginAssetsMtime = "none";
+	try {
+		const mtimes: number[] = [];
+		const dir = join(ROOT, "plugins-dist");
+		const entries = await readdir(dir);
+		for (const name of entries) {
+			if (!/\.(js|css)$/i.test(name)) continue;
+			try {
+				mtimes.push((await stat(join(dir, name))).mtimeMs);
+			} catch {
+				// ignore
+			}
+		}
+		pluginAssetsMtime = mtimes.length ? String(Math.max(...mtimes)) : "none";
+	} catch {
+		// ignore
+	}
+
+	const key = `${mode}:${configMtime}:${registryMtime}:${pluginAssetsMtime}`;
 	if (pluginCache && pluginCache.key === key) {
 		return { head: pluginCache.head, bodyEnd: pluginCache.bodyEnd };
 	}

@@ -487,24 +487,38 @@
             .filter((l) => l && l !== ":::");
 
           let anyContent = false;
+          let itemBucketKey = currentKey;
           const itemLines = [];
+
+          function flushItemLines() {
+            if (!itemLines.length) return;
+            buckets[itemBucketKey] = buckets[itemBucketKey] || [];
+            buckets[itemBucketKey].push(parseScalar(itemLines.join(" ")));
+            itemLines.length = 0;
+          }
+
           for (const line of textLines) {
             const listMarker = isListKeyMarkerText(line, allowedKeys);
             if (listMarker) {
+              flushItemLines();
               currentKey = listMarker;
+              itemBucketKey = currentKey;
               buckets[currentKey] = buckets[currentKey] || [];
               anyContent = true;
               continue;
             }
             const scalarMarker = parseScalarMarkerText(line, allowedScalarKeys);
             if (scalarMarker) {
+              flushItemLines();
               out[scalarMarker.key] = scalarMarker.value;
               if (type === "compare" && scalarMarker.key === "right-title") {
                 currentKey = "right";
+                itemBucketKey = currentKey;
                 buckets[currentKey] = buckets[currentKey] || [];
               }
               if (type === "compare" && scalarMarker.key === "left-title") {
                 currentKey = "left";
+                itemBucketKey = currentKey;
                 buckets[currentKey] = buckets[currentKey] || [];
               }
               anyContent = true;
@@ -513,10 +527,8 @@
             itemLines.push(line);
           }
 
-          if (itemLines.length) {
-            buckets[currentKey].push(parseScalar(itemLines.join(" ")));
-            continue;
-          }
+          flushItemLines();
+          if (anyContent) continue;
 
           // Fallback: absorbed key/value object in a <li>
           if (!anyContent) {
