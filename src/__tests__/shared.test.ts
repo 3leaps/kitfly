@@ -93,6 +93,13 @@ description: A test page
 		expect(Object.keys(frontmatter)).toHaveLength(0);
 		expect(body).toBe(content);
 	});
+
+	it("extracts frontmatter with leading whitespace (delimiter-split slides)", () => {
+		const content = `\n\n  ---\n  title: Slide Two\n  ---\n\n# Two`;
+		const { frontmatter, body } = parseFrontmatter(content);
+		expect(frontmatter.title).toBe("Slide Two");
+		expect(body.trim()).toBe("# Two");
+	});
 });
 
 describe("splitSlides", () => {

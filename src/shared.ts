@@ -407,21 +407,28 @@ export function parseFrontmatter(content: string): {
 	frontmatter: Record<string, unknown>;
 	body: string;
 } {
-	const leadingTrimmed = content.replace(/^\uFEFF/, "").replace(/^\s+/, "");
-	if (!leadingTrimmed.startsWith("---\n") && !leadingTrimmed.startsWith("---\r\n")) {
+	const normalized = content.replace(/^\uFEFF/, "").replaceAll("\r\n", "\n");
+	const lines = normalized.split("\n");
+
+	let i = 0;
+	while (i < lines.length && lines[i].trim() === "") i += 1;
+	if (i >= lines.length || lines[i].trim() !== "---") {
 		return { frontmatter: {}, body: content };
 	}
 
-	const normalized = leadingTrimmed.replaceAll("\r\n", "\n");
-	const end = normalized.indexOf("\n---\n", 4);
-	if (end === -1) return { frontmatter: {}, body: content };
+	i += 1;
+	const fmLines: string[] = [];
+	while (i < lines.length && lines[i].trim() !== "---") {
+		fmLines.push(lines[i]);
+		i += 1;
+	}
+	if (i >= lines.length) return { frontmatter: {}, body: content };
+	i += 1; // consume closing ---
 
-	const fmRaw = normalized.slice(4, end);
-	const body = normalized.slice(end + "\n---\n".length);
+	const body = lines.slice(i).join("\n");
 
 	const frontmatter: Record<string, unknown> = {};
-	const lines = fmRaw.split("\n");
-	for (const line of lines) {
+	for (const line of fmLines) {
 		const colonIndex = line.indexOf(":");
 		if (colonIndex > 0) {
 			const key = line.slice(0, colonIndex).trim();

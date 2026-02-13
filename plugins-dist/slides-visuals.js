@@ -55,7 +55,10 @@
       if (t) parts.push(t);
     }
     const raw = parts.length ? parts.join("\n") : (li.textContent || "").trim();
-    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = raw
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && l !== ":::");
     const obj = {};
     let any = false;
     for (const line of lines) {
@@ -308,8 +311,10 @@
   }
 
   function tryReplaceFragmentedFence(start) {
-    const startTxt = (start.textContent || "").trim();
-    const m = startTxt.match(BLOCK_RE);
+    const startTxt = String(start.textContent || "");
+    const lines = startTxt.split(/\r?\n/);
+    const first = (lines[0] || "").trim();
+    const m = first.match(BLOCK_RE);
     if (!m) return false;
     const type = m[1].toLowerCase();
 
@@ -317,8 +322,11 @@
     let end = null;
     let cur = start.nextElementSibling;
     while (cur) {
-      const t = (cur.textContent || "").trim();
-      if (CLOSE_RE.test(t)) {
+      const allLines = String(cur.textContent || "")
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (allLines.some((l) => l === ":::")) {
         end = cur;
         break;
       }
@@ -327,7 +335,7 @@
     }
     if (!end) return false;
 
-    const data = parseBodyNodes(between);
+    const data = parseBodyNodesWithFirstLines(lines.slice(1), between, end);
     const rendered = renderBlock(type, data);
     if (!rendered) return false;
     rendered.setAttribute("data-kitfly-visual", type);
@@ -336,6 +344,53 @@
     const toRemove = [start, ...between, end];
     for (const n of toRemove) n.remove();
     return true;
+  }
+
+  function parseBodyNodesWithFirstLines(firstLines, between, end) {
+    const out = {};
+    let pendingKey = null;
+
+    const seed = parseLinesToObject(firstLines);
+    for (const k of Object.keys(seed)) {
+      out[k] = seed[k];
+      if (Array.isArray(out[k])) pendingKey = k;
+    }
+
+    const nodes = [...between, end];
+    for (const node of nodes) {
+      const tag = String(node.tagName || "").toUpperCase();
+      if (tag === "P") {
+        const lines = (node.textContent || "").split(/\r?\n/);
+        for (const rawLine of lines) {
+          const trimmed = rawLine.trim();
+          if (!trimmed || trimmed === ":::" || trimmed.startsWith("#")) continue;
+          const kv = trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+          if (!kv) continue;
+          const key = kv[1];
+          const value = kv[2];
+          if (value) {
+            out[key] = parseScalar(value);
+            pendingKey = null;
+          } else {
+            pendingKey = key;
+            out[key] = [];
+          }
+        }
+        continue;
+      }
+
+      if ((tag === "UL" || tag === "OL") && pendingKey) {
+        const items = [];
+        for (const li of node.querySelectorAll(":scope > li")) {
+          items.push(parseListItemToValue(li));
+        }
+        out[pendingKey] = items;
+        pendingKey = null;
+        continue;
+      }
+    }
+
+    return out;
   }
 
   function apply(root) {
