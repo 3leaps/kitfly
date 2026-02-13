@@ -17,7 +17,7 @@ SFETCH_INSTALL_URL ?= https://github.com/3leaps/sfetch/releases/latest/download/
 
 .PHONY: all help bootstrap bootstrap-force tools
 .PHONY: dev build bundle clean install uninstall
-.PHONY: fmt lint typecheck test test-watch check-all quality precommit prepush
+.PHONY: fmt lint typecheck test test-watch verify-plugin-registry check-all quality precommit prepush
 .PHONY: license-audit license-check vuln-scan sbom public-readiness
 .PHONY: validate-schemas version version-set version-sync
 .PHONY: release-guard-tag-version release-clean release-download release-checksums release-verify-checksums release-sign
@@ -228,6 +228,14 @@ test: ## Run tests
 	@echo "Running test suite..."
 	@bunx vitest run
 
+# Verify that registry/plugins.yaml checksums match actual plugins-dist/ files.
+# Catches stale hashes after plugin edits. Distinct from release-verify-checksums
+# which validates signed release artifacts (SHA256SUMS/SHA512SUMS).
+verify-plugin-registry: ## Verify plugin dist checksums match registry
+	@echo "Verifying plugin registry checksums..."
+	@bunx vitest run src/__tests__/plugin-loader.test.ts -t "registry consistency" --reporter=verbose
+	@echo "Plugin registry checksums verified"
+
 test-watch: ## Run tests in watch mode
 	@bunx vitest
 
@@ -235,7 +243,7 @@ test-coverage: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
 	@bunx vitest run --coverage
 
-check-all: lint typecheck test build ## Run all quality checks
+check-all: lint typecheck test verify-plugin-registry build ## Run all quality checks
 	@echo "All quality checks passed"
 
 quality: check-all ## Alias for check-all

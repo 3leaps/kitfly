@@ -1,9 +1,17 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { loadPluginInjections, PluginConfigError, PluginIntegrityError } from "../plugin-loader.ts";
+import {
+	loadPluginInjections,
+	loadPluginRegistry,
+	PluginConfigError,
+	PluginIntegrityError,
+} from "../plugin-loader.ts";
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 function sha256Hex(text: string): string {
 	return createHash("sha256").update(new TextEncoder().encode(text)).digest("hex");
@@ -184,5 +192,30 @@ plugins: {}
 		);
 
 		await expect(loadPluginInjections({ root })).rejects.toBeInstanceOf(PluginConfigError);
+	});
+});
+
+describe("registry consistency", () => {
+	it("all plugin dist checksums match registry/plugins.yaml", async () => {
+		const registryPath = join(REPO_ROOT, "registry", "plugins.yaml");
+		const registry = await loadPluginRegistry(registryPath);
+
+		for (const [id, plugin] of Object.entries(registry.plugins)) {
+			const { assets } = plugin;
+			for (const kind of ["js", "css"] as const) {
+				const relPath = assets[kind];
+				if (!relPath) continue;
+
+				const expectedRaw = assets.assetSha256[kind];
+				if (!expectedRaw) throw new Error(`${id}: missing assetSha256.${kind}`);
+
+				const expectedHex = expectedRaw.replace(/^sha256:/, "").toLowerCase();
+				const filePath = join(REPO_ROOT, relPath);
+				const content = await readFile(filePath);
+				const actualHex = createHash("sha256").update(content).digest("hex");
+
+				expect(actualHex, `${id} ${kind} (${relPath})`).toBe(expectedHex);
+			}
+		}
 	});
 });
