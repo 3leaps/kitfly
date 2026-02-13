@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../schemas/v0/plugin-registry.schema.json
 version: 1
-updated: "2026-02-12"
+updated: "2026-02-13"
 baseUrl: "https://github.com/3leaps/kitfly/releases/download"
 
 # Canonical plugin registry (v0.2.0-alpha)
@@ -19,3 +19,19 @@ plugins:
       assetSha256:
         js: "sha256:271c262b6f38a7d2773ec2067df68e34efcf223f649fc1228fcfd98144798253"
         css: "sha256:ff5cf5d8ba3b8b47e4a16c294f526f33bc69582e8d92654ec3cf666ef92fbaf6"
+
+  slides-visuals:
+    name: "Slides Visuals"
+    description: "Widgets and composed figures for Kitfly slides (::: blocks)"
+    version: "0.2.0"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    modes: ["slides"]
+    assets:
+      js: "plugins-dist/slides-visuals.js"
+      css: "plugins-dist/slides-visuals.css"
+      assetSha256:
+        js: "sha256:e039d35a99a3c3a09e7e395235d9019ae2aa66eab2d69072eb2766d4cbee684f"
+        css: "sha256:6dfee93b49ba2aca8e82741960a626adab17d453e589bd0c36ce83778a0b910a"

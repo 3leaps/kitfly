@@ -1,0 +1,333 @@
+(() => {
+  const BLOCK_RE = /^:::\s*([a-z0-9-]+)\s*$/i;
+  const CLOSE_RE = /^:::\s*$/;
+
+  function parseScalar(raw) {
+    const v = String(raw ?? "").trim();
+    if (!v) return "";
+    const m = v.match(/^"(.*)"$/) || v.match(/^'(.*)'$/);
+    if (m) return m[1];
+    return v;
+  }
+
+  function indentOf(line) {
+    const m = line.match(/^ */);
+    return m ? m[0].length : 0;
+  }
+
+  function parseYamlLike(lines) {
+    const out = {};
+    let i = 0;
+
+    function parseList(start, listIndent) {
+      const items = [];
+      let j = start;
+      while (j < lines.length) {
+        const line = lines[j];
+        if (!line.trim()) {
+          j += 1;
+          continue;
+        }
+        const ind = indentOf(line);
+        if (ind < listIndent) break;
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("- ")) break;
+        const rest = trimmed.slice(2);
+        const kv = rest.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+        if (kv) {
+          const obj = {};
+          obj[kv[1]] = parseScalar(kv[2]);
+          j += 1;
+          while (j < lines.length) {
+            const next = lines[j];
+            if (!next.trim()) {
+              j += 1;
+              continue;
+            }
+            const nextInd = indentOf(next);
+            if (nextInd <= listIndent) break;
+            const nextTrim = next.trim();
+            if (nextTrim.startsWith("- ")) break;
+            const more = nextTrim.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+            if (more) obj[more[1]] = parseScalar(more[2]);
+            j += 1;
+          }
+          items.push(obj);
+        } else {
+          items.push(parseScalar(rest));
+          j += 1;
+        }
+      }
+      return { items, next: j };
+    }
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        i += 1;
+        continue;
+      }
+      const kv = trimmed.match(/^([a-z0-9_-]+)\s*:\s*(.*)$/i);
+      if (!kv) {
+        i += 1;
+        continue;
+      }
+      const key = kv[1];
+      const value = kv[2];
+      if (value) {
+        out[key] = parseScalar(value);
+        i += 1;
+        continue;
+      }
+
+      // key: (block)
+      i += 1;
+      while (i < lines.length && !lines[i].trim()) i += 1;
+      if (i >= lines.length) {
+        out[key] = [];
+        break;
+      }
+
+      const ind = indentOf(lines[i]);
+      if (lines[i].trim().startsWith("- ")) {
+        const parsed = parseList(i, ind);
+        out[key] = parsed.items;
+        i = parsed.next;
+      } else {
+        out[key] = parseScalar(lines[i].trim());
+        i += 1;
+      }
+    }
+
+    return out;
+  }
+
+  function parseFence(text) {
+    const raw = String(text ?? "");
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith(":::")) return null;
+    const lines = trimmed.split(/\r?\n/);
+    if (lines.length < 2) return null;
+    const head = lines[0].trim();
+    const tail = lines[lines.length - 1].trim();
+    const m = head.match(BLOCK_RE);
+    if (!m) return null;
+    if (!CLOSE_RE.test(tail)) return null;
+    const type = m[1].toLowerCase();
+    const body = lines.slice(1, -1);
+    return { type, data: parseYamlLike(body) };
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null && text !== "") node.textContent = String(text);
+    return node;
+  }
+
+  function renderKpi(data) {
+    const root = el("div", "kitfly-visual kitfly-kpi");
+    root.appendChild(el("div", "kitfly-kpi-label", data.label || ""));
+    root.appendChild(el("div", "kitfly-kpi-value", data.value || ""));
+    const trend = String(data.trend || "").trim();
+    const trendEl = el("div", "kitfly-kpi-trend", trend);
+    if (/^\+/.test(trend)) trendEl.classList.add("pos");
+    if (/^-/.test(trend)) trendEl.classList.add("neg");
+    root.appendChild(trendEl);
+    return root;
+  }
+
+  function renderStatGrid(data) {
+    const items = Array.isArray(data.metrics) ? data.metrics : Array.isArray(data.items) ? data.items : [];
+    const root = el("div", "kitfly-visual kitfly-stat-grid");
+    for (const it of items) {
+      const item = typeof it === "object" && it ? it : { label: String(it ?? "") };
+      const card = el("div", "kitfly-stat");
+      card.appendChild(el("div", "kitfly-stat-label", item.label || ""));
+      card.appendChild(el("div", "kitfly-stat-value", item.value || ""));
+      const trend = String(item.trend || "").trim();
+      if (trend) {
+        const t = el("div", "kitfly-stat-trend", trend);
+        if (/^\+/.test(trend)) t.classList.add("pos");
+        if (/^-/.test(trend)) t.classList.add("neg");
+        card.appendChild(t);
+      }
+      root.appendChild(card);
+    }
+    return root;
+  }
+
+  function renderCompare(data) {
+    const root = el("div", "kitfly-visual kitfly-compare");
+    const left = el("div", "kitfly-compare-col");
+    const right = el("div", "kitfly-compare-col");
+    left.appendChild(el("div", "kitfly-compare-title", data["left-title"] || data.leftTitle || "Left"));
+    right.appendChild(el("div", "kitfly-compare-title", data["right-title"] || data.rightTitle || "Right"));
+
+    const leftItems = Array.isArray(data.left) ? data.left : [];
+    const rightItems = Array.isArray(data.right) ? data.right : [];
+
+    const ulL = el("ul", "kitfly-compare-list");
+    const ulR = el("ul", "kitfly-compare-list");
+    for (const item of leftItems) ulL.appendChild(el("li", "", item));
+    for (const item of rightItems) ulR.appendChild(el("li", "", item));
+    left.appendChild(ulL);
+    right.appendChild(ulR);
+    root.appendChild(left);
+    root.appendChild(right);
+    return root;
+  }
+
+  function renderQuadrantGrid(data) {
+    const root = el("div", "kitfly-visual kitfly-quadrant");
+    const grid = el("div", "kitfly-quadrant-grid");
+    grid.appendChild(el("div", "kitfly-quadrant-cell tl block", data.tl || ""));
+    grid.appendChild(el("div", "kitfly-quadrant-cell tr block", data.tr || ""));
+    grid.appendChild(el("div", "kitfly-quadrant-cell bl block", data.bl || ""));
+    grid.appendChild(el("div", "kitfly-quadrant-cell br block", data.br || ""));
+    root.appendChild(grid);
+
+    const axisX = el("div", "kitfly-quadrant-axis axis-x", data["axis-x"] || data.axisX || "");
+    const axisY = el("div", "kitfly-quadrant-axis axis-y", data["axis-y"] || data.axisY || "");
+    if (axisX.textContent) root.appendChild(axisX);
+    if (axisY.textContent) root.appendChild(axisY);
+    return root;
+  }
+
+  function renderScorecard(data) {
+    const metrics = Array.isArray(data.metrics) ? data.metrics : [];
+    const root = el("div", "kitfly-visual kitfly-scorecard");
+    for (const m of metrics) {
+      const item = typeof m === "object" && m ? m : { label: String(m ?? "") };
+      const card = el("div", "kitfly-scorecard-metric");
+      card.appendChild(el("div", "kitfly-scorecard-label", item.label || ""));
+      card.appendChild(el("div", "kitfly-scorecard-value", item.value || ""));
+      const trend = String(item.trend || "").trim();
+      if (trend) {
+        const t = el("div", "kitfly-scorecard-trend", trend);
+        if (/^\+/.test(trend)) t.classList.add("pos");
+        if (/^-/.test(trend)) t.classList.add("neg");
+        card.appendChild(t);
+      }
+      root.appendChild(card);
+    }
+    return root;
+  }
+
+  function rowCells(row) {
+    if (typeof row === "string") return row.split("|").map((s) => s.trim()).filter(Boolean);
+    if (typeof row === "object" && row && Array.isArray(row.cells)) return row.cells.map((s) => String(s ?? ""));
+    return [String(row ?? "")];
+  }
+
+  function renderComparisonTable(data) {
+    const headers = Array.isArray(data.headers) ? data.headers : [];
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const root = el("div", "kitfly-visual kitfly-comparison-table");
+
+    const headRow = el("div", "kitfly-table-row kitfly-table-head");
+    for (const h of headers) headRow.appendChild(el("div", "kitfly-table-cell", h));
+    root.appendChild(headRow);
+
+    for (const r of rows) {
+      const row = el("div", "kitfly-table-row");
+      for (const c of rowCells(r)) row.appendChild(el("div", "kitfly-table-cell", c));
+      root.appendChild(row);
+    }
+
+    return root;
+  }
+
+  function renderLayerCake(data) {
+    const layers = Array.isArray(data.layers) ? data.layers : [];
+    const root = el("div", "kitfly-visual kitfly-layer-cake");
+    layers.forEach((layer, idx) => {
+      const band = el("div", "kitfly-layer", layer);
+      band.style.setProperty("--kitfly-layer-idx", String(idx));
+      root.appendChild(band);
+    });
+    return root;
+  }
+
+  function renderPyramid(data) {
+    const levels = Array.isArray(data.levels) ? data.levels : [];
+    const root = el("div", "kitfly-visual kitfly-pyramid");
+    const total = Math.max(levels.length, 1);
+    const min = 55;
+    const max = 100;
+    levels.forEach((lvl, idx) => {
+      const row = el("div", "kitfly-pyramid-level", lvl);
+      const t = Math.max(total - 1, 1);
+      const width = min + (idx / t) * (max - min);
+      row.style.width = `${width.toFixed(2)}%`;
+      root.appendChild(row);
+    });
+    return root;
+  }
+
+  function renderFunnel(data) {
+    const stages = Array.isArray(data.stages) ? data.stages : [];
+    const root = el("div", "kitfly-visual kitfly-funnel");
+    const total = Math.max(stages.length, 1);
+    const min = 55;
+    const max = 100;
+    stages.forEach((stage, idx) => {
+      const row = el("div", "kitfly-funnel-stage", stage);
+      const t = Math.max(total - 1, 1);
+      const width = max - (idx / t) * (max - min);
+      row.style.width = `${width.toFixed(2)}%`;
+      root.appendChild(row);
+    });
+    return root;
+  }
+
+  function renderBlock(type, data) {
+    switch (type) {
+      case "kpi":
+        return renderKpi(data);
+      case "stat-grid":
+        return renderStatGrid(data);
+      case "compare":
+        return renderCompare(data);
+      case "quadrant-grid":
+        return renderQuadrantGrid(data);
+      case "scorecard":
+        return renderScorecard(data);
+      case "comparison-table":
+        return renderComparisonTable(data);
+      case "layer-cake":
+        return renderLayerCake(data);
+      case "pyramid":
+        return renderPyramid(data);
+      case "funnel":
+        return renderFunnel(data);
+      default:
+        return null;
+    }
+  }
+
+  function apply(root) {
+    const nodes = root.querySelectorAll("p, pre, code");
+    for (const node of nodes) {
+      const txt = node.textContent || "";
+      if (!txt.trimStart().startsWith(":::")) continue;
+      const parsed = parseFence(txt);
+      if (!parsed) continue;
+      const rendered = renderBlock(parsed.type, parsed.data);
+      if (!rendered) continue;
+      rendered.setAttribute("data-kitfly-visual", parsed.type);
+      node.replaceWith(rendered);
+    }
+  }
+
+  function start() {
+    apply(document);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();

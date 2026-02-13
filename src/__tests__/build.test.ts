@@ -331,4 +331,67 @@ plugins:
 		expect(html).toContain(css);
 		expect(html).toContain(js);
 	});
+
+	it("injects slides-only plugins when mode=slides", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { mode: "slides" });
+		await writeMd(
+			siteDir,
+			"docs/deck.md",
+			`# Title
+
+:::kpi
+label: Uptime
+value: 99.95%
+trend: +0.3%
+:::
+`,
+		);
+
+		const js = "console.log('slides visuals');";
+		const css = ".kitfly-visual{border:1px solid red;}";
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await writeFile(join(siteDir, "plugins-dist", "slides-visuals.js"), js, "utf-8");
+		await writeFile(join(siteDir, "plugins-dist", "slides-visuals.css"), css, "utf-8");
+
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-02-13"
+baseUrl: ""
+plugins:
+  slides-visuals:
+    name: "Slides Visuals"
+    description: "Test visuals"
+    version: "0.2.0"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    modes: ["slides"]
+    assets:
+      js: "plugins-dist/slides-visuals.js"
+      css: "plugins-dist/slides-visuals.css"
+      assetSha256:
+        js: "sha256:${sha256Hex(js)}"
+        css: "sha256:${sha256Hex(css)}"
+`,
+			"utf-8",
+		);
+
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - slides-visuals@0.2.0\n",
+			"utf-8",
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="slides-visuals@0.2.0"');
+		expect(html).toContain(css);
+		expect(html).toContain(js);
+	});
 });
