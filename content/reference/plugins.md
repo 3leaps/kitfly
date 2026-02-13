@@ -62,6 +62,8 @@ plugins:
 
 Kitfly verifies every enabled asset against its `sha256:<hex>` checksum. If a checksum does not match, the build/dev server fails with an integrity error.
 
+When iterating on a local plugin (for example, editing `plugins-dist/slides-visuals.js`), you must also update the matching `assetSha256` in `registry/plugins.yaml` (or disable the plugin) for Kitfly to load it.
+
 ## Triple-colon fence contract (`slides-visuals`)
 
 The `slides-visuals` plugin adds a `:::` block syntax for slides mode (widgets + figures).

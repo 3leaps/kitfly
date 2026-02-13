@@ -495,6 +495,7 @@
             buckets[itemBucketKey] = buckets[itemBucketKey] || [];
             buckets[itemBucketKey].push(parseScalar(itemLines.join(" ")));
             itemLines.length = 0;
+            anyContent = true;
           }
 
           for (const line of textLines) {
@@ -573,13 +574,19 @@
     }
   }
 
-  function start() {
-    apply(document);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
+  if (typeof document === "undefined") {
+    globalThis.__kitflySlidesVisualsTest = {
+      parseBodyNodesWithFirstLines,
+    };
   } else {
-    start();
+    function start() {
+      apply(document);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", start);
+    } else {
+      start();
+    }
   }
 })();
