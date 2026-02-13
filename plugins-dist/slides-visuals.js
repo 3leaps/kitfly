@@ -3,7 +3,8 @@
   const CLOSE_RE = /^:::\s*$/;
 
   function parseScalar(raw) {
-    const v = String(raw ?? "").trim();
+    let v = String(raw ?? "").trim();
+    v = v.replace(/\s*:::\s*$/, "").trim();
     if (!v) return "";
     const m = v.match(/^"(.*)"$/) || v.match(/^'(.*)'$/);
     if (m) return m[1];
@@ -68,6 +69,38 @@
       obj[kv[1]] = parseScalar(kv[2]);
     }
     return any ? obj : parseScalar(raw);
+  }
+
+  function asTextItem(value) {
+    if (typeof value === "string") return value;
+    if (!value || typeof value !== "object") return String(value ?? "");
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.label === "string" && typeof value.value === "string") return `${value.label}: ${value.value}`;
+    const parts = [];
+    for (const [k, v] of Object.entries(value)) {
+      if (typeof v === "string" && v.trim()) parts.push(`${k}: ${v}`);
+    }
+    return parts.length ? parts.join(" · ") : "";
+  }
+
+  function listKeysForType(type) {
+    switch (type) {
+      case "compare":
+        return ["left", "right"];
+      case "comparison-table":
+        return ["headers", "rows"];
+      default:
+        return [];
+    }
+  }
+
+  function isListKeyMarker(li, allowedKeys) {
+    if (!allowedKeys || allowedKeys.length === 0) return null;
+    const raw = (li.textContent || "").trim();
+    const m = raw.match(/^([a-z0-9_-]+)\s*:\s*$/i);
+    if (!m) return null;
+    const key = m[1].toLowerCase();
+    return allowedKeys.includes(key) ? key : null;
   }
 
   function parseBodyNodes(nodes) {
@@ -161,8 +194,8 @@
 
     const ulL = el("ul", "kitfly-compare-list");
     const ulR = el("ul", "kitfly-compare-list");
-    for (const item of leftItems) ulL.appendChild(el("li", "", item));
-    for (const item of rightItems) ulR.appendChild(el("li", "", item));
+    for (const item of leftItems) ulL.appendChild(el("li", "", asTextItem(item)));
+    for (const item of rightItems) ulR.appendChild(el("li", "", asTextItem(item)));
     left.appendChild(ulL);
     right.appendChild(ulR);
     root.appendChild(left);
@@ -218,12 +251,12 @@
     const root = el("div", "kitfly-visual kitfly-comparison-table");
 
     const headRow = el("div", "kitfly-table-row kitfly-table-head");
-    for (const h of headers) headRow.appendChild(el("div", "kitfly-table-cell", h));
+    for (const h of headers) headRow.appendChild(el("div", "kitfly-table-cell", asTextItem(h)));
     root.appendChild(headRow);
 
     for (const r of rows) {
       const row = el("div", "kitfly-table-row");
-      for (const c of rowCells(r)) row.appendChild(el("div", "kitfly-table-cell", c));
+      for (const c of rowCells(r)) row.appendChild(el("div", "kitfly-table-cell", asTextItem(c)));
       root.appendChild(row);
     }
 
@@ -335,7 +368,7 @@
     }
     if (!end) return false;
 
-    const data = parseBodyNodesWithFirstLines(lines.slice(1), between, end);
+    const data = parseBodyNodesWithFirstLines(lines.slice(1), between, end, type);
     const rendered = renderBlock(type, data);
     if (!rendered) return false;
     rendered.setAttribute("data-kitfly-visual", type);
@@ -346,7 +379,7 @@
     return true;
   }
 
-  function parseBodyNodesWithFirstLines(firstLines, between, end) {
+  function parseBodyNodesWithFirstLines(firstLines, between, end, type) {
     const out = {};
     let pendingKey = null;
 
@@ -355,6 +388,8 @@
       out[k] = seed[k];
       if (Array.isArray(out[k])) pendingKey = k;
     }
+
+    const allowedKeys = listKeysForType(type);
 
     const nodes = [...between, end];
     for (const node of nodes) {
@@ -380,11 +415,21 @@
       }
 
       if ((tag === "UL" || tag === "OL") && pendingKey) {
-        const items = [];
+        let currentKey = pendingKey;
+        const buckets = {};
+        buckets[currentKey] = [];
+
         for (const li of node.querySelectorAll(":scope > li")) {
-          items.push(parseListItemToValue(li));
+          const marker = isListKeyMarker(li, allowedKeys);
+          if (marker) {
+            currentKey = marker;
+            buckets[currentKey] = buckets[currentKey] || [];
+            continue;
+          }
+          buckets[currentKey].push(parseListItemToValue(li));
         }
-        out[pendingKey] = items;
+
+        for (const [k, items] of Object.entries(buckets)) out[k] = items;
         pendingKey = null;
         continue;
       }
