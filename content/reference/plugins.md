@@ -85,7 +85,12 @@ When `slides-visuals` is enabled, Kitfly validates blocks before rendering and r
 Widgets:
 - `kpi` (scalar keys: `label`, `value`, optional `trend`)
 - `stat-grid` (list key: `metrics` of `{label,value,trend?}` objects)
-- `compare` (scalar keys: `left-title`, `right-title`; list keys: `left`, `right` as strings)
+- `compare` (scalar keys: `left-title`, `right-title`; list keys: `left`, `right` as **strings only**)
+
+Notes:
+- `compare.left` and `compare.right` items are simple strings (not `{label: ..., value: ...}` objects).
+- If you need multi-field items, use `stat-grid` / `scorecard` instead.
+- If an item contains a colon (`:`), quote it as a string.
 
 Figures:
 - `quadrant-grid` (scalar keys: `axis-x`, `axis-y`, `tl`, `tr`, `bl`, `br`)
