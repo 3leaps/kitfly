@@ -14,6 +14,7 @@ Schema (upstream): `https://schemas.3leaps.dev/agentic/v0/role-prompt.schema.jso
 | Development Reviewer | `devrev` | review | Code review, bug finding, four-eyes audit |
 | Quality Assurance | `qa` | review | Testing, validation, quality gates |
 | Security Review | `secrev` | review | Security analysis, vulnerability assessment |
+| Infrastructure Engineer | `infraeng` | agentic | Hosting, deployment, CDN, and static-site delivery |
 | Release Engineering | `releng` | automation | Version management, releases, CI/CD validation |
 | UX Developer | `uxdev` | agentic | UI/UX for web and terminal interfaces |
 
@@ -66,4 +67,5 @@ roles:
 | System design, ADRs | `architect` |
 | Product roadmap decisions | `prodstrat` |
 | UI/frontend work | `uxdev` |
+| Hosting, deployment, CDN configuration | `infraeng` |
 | Sprint planning, delivery coordination | `deliverylead` |

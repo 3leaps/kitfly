@@ -14,10 +14,11 @@
  */
 
 import { watch } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR, ENGINE_SITE_DIR } from "../src/engine.ts";
+import { loadPluginInjections } from "../src/plugin-loader.ts";
 import {
 	buildBreadcrumbsSimple,
 	buildFooter,
@@ -190,6 +191,36 @@ marked.use({ renderer });
 // Track connected clients for hot reload
 const clients: Set<ReadableStreamDefaultController> = new Set();
 
+let pluginCache: { key: string; head: string; bodyEnd: string } | null = null;
+
+async function getPluginInjectionsCached(
+	mode: "docs" | "slides",
+): Promise<{ head: string; bodyEnd: string }> {
+	const configPath = join(ROOT, "kitfly.plugins.yaml");
+	let configMtime = "missing";
+	try {
+		configMtime = String((await stat(configPath)).mtimeMs);
+	} catch {
+		return { head: "", bodyEnd: "" };
+	}
+
+	const siteRegistryPath = join(ROOT, "registry", "plugins.yaml");
+	let registryMtime = "none";
+	try {
+		registryMtime = String((await stat(siteRegistryPath)).mtimeMs);
+	} catch {
+		// Uses engine registry by default.
+	}
+
+	const key = `${mode}:${configMtime}:${registryMtime}`;
+	if (pluginCache && pluginCache.key === key) {
+		return { head: pluginCache.head, bodyEnd: pluginCache.bodyEnd };
+	}
+	const injected = await loadPluginInjections({ root: ROOT, mode });
+	pluginCache = { key, head: injected.head, bodyEnd: injected.bodyEnd };
+	return injected;
+}
+
 // Convert markdown to HTML with template
 async function renderPage(
 	filePath: string,
@@ -237,6 +268,7 @@ async function renderPage(
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
 	const pathPrefix = "/";
+	const plugins = await getPluginInjectionsCached(config.mode === "slides" ? "slides" : "docs");
 
 	const hotReloadScript = `
 <script>
@@ -269,6 +301,8 @@ async function renderPage(
 		.replace("{{TOC}}", toc)
 		.replace("{{FOOTER}}", footer)
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", hotReloadScript);
@@ -341,6 +375,7 @@ async function renderSlidesPage(
   es.onmessage = () => location.reload();
   es.onerror = () => setTimeout(() => location.reload(), 1000);
 </script>`;
+	const plugins = await getPluginInjectionsCached("slides");
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
 
@@ -365,6 +400,8 @@ async function renderSlidesPage(
 		.replace("{{TOC}}", "")
 		.replace("{{FOOTER}}", footer)
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", hotReloadScript);
@@ -405,6 +442,7 @@ sections:
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
 	const pathPrefix = "/";
+	const plugins = await getPluginInjectionsCached(config.mode === "slides" ? "slides" : "docs");
 
 	const hotReloadScript = `
 <script>
@@ -437,6 +475,8 @@ sections:
 		.replace("{{TOC}}", "")
 		.replace("{{FOOTER}}", buildFooter(provenance, config))
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", hotReloadScript);

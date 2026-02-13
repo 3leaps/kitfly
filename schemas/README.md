@@ -30,3 +30,13 @@ Standalone sites are detached copies, so schemas must be self-describing.
 
 For convenience, `schemas/site.schema.json` and `schemas/theme.schema.json` remain as thin wrappers
 that `$ref` the latest `schemas/v0/*` schemas.
+
+Plugin-related schemas follow the same pattern:
+
+- `schemas/plugin.schema.json` → `schemas/v0/plugin.schema.json`
+- `schemas/plugin-registry.schema.json` → `schemas/v0/plugin-registry.schema.json`
+- `schemas/plugins.schema.json` → `schemas/v0/plugins.schema.json`
+
+Shared definitions live in:
+
+- `schemas/v0/common.schema.json` (shared `$defs` referenced by multiple schemas)

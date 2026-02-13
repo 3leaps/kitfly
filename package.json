@@ -10,6 +10,8 @@
     "src/",
     "scripts/",
     "schemas/",
+    "registry/",
+    "plugins-dist/",
     "dist/",
     "!dist/release/",
     "VERSION",

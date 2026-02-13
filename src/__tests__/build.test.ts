@@ -5,6 +5,7 @@
  *   create a temp site directory -> run build() -> verify output files
  */
 
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -43,6 +44,10 @@ async function writeMd(dir: string, relPath: string, content: string): Promise<v
 	const fullPath = join(dir, relPath);
 	await mkdir(join(fullPath, ".."), { recursive: true });
 	await writeFile(fullPath, content);
+}
+
+function sha256Hex(text: string): string {
+	return createHash("sha256").update(new TextEncoder().encode(text)).digest("hex");
 }
 
 // ---------------------------------------------------------------------------
@@ -273,5 +278,57 @@ title: Intro
 		// _raw/ directory with markdown copy
 		const rawEntries = await readdir(join(dist, "_raw"), { recursive: true });
 		expect(rawEntries.length).toBeGreaterThan(0);
+	});
+
+	it("injects enabled plugins into generated HTML", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir);
+		await writeMd(siteDir, "docs/page.md", "> NOTE: Hello\n\nBody");
+
+		// Local plugin assets + registry
+		const js = "console.log('callouts');";
+		const css = ".kitfly-callout{border-left:6px solid red;}";
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await writeFile(join(siteDir, "plugins-dist", "callouts.js"), js, "utf-8");
+		await writeFile(join(siteDir, "plugins-dist", "callouts.css"), css, "utf-8");
+
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-02-12"
+baseUrl: ""
+plugins:
+  callouts:
+    name: "Callout Boxes"
+    description: "Test callouts"
+    version: "0.2.0"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/callouts.js"
+      css: "plugins-dist/callouts.css"
+      assetSha256:
+        js: "sha256:${sha256Hex(js)}"
+        css: "sha256:${sha256Hex(css)}"
+`,
+			"utf-8",
+		);
+
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - callouts@0.2.0\n",
+			"utf-8",
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="callouts@0.2.0"');
+		expect(html).toContain(css);
+		expect(html).toContain(js);
 	});
 });

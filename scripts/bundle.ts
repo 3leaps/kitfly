@@ -18,6 +18,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR } from "../src/engine.ts";
+import { loadPluginInjections } from "../src/plugin-loader.ts";
 import {
 	buildBundleFooter,
 	buildSectionNav,
@@ -585,6 +586,10 @@ async function bundle() {
 	}
 
 	const themeCSS = generateThemeCSS(theme);
+	const plugins = await loadPluginInjections({
+		root: ROOT,
+		mode: config.mode === "slides" ? "slides" : "docs",
+	});
 
 	// Inline brand assets for self-contained bundle
 	const brandLogo = await inlineBrandAsset(config.brand.logo || "assets/brand/logo.png");
@@ -624,6 +629,7 @@ ${assets.prismCss}
   <style id="prism-dark" disabled>
 ${assets.prismCssDark}
   </style>
+  ${plugins.head}
   <script>
     (function() {
       const saved = localStorage.getItem('theme');
@@ -663,6 +669,7 @@ ${assets.prismAutoloader}
   <script>
 ${assets.mermaid}
   </script>
+  ${plugins.bodyEnd}
   <script>
     // Initialize Mermaid
     function getMermaidTheme() {

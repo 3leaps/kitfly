@@ -11,6 +11,7 @@
   <!-- Syntax highlighting - Prism.js -->
   <link rel="stylesheet" href="{{PRISM_LIGHT_URL}}" id="prism-light">
   <link rel="stylesheet" href="{{PRISM_DARK_URL}}" id="prism-dark" disabled>
+  {{PLUGIN_HEAD}}
   <script>
     // Apply saved theme immediately to prevent flash
     (function() {
@@ -123,6 +124,7 @@
       await mermaid.run({ nodes: diagrams });
     };
   </script>
+  {{PLUGIN_BODY_END}}
   <script>
     function toggleTheme() {
       const html = document.documentElement;

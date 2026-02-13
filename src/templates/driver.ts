@@ -150,19 +150,27 @@ const STANDALONE_FILES = [
 	"src/shared.ts",
 	"src/engine.ts",
 	"src/theme.ts",
+	"src/plugin-loader.ts",
 	// Schemas (editor validation + migrations)
 	"schemas/README.md",
 	"schemas/site.schema.json",
 	"schemas/theme.schema.json",
+	"schemas/plugin.schema.json",
+	"schemas/plugin-registry.schema.json",
+	"schemas/plugins.schema.json",
 	"schemas/v0/site.schema.json",
 	"schemas/v0/theme.schema.json",
+	"schemas/v0/common.schema.json",
+	"schemas/v0/plugin.schema.json",
+	"schemas/v0/plugin-registry.schema.json",
+	"schemas/v0/plugins.schema.json",
 	// Site templates and assets
 	"src/site/template.html",
 	"src/site/styles.css",
 ];
 
 // Directories to copy entirely
-const STANDALONE_DIRS = ["assets"];
+const STANDALONE_DIRS = ["assets", "registry", "plugins-dist"];
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
 	// Normalize to a standalone ArrayBuffer to satisfy SubtleCrypto typing.

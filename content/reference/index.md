@@ -11,6 +11,7 @@ Use this section when you want quick definitions, mental models, and “what doe
 ## Start here
 
 - [Configuration](content/reference/configuration.html) — `site.yaml` and common settings
+- [Plugins](content/reference/plugins.html) — enable small CSS/JS add-ons
 - [Structure](content/reference/structure.html) — recommended folder layout and conventions
 - [Environment Variables](content/reference/environment-variables.html) — what they are and how to set them
 - [Key Concepts](content/reference/key-concepts.html) — `docroot`, `dist/`, “bundle vs build”, and more

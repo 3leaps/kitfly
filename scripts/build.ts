@@ -16,6 +16,7 @@ import { copyFile, cp, mkdir, readdir, readFile, stat, writeFile } from "node:fs
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR } from "../src/engine.ts";
+import { loadPluginInjections, type PluginInjections } from "../src/plugin-loader.ts";
 import {
 	buildBreadcrumbsStatic,
 	buildFooter,
@@ -164,6 +165,7 @@ async function renderFile(
 	provenance: Provenance,
 	config: SiteConfig,
 	theme: Theme,
+	plugins: PluginInjections,
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const content = await readFile(filePath, "utf-8");
@@ -224,6 +226,8 @@ async function renderFile(
 		.replace("{{TOC}}", toc)
 		.replace("{{FOOTER}}", footer)
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", "");
@@ -235,6 +239,7 @@ function renderGettingStarted(
 	provenance: Provenance,
 	config: SiteConfig,
 	theme: Theme,
+	plugins: PluginInjections,
 ): string {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const htmlContent = `
@@ -288,6 +293,8 @@ sections:
 		.replace("{{TOC}}", "")
 		.replace("{{FOOTER}}", buildFooter(provenance, config))
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", "");
@@ -299,6 +306,7 @@ async function renderSlidesIndex(
 	provenance: Provenance,
 	config: SiteConfig,
 	theme: Theme,
+	plugins: PluginInjections,
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const pathPrefix = "./";
@@ -372,6 +380,8 @@ async function renderSlidesIndex(
 		.replace("{{TOC}}", "")
 		.replace("{{FOOTER}}", buildFooter(provenance, config))
 		.replace("{{THEME_CSS}}", themeCSS)
+		.replace("{{PLUGIN_HEAD}}", plugins.head)
+		.replace("{{PLUGIN_BODY_END}}", plugins.bodyEnd)
 		.replace("{{PRISM_LIGHT_URL}}", prismUrls.light)
 		.replace("{{PRISM_DARK_URL}}", prismUrls.dark)
 		.replace("{{HOT_RELOAD_SCRIPT}}", "");
@@ -426,6 +436,12 @@ async function buildSite() {
 	// Read template
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
 
+	// Load plugin injections (optional; no-op when kitfly.plugins.yaml is absent)
+	const plugins = await loadPluginInjections({
+		root: ROOT,
+		mode: config.mode === "slides" ? "slides" : "docs",
+	});
+
 	// Copy CSS
 	const css = await readFile(await resolveStylesPath(ROOT), "utf-8");
 	await writeFile(join(DIST, "styles.css"), css);
@@ -463,7 +479,7 @@ async function buildSite() {
 
 	if (files.length === 0) {
 		// No content - render Getting Started page
-		const html = renderGettingStarted(template, provenance, config, theme);
+		const html = renderGettingStarted(template, provenance, config, theme, plugins);
 		await writeFile(join(DIST, "index.html"), html);
 		console.log("  ✓ index.html (Getting Started)");
 		console.log(`\n\x1b[33mNo content found. Create site.yaml or content/ directory.\x1b[0m`);
@@ -471,7 +487,7 @@ async function buildSite() {
 	}
 
 	if (config.mode === "slides") {
-		const html = await renderSlidesIndex(template, files, provenance, config, theme);
+		const html = await renderSlidesIndex(template, files, provenance, config, theme, plugins);
 		await writeFile(join(DIST, "index.html"), html);
 		console.log(`  ✓ index.html (slides mode, ${files.length} source files)`);
 		await generateAIAccessibility(DIST, files, config, provenance);
@@ -489,6 +505,7 @@ async function buildSite() {
 			provenance,
 			config,
 			theme,
+			plugins,
 		);
 
 		// Create output path
@@ -506,7 +523,16 @@ async function buildSite() {
 		if (homePath) {
 			try {
 				await stat(homePath);
-				const homeHtml = await renderFile(homePath, "", template, files, provenance, config, theme);
+				const homeHtml = await renderFile(
+					homePath,
+					"",
+					template,
+					files,
+					provenance,
+					config,
+					theme,
+					plugins,
+				);
 				await writeFile(join(DIST, "index.html"), homeHtml);
 				console.log(`  ✓ index.html (from ${config.home})`);
 			} catch {
@@ -520,6 +546,7 @@ async function buildSite() {
 					provenance,
 					config,
 					theme,
+					plugins,
 				);
 				await writeFile(join(DIST, "index.html"), indexHtml);
 				console.log("  ✓ index.html");
@@ -536,6 +563,7 @@ async function buildSite() {
 			provenance,
 			config,
 			theme,
+			plugins,
 		);
 		await writeFile(join(DIST, "index.html"), indexHtml);
 		console.log("  ✓ index.html");
