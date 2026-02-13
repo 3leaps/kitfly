@@ -94,6 +94,55 @@
     }
   }
 
+  function scalarKeysForType(type) {
+    switch (type) {
+      case "compare":
+        return ["left-title", "right-title"];
+      default:
+        return [];
+    }
+  }
+
+  function isListKeyMarkerText(text, allowedKeys) {
+    if (!allowedKeys || allowedKeys.length === 0) return null;
+    const m = text.match(/^([a-z0-9_-]+)\s*:\s*$/i);
+    if (!m) return null;
+    const key = m[1].toLowerCase();
+    return allowedKeys.includes(key) ? key : null;
+  }
+
+  function parseScalarMarkerText(text, allowedScalarKeys) {
+    if (!allowedScalarKeys || allowedScalarKeys.length === 0) return null;
+    const m = text.match(/^([a-z0-9_-]+)\s*:\s*(.+)$/i);
+    if (!m) return null;
+    const key = m[1].toLowerCase();
+    if (!allowedScalarKeys.includes(key)) return null;
+    return { key, value: parseScalar(m[2]) };
+  }
+
+  function asTextItem(value) {
+    if (typeof value === "string") return value;
+    if (!value || typeof value !== "object") return String(value ?? "");
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.label === "string" && typeof value.value === "string") return `${value.label}: ${value.value}`;
+    const parts = [];
+    for (const [k, v] of Object.entries(value)) {
+      if (typeof v === "string" && v.trim()) parts.push(`${k}: ${v}`);
+    }
+    return parts.length ? parts.join(" · ") : "";
+  }
+
+  function listKeysForType(type) {
+    switch (type) {
+      case "compare":
+        return ["left", "right"];
+      case "comparison-table":
+        return ["headers", "rows"];
+      default:
+        return [];
+    }
+  }
+
   function isListKeyMarker(li, allowedKeys) {
     if (!allowedKeys || allowedKeys.length === 0) return null;
     const raw = (li.textContent || "").trim();
@@ -240,7 +289,18 @@
   }
 
   function rowCells(row) {
-    if (typeof row === "string") return row.split("|").map((s) => s.trim()).filter(Boolean);
+    if (typeof row === "string") {
+      const t = row.trim();
+      if (t.startsWith("[") && t.endsWith("]")) {
+        try {
+          const parsed = JSON.parse(t);
+          if (Array.isArray(parsed)) return parsed.map((v) => String(v ?? ""));
+        } catch {
+          // fall through
+        }
+      }
+      return row.split("|").map((s) => s.trim()).filter(Boolean);
+    }
     if (typeof row === "object" && row && Array.isArray(row.cells)) return row.cells.map((s) => String(s ?? ""));
     return [String(row ?? "")];
   }
@@ -390,6 +450,7 @@
     }
 
     const allowedKeys = listKeysForType(type);
+    const allowedScalarKeys = scalarKeysForType(type);
 
     const nodes = [...between, end];
     for (const node of nodes) {
@@ -420,13 +481,48 @@
         buckets[currentKey] = [];
 
         for (const li of node.querySelectorAll(":scope > li")) {
-          const marker = isListKeyMarker(li, allowedKeys);
-          if (marker) {
-            currentKey = marker;
-            buckets[currentKey] = buckets[currentKey] || [];
+          const textLines = String(li.textContent || "")
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l && l !== ":::");
+
+          let anyContent = false;
+          const itemLines = [];
+          for (const line of textLines) {
+            const listMarker = isListKeyMarkerText(line, allowedKeys);
+            if (listMarker) {
+              currentKey = listMarker;
+              buckets[currentKey] = buckets[currentKey] || [];
+              anyContent = true;
+              continue;
+            }
+            const scalarMarker = parseScalarMarkerText(line, allowedScalarKeys);
+            if (scalarMarker) {
+              out[scalarMarker.key] = scalarMarker.value;
+              if (type === "compare" && scalarMarker.key === "right-title") {
+                currentKey = "right";
+                buckets[currentKey] = buckets[currentKey] || [];
+              }
+              if (type === "compare" && scalarMarker.key === "left-title") {
+                currentKey = "left";
+                buckets[currentKey] = buckets[currentKey] || [];
+              }
+              anyContent = true;
+              continue;
+            }
+            itemLines.push(line);
+          }
+
+          if (itemLines.length) {
+            buckets[currentKey].push(parseScalar(itemLines.join(" ")));
             continue;
           }
-          buckets[currentKey].push(parseListItemToValue(li));
+
+          // Fallback: absorbed key/value object in a <li>
+          if (!anyContent) {
+            const v = parseListItemToValue(li);
+            if (typeof v === "string") buckets[currentKey].push(v);
+          }
         }
 
         for (const [k, items] of Object.entries(buckets)) out[k] = items;
