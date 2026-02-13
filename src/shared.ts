@@ -456,6 +456,12 @@ export function slugify(text: string): string {
 		.trim();
 }
 
+export type SlidesVisualsFenceDiagnostic = {
+	line: number;
+	message: string;
+	type?: string;
+};
+
 interface FenceState {
 	char: "`" | "~";
 	length: number;
@@ -488,6 +494,264 @@ function updateFenceState(trimmed: string, fence: FenceState | null): FenceState
 	}
 
 	return fence;
+}
+
+const SLIDES_VISUALS_TYPES = new Set([
+	"kpi",
+	"stat-grid",
+	"compare",
+	"quadrant-grid",
+	"scorecard",
+	"comparison-table",
+	"layer-cake",
+	"pyramid",
+	"funnel",
+]);
+
+const SLIDES_VISUALS_RULES: Record<
+	string,
+	{
+		required: string[];
+		scalars: string[];
+		lists: Record<
+			string,
+			{ kind: "strings" } | { kind: "objects"; fields: string[]; optional?: string[] }
+		>;
+	}
+> = {
+	kpi: {
+		required: ["label", "value"],
+		scalars: ["label", "value", "trend"],
+		lists: {},
+	},
+	"stat-grid": {
+		required: ["metrics"],
+		scalars: [],
+		lists: { metrics: { kind: "objects", fields: ["label", "value"], optional: ["trend"] } },
+	},
+	compare: {
+		required: ["left", "right"],
+		scalars: ["left-title", "right-title"],
+		lists: { left: { kind: "strings" }, right: { kind: "strings" } },
+	},
+	"quadrant-grid": {
+		required: ["tl", "tr", "bl", "br"],
+		scalars: ["axis-x", "axis-y", "tl", "tr", "bl", "br"],
+		lists: {},
+	},
+	scorecard: {
+		required: ["metrics"],
+		scalars: [],
+		lists: { metrics: { kind: "objects", fields: ["label", "value"], optional: ["trend"] } },
+	},
+	"comparison-table": {
+		required: ["headers", "rows"],
+		scalars: [],
+		lists: { headers: { kind: "strings" }, rows: { kind: "strings" } },
+	},
+	"layer-cake": {
+		required: ["layers"],
+		scalars: [],
+		lists: { layers: { kind: "strings" } },
+	},
+	pyramid: {
+		required: ["levels"],
+		scalars: [],
+		lists: { levels: { kind: "strings" } },
+	},
+	funnel: {
+		required: ["stages"],
+		scalars: [],
+		lists: { stages: { kind: "strings" } },
+	},
+};
+
+/**
+ * Validate slides-visuals `:::` blocks in a single markdown slide body.
+ * This contract is intentionally strict so writers/devs don’t guess at edge cases.
+ */
+export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenceDiagnostic[] {
+	const diagnostics: SlidesVisualsFenceDiagnostic[] = [];
+	const lines = markdown.replaceAll("\r\n", "\n").split("\n");
+
+	let mdFence: FenceState | null = null;
+	let inVisual = false;
+	let visualType = "";
+	let visualStart = 0;
+	let seenKeys = new Set<string>();
+	let currentListKey: string | null = null;
+	let listItems = 0;
+	let listItemFields: Record<string, Set<string>> | null = null;
+
+	function err(line: number, message: string) {
+		diagnostics.push({ line, message, type: inVisual ? visualType : undefined });
+	}
+
+	function finishFence(closeLine: number) {
+		const rules = SLIDES_VISUALS_RULES[visualType];
+		if (!rules) return;
+
+		for (const key of rules.required) {
+			if (!seenKeys.has(key)) {
+				err(visualStart, `Missing required key: ${key}`);
+			}
+		}
+
+		if (currentListKey && listItems === 0) {
+			err(closeLine, `List '${currentListKey}' must have at least one item`);
+		}
+
+		if (listItemFields) {
+			for (const [requiredKey, fields] of Object.entries(listItemFields)) {
+				const listRule = rules.lists[requiredKey];
+				if (!listRule || listRule.kind !== "objects") continue;
+				for (const req of listRule.fields) {
+					if (!fields.has(req))
+						err(visualStart, `List '${requiredKey}' items must include '${req}'`);
+				}
+			}
+		}
+	}
+
+	for (let i = 0; i < lines.length; i++) {
+		const raw = lines[i];
+		const trimmed = raw.trim();
+
+		mdFence = updateFenceState(trimmed, mdFence);
+		if (mdFence) continue;
+
+		if (!inVisual) {
+			if (trimmed.startsWith(":::") && !raw.startsWith(":::")) {
+				const mBad = trimmed.match(/^:::\s*([a-z0-9-]+)\s*$/i);
+				const type = mBad?.[1]?.toLowerCase();
+				diagnostics.push({
+					line: i + 1,
+					message: "Opening ::: fence must start at column 0",
+					type,
+				});
+				continue;
+			}
+			const m = raw.match(/^:::\s*([a-z0-9-]+)\s*$/i);
+			if (!m) continue;
+			const type = m[1].toLowerCase();
+			if (!SLIDES_VISUALS_TYPES.has(type)) {
+				diagnostics.push({
+					line: i + 1,
+					message: `Unknown slides-visuals block type: ${type}`,
+					type,
+				});
+				continue;
+			}
+			inVisual = true;
+			visualType = type;
+			visualStart = i + 1;
+			seenKeys = new Set();
+			currentListKey = null;
+			listItems = 0;
+			listItemFields = null;
+			continue;
+		}
+
+		// inside visual fence
+		if (trimmed === ":::" && !raw.startsWith(":::")) {
+			err(i + 1, "Closing ::: fence must start at column 0");
+			continue;
+		}
+
+		if (raw.match(/^:::\s*$/)) {
+			finishFence(i + 1);
+			inVisual = false;
+			visualType = "";
+			currentListKey = null;
+			continue;
+		}
+
+		if (trimmed === "") {
+			err(i + 1, "Blank lines are not allowed inside ::: blocks");
+			continue;
+		}
+
+		if (/^\s/.test(raw)) {
+			// list item or list continuation
+			if (!currentListKey) {
+				err(i + 1, "Indented content is only allowed inside a list");
+				continue;
+			}
+
+			const listRule = SLIDES_VISUALS_RULES[visualType]?.lists[currentListKey];
+			const item = raw.match(/^ {2}-\s+(.+)$/);
+			if (item) {
+				listItems += 1;
+				if (listRule?.kind === "objects") {
+					const kv = item[1].match(/^([a-z][a-z0-9-]*)\s*:\s*(.+)$/i);
+					if (!listItemFields) listItemFields = {};
+					const fields = listItemFields;
+					fields[currentListKey] ??= new Set<string>();
+					if (kv) fields[currentListKey].add(kv[1].toLowerCase());
+				}
+				continue;
+			}
+
+			const cont = raw.match(/^ {4}([a-z][a-z0-9-]*)\s*:\s*(.+)$/i);
+			if (cont) {
+				if (listRule?.kind !== "objects") {
+					err(i + 1, `List '${currentListKey}' items must be strings (no object fields)`);
+					continue;
+				}
+				if (!listItemFields) listItemFields = {};
+				const fields = listItemFields;
+				fields[currentListKey] ??= new Set<string>();
+				fields[currentListKey].add(cont[1].toLowerCase());
+				continue;
+			}
+
+			err(i + 1, "Invalid list syntax (expected '  - ...' or '    field: value')");
+			continue;
+		}
+
+		const rules = SLIDES_VISUALS_RULES[visualType];
+		if (!rules) continue;
+
+		const kv = raw.match(/^([a-z][a-z0-9-]*)\s*:\s*(.*)$/i);
+		if (!kv) {
+			err(i + 1, "Invalid line inside ::: block (expected 'key: value' or 'key:')");
+			continue;
+		}
+
+		const key = kv[1].toLowerCase();
+		const value = kv[2];
+
+		if (value === "") {
+			// list key
+			const listRule = rules.lists[key];
+			if (!listRule) {
+				err(i + 1, `Key '${key}' is not a supported list for ${visualType}`);
+				continue;
+			}
+			seenKeys.add(key);
+			currentListKey = key;
+			listItems = 0;
+			continue;
+		}
+
+		// scalar key
+		if (!rules.scalars.includes(key)) {
+			err(i + 1, `Key '${key}' is not a supported scalar for ${visualType}`);
+			continue;
+		}
+		seenKeys.add(key);
+		currentListKey = null;
+	}
+
+	if (inVisual) {
+		diagnostics.push({
+			line: visualStart,
+			message: `Unclosed ::: block (missing closing ':::')`,
+			type: visualType,
+		});
+	}
+
+	return diagnostics;
 }
 
 /**

@@ -1,0 +1,4 @@
+:::mystery
+key: value
+:::
+

@@ -61,3 +61,49 @@ plugins:
 ## Integrity checks
 
 Kitfly verifies every enabled asset against its `sha256:<hex>` checksum. If a checksum does not match, the build/dev server fails with an integrity error.
+
+## Triple-colon fence contract (`slides-visuals`)
+
+The `slides-visuals` plugin adds a `:::` block syntax for slides mode (widgets + figures).
+
+To keep authoring predictable and make errors actionable, Kitfly defines a strict contract for these blocks.
+When `slides-visuals` is enabled, Kitfly validates blocks before rendering and reports contract violations.
+
+### Valid block shape
+
+- Opening fence: `:::<type>` **must** start at column 0 and be the only content on the line.
+- Closing fence: `:::` **must** start at column 0 and be the only content on the line.
+- No blank lines inside a `:::` block.
+- Content is a narrow YAML subset:
+  - Scalar: `key: value`
+  - List: `key:` followed by list items
+    - List item start: exactly two spaces, then `- ` (example: `␠␠- label: Users`)
+    - Continuation lines (object fields): exactly four spaces, then `field: value`
+
+### Supported types
+
+Widgets:
+- `kpi` (scalar keys: `label`, `value`, optional `trend`)
+- `stat-grid` (list key: `metrics` of `{label,value,trend?}` objects)
+- `compare` (scalar keys: `left-title`, `right-title`; list keys: `left`, `right` as strings)
+
+Figures:
+- `quadrant-grid` (scalar keys: `axis-x`, `axis-y`, `tl`, `tr`, `bl`, `br`)
+- `scorecard` (list key: `metrics` of `{label,value,trend?}` objects)
+- `comparison-table` (list keys: `headers` (strings), `rows` (strings))
+- `layer-cake` (list key: `layers` (strings))
+- `pyramid` (list key: `levels` (strings))
+- `funnel` (list key: `stages` (strings))
+
+### Example (valid)
+
+```markdown
+:::stat-grid
+metrics:
+  - label: Users
+    value: 1,234
+  - label: Uptime
+    value: 99.95%
+    trend: +0.3%
+:::
+```

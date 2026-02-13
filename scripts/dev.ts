@@ -44,6 +44,7 @@ import {
 	type Provenance,
 	// Markdown utilities
 	parseFrontmatter,
+	parseYaml,
 	resolveStylesPath,
 	resolveTemplatePath,
 	rewriteRelativeAssetUrls,
@@ -52,6 +53,7 @@ import {
 	slugify,
 	toUrlPath,
 	validatePath,
+	validateSlidesVisualsFences,
 } from "../src/shared.ts";
 import { generateThemeCSS, getPrismUrls, loadTheme, type Theme } from "../src/theme.ts";
 
@@ -193,6 +195,18 @@ const clients: Set<ReadableStreamDefaultController> = new Set();
 
 let pluginCache: { key: string; head: string; bodyEnd: string } | null = null;
 
+async function isSlidesVisualsEnabled(): Promise<boolean> {
+	const configPath = join(ROOT, "kitfly.plugins.yaml");
+	try {
+		const raw = await readFile(configPath, "utf-8");
+		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
+		const plugins = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
+		return plugins.some((p) => typeof p === "string" && p.startsWith("slides-visuals@"));
+	} catch {
+		return false;
+	}
+}
+
 async function getPluginInjectionsCached(
 	mode: "docs" | "slides",
 ): Promise<{ head: string; bodyEnd: string }> {
@@ -322,11 +336,22 @@ async function renderSlidesPage(
 		return renderGettingStarted(provenance, config, theme);
 	}
 	const pathPrefix = "/";
+	const validateFences = await isSlidesVisualsEnabled();
 
 	const sections = await Promise.all(
 		slides.map(async (slide, i) => {
 			let inner = "";
 			if (slide.kind === "markdown") {
+				if (validateFences) {
+					const diagnostics = validateSlidesVisualsFences(slide.body);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`slides-visuals fence contract violations:\n${msg}`);
+					}
+				}
 				inner = marked.parse(slide.body) as string;
 			} else if (slide.kind === "yaml") {
 				inner = `<pre><code class="language-yaml">${escapeHtml(slide.body)}</code></pre>`;

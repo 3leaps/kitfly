@@ -42,6 +42,7 @@ import {
 	type Provenance,
 	// Markdown utilities
 	parseFrontmatter,
+	parseYaml,
 	resolveStylesPath,
 	resolveTemplatePath,
 	rewriteRelativeAssetUrls,
@@ -49,6 +50,7 @@ import {
 	type SiteConfig,
 	slugify,
 	validatePath,
+	validateSlidesVisualsFences,
 } from "../src/shared.ts";
 import { generateThemeCSS, getPrismUrls, loadTheme, type Theme } from "../src/theme.ts";
 
@@ -311,10 +313,29 @@ async function renderSlidesIndex(
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const pathPrefix = "./";
 	const slides = await collectSlides(files);
+	let validateFences = false;
+	try {
+		const raw = await readFile(join(ROOT, "kitfly.plugins.yaml"), "utf-8");
+		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
+		const enabled = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
+		validateFences = enabled.some((p) => typeof p === "string" && p.startsWith("slides-visuals@"));
+	} catch {
+		// no config, skip
+	}
 	const renderedSlides = await Promise.all(
 		slides.map(async (slide, i) => {
 			let inner = "";
 			if (slide.kind === "markdown") {
+				if (validateFences) {
+					const diagnostics = validateSlidesVisualsFences(slide.body);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`slides-visuals fence contract violations:\n${msg}`);
+					}
+				}
 				inner = marked.parse(slide.body) as string;
 			} else if (slide.kind === "yaml") {
 				inner = `<pre><code class="language-yaml">${escapeHtml(slide.body)}</code></pre>`;
