@@ -2,6 +2,40 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.0] - 2026-02-14
+
+### Added
+
+- Slides mode: `mode: slides` for fixed-aspect, hash-routed decks (`#slide-n`) with keyboard navigation
+- Slide authoring models: one-file-per-slide and intra-file `--- slide ---` segmentation
+- `kitfly init --template deck` for a ready-to-edit slides starter
+- Plugin system: `kitfly.plugins.yaml`, registry-backed asset injection, mode allowlists, and integrity checks (sha256 + SRI where applicable)
+- `slides-visuals` plugin (widgets + deterministic figures) with strict `:::` fence validation and actionable errors
+- `callouts` plugin: styled NOTE/TIP/WARNING/INFO/DANGER blockquotes via `kitfly.plugins.yaml`
+- Design primitives in core styles for deterministic visuals (block flow/grid + shape modifiers)
+- Server management commands: `kitfly servers`, `kitfly stop <port|all>`, `kitfly logs <port>`
+- Site version resolution: `site.yaml version: auto` (read `VERSION` file) and `version: file:<path>`
+- Brand logo fallback initials when logo asset is missing/unreadable
+
+### Changed
+
+- Bundle output to `bundles/` (separate from `dist/`) so static-deploy and single-file outputs don't interfere
+
+### Fixed
+
+- Plugin registry hardening and checksum enforcement (fail fast on mismatches)
+- Dev server behavior when iterating on plugin assets (cache invalidation and parity fixes)
+- Multiple `slides-visuals` parsing/rendering edge cases (list merging, list-style blocks, comparison-table layout)
+
+### Docs
+
+- New Deployment section with beginner-friendly guardrails and provider recipes
+- Expanded Reference docs (plugins contract, environment variables, key concepts, glossary, design catalog)
+
+### Deferred
+
+- Additional live-slides plugins (`slides-charts-lite`, `slides-refresh`, `slides-embed`) planned for v0.2.1
+
 ## [0.1.2] - 2026-02-10
 
 ### Added

@@ -1,56 +1,102 @@
-# Kitfly v0.1.2
+# Kitfly v0.2.0
 
-**Release date:** 2026-02-10
+**Release date:** 2026-02-14
 
-## What's new
+## What’s new
 
-Kitfly v0.1.2 fixes the footer provenance display, improves sidebar navigation UX, adds configurable sidebar width, and dramatically expands test coverage.
+Kitfly v0.2.0 adds **slides mode** and a minimal **plugin system**—so you can ship fixed-aspect decks, add optional visuals/widgets, and still keep the core small and auditable.
 
-### Provenance fix
+### Slides mode (`mode: slides`)
 
-The footer previously showed the kitfly engine version (e.g., `v0.1.2`) — every kitfly-powered site displayed the same number. Now it shows **your site's version**:
+Slides mode renders your content as a single-page, hash-routed deck (`#slide-n`) with keyboard navigation and a fixed aspect ratio.
 
 ```yaml
 # site.yaml
-version: "2.4.1"
+mode: slides
+aspect: "16/9"
 ```
 
-Resolution order: `site.yaml` version → git tag on HEAD → omit version entirely. The kitfly engine version is no longer displayed in site provenance.
+Authoring models:
 
-### Sidebar folder indicators
+- **One file per slide**
+- **One file, many slides** using the explicit delimiter: `--- slide ---`
 
-Collapsible folder indicators in the sidebar nav were hard to see (`▸`/`▾` at 70% font size). Replaced with a `›` chevron at 85% size with a smooth 150ms rotation on open/close.
+If you’re starting fresh, `kitfly init --template deck` gives you a ready-to-edit slide project.
 
-### Configurable sidebar width
+### Plugins (optional, pinned, integrity-checked)
 
-Sidebar width is now configurable via `theme.yaml`:
+Plugins are small opt-in add-ons that inject CSS/JS. They are designed to stay minimal and predictable:
+
+- **Pinned** versions (`name@x.y.z`)
+- **Integrity checked** assets (sha256)
+- Optional **mode allowlists** (run only in `slides`, etc.)
+
+Enable plugins via `kitfly.plugins.yaml` in your site root.
+
+For details (including registry layout, checksums, and mode allowlists), see:
+
+- `content/reference/plugins.md`
+
+### `callouts` plugin
+
+The `callouts` plugin transforms blockquotes starting with NOTE:/TIP:/WARNING:/INFO:/DANGER: into styled callout boxes. Works in both docs and slides modes.
+
+### `slides-visuals` and the `:::` fence contract
+
+The first “live slides” plugin, `slides-visuals`, introduces a strict `:::` block syntax for widgets and deterministic figures.
+
+Kitfly now validates `:::` blocks when the plugin is enabled and fails fast with actionable errors. This is intentional: the contract avoids “looks like it worked” failures where a deck silently renders the wrong thing.
+
+See: `content/reference/plugins.md` (Triple-colon fence contract).
+
+### Deterministic design primitives (shapes + figures)
+
+v0.2.0 introduces core CSS primitives for slide-friendly visuals (block flow/grid plus shape modifiers) and documents a design catalog to standardize terminology:
+
+- **Shapes (primitives)**: atomic building blocks
+- **Figures**: deterministic infographic patterns built from shapes
+
+See: `content/reference/design-catalog.md`
+
+### Server management
+
+New CLI commands for managing dev server instances:
+
+- `kitfly servers` — list running dev servers
+- `kitfly stop <port|all>` — stop dev server(s)
+- `kitfly logs <port>` — view daemon server logs (supports `--follow`)
+
+### Site versioning
+
+Set `version` in `site.yaml` to display your site's version in the sidebar and footer across dev, build, and bundle outputs:
 
 ```yaml
-# theme.yaml
-layout:
-  sidebarWidth: "320px"
+version: "1.0.0"    # explicit
+version: auto        # read from VERSION file
 ```
 
-Default remains `280px`. Recommended range: `240px`–`400px`. Works in dev server, static builds, and bundles.
+### Brand logo fallback
 
-### Test coverage
+When no logo file is configured or the image can't load, Kitfly renders a CSS initial (first letter of the site title) instead of showing a broken image icon.
 
-Major investment in test quality:
+### Bundle output separation
 
-| Metric | Before | After |
-|--------|-------:|------:|
-| Tests | 466 | 1,174 |
-| Statement coverage | 56.9% | 68.7% |
-| Function coverage | 42.3% | 79.6% |
+Bundle output now writes to `bundles/` (separate from `dist/`) so static-deploy and single-file outputs don't interfere.
 
-All five template modules (crucible, pipeline, productbook, runbook, servicebook) now have 100% test coverage.
+## Notes for upgraders
 
-## Bug fixes
+- There are no breaking changes for docs-mode sites.
+- If you enable `slides-visuals`, invalid `:::` blocks are now treated as build errors (by design).
 
-- Footer provenance displayed kitfly engine version instead of site version
-- Sidebar folder indicators too small and lacked animation
-- Theme test suite used `vi.mock()` causing cross-file mock contamination
+## Deferred to v0.2.1
+
+The v0.2.0 cycle intentionally shipped the minimum “slides + plugin” core and deferred additional live-slides capabilities:
+
+- `slides-charts-lite`
+- `slides-refresh`
+- `slides-embed`
+- Build-time `:::` support via a marked extension hook (v0.2.0 uses a runtime DOM transform)
 
 ## Full changelog
 
-See [CHANGELOG.md](CHANGELOG.md) or [docs/releases/v0.1.2.md](docs/releases/v0.1.2.md) for the complete list.
+See [CHANGELOG.md](CHANGELOG.md) for the complete list.

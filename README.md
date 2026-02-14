@@ -20,14 +20,18 @@ Kitfly requires [Bun](https://bun.sh) as its runtime.
 # Install Bun (if you don't have it)
 curl -fsSL https://bun.sh/install | bash
 
-# Install Kitfly globally
-bun install -g kitfly
+# Install Kitfly globally (from npm)
+bun add -g kitfly
 
 # Verify
 kitfly --version
 ```
 
-Also available via npm (still requires Bun installed, because the CLI runs with Bun): `npm install -g kitfly`
+Alternative: `npm install -g kitfly` (still requires Bun, because the CLI runs with Bun).
+
+No global install: `bunx kitfly --version`
+
+Note: `bun`/`npm` installs the latest published release. If you’re reading `main` before a release is cut, clone this repo for the newest features.
 
 For contributor/development setup, see [docs/development.md](docs/development.md).
 
@@ -35,17 +39,26 @@ For contributor/development setup, see [docs/development.md](docs/development.md
 
 ## Three Ways to Use Kitfly
 
-| Approach | Best For | What You Get |
-|----------|----------|--------------|
-| **`kitfly init`** | New projects | Standalone site with your own copy of the code |
-| **`kitfly dev ./folder`** | Existing docs | Quick preview without changing anything |
-| **Clone this repo** | Contributors | The kitfly engine itself |
+| Approach                  | Best For      | What You Get                                   |
+| ------------------------- | ------------- | ---------------------------------------------- |
+| **`kitfly init`**         | New projects  | Standalone site with your own copy of the code |
+| **`kitfly dev ./folder`** | Existing docs | Quick preview without changing anything        |
+| **Clone this repo**       | Contributors  | The kitfly engine itself                       |
 
 ### Create a Standalone Site (Recommended)
 
 ```bash
 kitfly init my-docs
 cd my-docs
+bun install
+bun run dev
+```
+
+Or start a slide deck:
+
+```bash
+kitfly init my-deck --template deck
+cd my-deck
 bun install
 bun run dev
 ```
@@ -87,16 +100,17 @@ For full contributor setup (toolchain, bootstrap, local CLI), see [docs/developm
 
 ## What You Get
 
-| Feature | How |
-|---------|-----|
-| Hot reload | Edit markdown, see changes instantly |
-| Navigation | Auto-generated from folder structure |
-| Table of contents | Extracted from headings |
-| Dark mode | System preference + toggle |
-| Slides mode | `mode: slides` for fixed-aspect decks (v0.2.0+) |
-| Diagrams | Mermaid via CDN |
-| Syntax highlighting | Prism.js via CDN |
-| Offline-ready | Static HTML, no server required |
+| Feature             | How                                                                     |
+| ------------------- | ----------------------------------------------------------------------- |
+| Hot reload          | Edit markdown, see changes instantly                                    |
+| Navigation          | Auto-generated from folder structure                                    |
+| Table of contents   | Extracted from headings                                                 |
+| Dark mode           | System preference + toggle                                              |
+| Slides mode         | `mode: slides` for fixed-aspect decks (v0.2.0+)                         |
+| Plugins             | Optional add-ons via `kitfly.plugins.yaml` (pinned + integrity-checked) |
+| Diagrams            | Mermaid via CDN                                                         |
+| Syntax highlighting | Prism.js via CDN                                                        |
+| Offline-ready       | Static HTML, no server required                                         |
 
 ## What You Don't Get
 
@@ -133,6 +147,16 @@ sections:
 
 Or just drop markdown files in `content/` — sections auto-discover.
 
+## Plugins
+
+Plugins are optional CSS/JS add-ons (kept out of core) that you enable per-site.
+
+- Config: `kitfly.plugins.yaml`
+- Versions are pinned (`name@x.y.z`)
+- Assets are integrity-checked (sha256)
+
+See `content/reference/plugins.md` for the contract and examples.
+
 ---
 
 ## Philosophy
@@ -150,7 +174,7 @@ Kitfly is intentionally limited. The goal is a doc site that stays simple and ma
 - **Kit**: Your handbook, runbook, notebook — a collection of docs
 - **Fly**: Fast, instant, launching to the web
 
-*Pack your docs. Watch them fly.*
+_Pack your docs. Watch them fly._
 
 ---
 
