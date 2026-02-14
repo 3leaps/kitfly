@@ -66,6 +66,7 @@ dist/
 ```
 
 **Not in dist/:**
+
 - `src/` - rendering code
 - `scripts/` - build scripts
 - `README.md` - GitHub readme
@@ -86,20 +87,22 @@ docroot: "content"
 
 This tells kitfly where to look for markdown files. Options:
 
-| Setting | Effect |
-|---------|--------|
-| `"content"` | Render from `content/` (recommended) |
-| `"docs"` | Render from `docs/` (common in code repos) |
-| `"."` | Render from repo root (use with care) |
+| Setting     | Effect                                     |
+| ----------- | ------------------------------------------ |
+| `"content"` | Render from `content/` (recommended)       |
+| `"docs"`    | Render from `docs/` (common in code repos) |
+| `"."`       | Render from repo root (use with care)      |
 
 ### Why This Matters
 
 With `docroot: "content"`:
+
 - Your `README.md` stays on GitHub, not in the docs
 - Your `package.json` isn't exposed
 - You can have code, tests, and docs in the same repo
 
 With `docroot: "."`:
+
 - Everything in the repo root becomes documentation
 - Useful for pure documentation repos
 - You'll want to configure `sections` explicitly

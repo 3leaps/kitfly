@@ -5,7 +5,9 @@
   "title": "Plugin Configuration",
   "description": "Configuration for enabling Kitfly plugins (kitfly.plugins.yaml). Canonical plugins are specified as pinned strings (name@x.y.z). Third-party plugins are objects and require explicit opt-in at build/dev time.",
   "type": "object",
-  "required": ["plugins"],
+  "required": [
+    "plugins"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
@@ -20,12 +22,19 @@
             "type": "string",
             "description": "Canonical plugin reference with strict version pinning (name@x.y.z).",
             "pattern": "^[a-z][a-z0-9-]*@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
-            "examples": ["latex@1.0.0", "slides-widgets@0.2.0-beta.1"]
+            "examples": [
+              "latex@1.0.0",
+              "slides-widgets@0.2.0-beta.1"
+            ]
           },
           {
             "type": "object",
             "description": "Third-party plugin reference (requires --allow-untrusted).",
-            "required": ["name", "source", "sha256"],
+            "required": [
+              "name",
+              "source",
+              "sha256"
+            ],
             "properties": {
               "name": {
                 "type": "string",
@@ -56,7 +65,10 @@
   "examples": [
     {
       "$schema": "./schemas/v0/plugins.schema.json",
-      "plugins": ["latex@1.0.0", "callouts@1.2.0"]
+      "plugins": [
+        "latex@1.0.0",
+        "callouts@1.2.0"
+      ]
     },
     {
       "$schema": "./schemas/v0/plugins.schema.json",

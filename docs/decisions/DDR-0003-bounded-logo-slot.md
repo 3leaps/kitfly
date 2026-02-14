@@ -29,11 +29,11 @@ Use a **bounded bounding-box model** where the logo slot defines maximum dimensi
 
 ### Slot Dimensions
 
-| Breakpoint | Max Height | Max Width |
-|------------|-----------|-----------|
-| Desktop (> 1024px) | 64px | 180px |
-| Tablet (≤ 1024px) | 56px | 150px |
-| Mobile (≤ 768px) | 48px | 130px |
+| Breakpoint         | Max Height | Max Width |
+| ------------------ | ---------- | --------- |
+| Desktop (> 1024px) | 64px       | 180px     |
+| Tablet (≤ 1024px)  | 56px       | 150px     |
+| Mobile (≤ 768px)   | 48px       | 130px     |
 
 ### CSS Implementation
 
@@ -65,10 +65,10 @@ For wordmark logos, the `.logo-wordmark` class switches the constraint axis:
 
 `site.yaml` supports `brand.logoType` to select the rendering mode:
 
-| Value | Behavior |
-|-------|----------|
+| Value              | Behavior                                       |
+| ------------------ | ---------------------------------------------- |
 | `"icon"` (default) | Height-dominant constraint, square/near-square |
-| `"wordmark"` | Width-dominant constraint, wide aspect ratio |
+| `"wordmark"`       | Width-dominant constraint, wide aspect ratio   |
 
 The bundle system propagates `logoType` via `buildBundleSidebarHeader()` to ensure parity between build and bundle output.
 

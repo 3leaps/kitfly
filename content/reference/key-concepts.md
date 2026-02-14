@@ -11,6 +11,7 @@ Kitfly is intentionally small. If you understand these concepts, you understand 
 ## Site root
 
 Your “site root” is the folder you run commands from. It usually contains:
+
 - `site.yaml`
 - `content/` (your docs)
 
@@ -21,6 +22,7 @@ When you run `kitfly dev`, `kitfly build`, or `kitfly bundle`, you usually run t
 `docroot` is the folder Kitfly renders into a site.
 
 In most projects:
+
 - `docroot: "content"`
 
 Think of `docroot` as “the folder I’m publishing”.
@@ -42,6 +44,7 @@ If you point `kitfly` at a folder without a `site.yaml`, Kitfly can auto-discove
 ## `dist/` (build output)
 
 `kitfly build` produces a static site folder, commonly:
+
 - `dist/`
 
 You deploy by uploading/syncing `dist/` to a static host.
@@ -109,6 +112,7 @@ If you see “unversioned”, it usually means your site didn’t set a `version
 A static site is just files. No server-side database, no login, no runtime code required.
 
 That’s why Kitfly sites are easy to:
+
 - host almost anywhere
 - email as an attachment (bundle)
 - keep offline

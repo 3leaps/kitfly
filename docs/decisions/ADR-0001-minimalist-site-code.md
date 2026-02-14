@@ -33,35 +33,35 @@ This ADR defines what belongs in site code vs. what stays in the kitfly CLI.
 
 The site code that `kitfly init` copies should stay within these bounds:
 
-| Metric | Target | Hard Limit |
-|--------|--------|------------|
-| Total lines (scripts/) | ~500 | 800 |
-| Dependencies | 1 (marked) | 2 |
-| Files copied | ~10 | 15 |
+| Metric                 | Target     | Hard Limit |
+| ---------------------- | ---------- | ---------- |
+| Total lines (scripts/) | ~500       | 800        |
+| Dependencies           | 1 (marked) | 2          |
+| Files copied           | ~10        | 15         |
 
 ### What Belongs in Site Code
 
-| Component | Purpose | Approximate Size |
-|-----------|---------|------------------|
-| `scripts/dev.ts` | Dev server with hot reload | ~400 lines |
-| `scripts/build.ts` | Static site generation | ~350 lines |
-| `scripts/bundle.ts` | Single-file HTML output | ~250 lines |
-| `src/theme.ts` | Theme loading and CSS generation | ~150 lines |
-| `src/engine.ts` | Path utilities | ~20 lines |
-| `src/site/template.html` | HTML template | ~150 lines |
-| `src/site/styles.css` | Default styles | ~400 lines |
+| Component                | Purpose                          | Approximate Size |
+| ------------------------ | -------------------------------- | ---------------- |
+| `scripts/dev.ts`         | Dev server with hot reload       | ~400 lines       |
+| `scripts/build.ts`       | Static site generation           | ~350 lines       |
+| `scripts/bundle.ts`      | Single-file HTML output          | ~250 lines       |
+| `src/theme.ts`           | Theme loading and CSS generation | ~150 lines       |
+| `src/engine.ts`          | Path utilities                   | ~20 lines        |
+| `src/site/template.html` | HTML template                    | ~150 lines       |
+| `src/site/styles.css`    | Default styles                   | ~400 lines       |
 
 **Rule of thumb**: If it can be done with CSS, vanilla JS under 50 lines, or a marked plugin, it belongs in site code.
 
 ### What Stays in Kitfly CLI
 
-| Component | Purpose | Reason |
-|-----------|---------|--------|
-| `src/cli.ts` | CLI entry point | Users don't need this |
-| `src/commands/init.ts` | Project scaffolding | Meta-tooling |
-| `src/commands/update.ts` | Site code updates | Meta-tooling |
-| `content/` | Kitfly's own docs | Not user content |
-| `assets/brand/` | Kitfly branding | Users have their own |
+| Component                | Purpose             | Reason                |
+| ------------------------ | ------------------- | --------------------- |
+| `src/cli.ts`             | CLI entry point     | Users don't need this |
+| `src/commands/init.ts`   | Project scaffolding | Meta-tooling          |
+| `src/commands/update.ts` | Site code updates   | Meta-tooling          |
+| `content/`               | Kitfly's own docs   | Not user content      |
+| `assets/brand/`          | Kitfly branding     | Users have their own  |
 
 ### Feature Evaluation
 
@@ -73,6 +73,7 @@ Before adding any feature to site code:
 4. **Check the necessity** — Is this core rendering, or CLI convenience?
 
 Features that fail these checks should:
+
 - Stay in the kitfly CLI (not copied to user sites)
 - Be implemented as optional user customization
 - Trigger a discussion about whether we're solving the right problem

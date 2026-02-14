@@ -27,6 +27,7 @@ A design-level decision is needed so all render paths (`dev`, `build`, `bundle`)
 Slides mode renders as a single-page deck with hash navigation (`#slide-n`).
 
 Behavior:
+
 - prev/next controls update active slide,
 - keyboard navigation supports ArrowLeft/ArrowRight/Space/Home/End,
 - URL hash deep-links and restores slide state on reload.
@@ -38,6 +39,7 @@ Within a markdown file, slide boundaries use:
 `--- slide ---`
 
 Rules:
+
 - standard YAML frontmatter remains unchanged,
 - plain markdown `---` is treated as content (horizontal rule),
 - one file per slide remains a first-class authoring model.
@@ -45,6 +47,7 @@ Rules:
 ### 3. Frontmatter metadata for slide behavior
 
 Per-slide frontmatter supports:
+
 - `title` for sidebar/counter labels,
 - `class` for slide-level layout/style hooks.
 
@@ -57,6 +60,7 @@ Rendered slide wrapper form:
 Slides mode is a rendering branch, not a separate engine.
 
 Parity requirement:
+
 - `scripts/dev.ts`, `scripts/build.ts`, and `scripts/bundle.ts` must produce equivalent slide ordering, segmentation, and navigation semantics.
 - Shared logic should live in `src/shared.ts` where feasible to avoid divergence.
 

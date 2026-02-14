@@ -209,7 +209,7 @@ fmt: ## Format code (Biome for TS, goneat for YAML/MD)
 	@echo "Formatting TypeScript..."
 	@bunx biome check --write src/ scripts/
 	@echo "Formatting docs and config (goneat)..."
-	@$(GONEAT_RESOLVE); bash -c '$$GONEAT format --types yaml,json,markdown --folders . --finalize-eof --quiet 2>&1 | grep -v "encountered the following formatting errors" || true'
+	@$(GONEAT_RESOLVE); $$GONEAT format --types yaml,json,markdown --folders . --finalize-eof --quiet 2>&1 | grep -v "encountered the following formatting errors" || true
 	@echo "All files formatted"
 
 lint: ## Run linting checks

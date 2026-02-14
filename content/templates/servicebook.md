@@ -58,26 +58,28 @@ my-servicebook/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Offerings** | What we deliver | Service tiers, engagement models, deliverables, scoping |
-| **Methodology** | How we do it | Phases, tools, frameworks, methodology decisions |
-| **Delivery** | Engagement operations | Lifecycle, onboarding, quality gates, templates |
-| **Verticals** | Industry context | Regulations, terminology, common challenges per vertical |
-| **Case Studies** | Proof of capability | Past engagements (anonymized), outcomes, lessons learned |
-| **Reference** | Look-up material | Team expertise, pricing models, contacts |
+| Section          | Purpose               | Typical Content                                          |
+| ---------------- | --------------------- | -------------------------------------------------------- |
+| **Offerings**    | What we deliver       | Service tiers, engagement models, deliverables, scoping  |
+| **Methodology**  | How we do it          | Phases, tools, frameworks, methodology decisions         |
+| **Delivery**     | Engagement operations | Lifecycle, onboarding, quality gates, templates          |
+| **Verticals**    | Industry context      | Regulations, terminology, common challenges per vertical |
+| **Case Studies** | Proof of capability   | Past engagements (anonymized), outcomes, lessons learned |
+| **Reference**    | Look-up material      | Team expertise, pricing models, contacts                 |
 
 ## The Methodology Section
 
 This is what makes servicebook different. It captures **how your practice delivers value** — not just what you sell.
 
 For a technical assessment practice, this might hold:
+
 - **Phases**: Explore (stakeholder interviews) → Analyze (gap analysis) → Synthesize (recommendations) → Deliver (presentation)
 - **Tools**: Interview frameworks, scoring rubrics, analysis templates
 - **Frameworks**: Maturity models, SWOT analysis, weighted scoring for vendor evaluation
 - **Decisions**: Why we switched from 3-phase to 4-phase methodology (MDR-001)
 
 For a management consulting practice:
+
 - **Phases**: Current State → Target State → Gap Analysis → Roadmap
 - **Tools**: Workshop facilitation tools, benchmarking databases, financial modeling
 - **Frameworks**: Operating model canvas, capability mapping, value stream analysis
@@ -97,20 +99,21 @@ kitfly init consulting-docs --template servicebook --standalone --ai-assist
 
 ## Servicebook vs. Other Templates
 
-| Aspect | Productbook | Servicebook | Handbook |
-|--------|------------|-------------|---------|
-| **Orientation** | What we build | What we sell & deliver | How we work |
-| **Assumes** | One product, iterated | Multiple service offerings | Team exists |
-| **Key section** | Domain | Methodology | Guides |
-| **Audience** | Product team + stakeholders | Delivery team + clients | Team members |
-| **Tone** | Analytical | Professional, prescriptive | Explanatory |
-| **Lifecycle** | Product releases | Engagement lifecycle | Knowledge updates |
+| Aspect          | Productbook                 | Servicebook                | Handbook          |
+| --------------- | --------------------------- | -------------------------- | ----------------- |
+| **Orientation** | What we build               | What we sell & deliver     | How we work       |
+| **Assumes**     | One product, iterated       | Multiple service offerings | Team exists       |
+| **Key section** | Domain                      | Methodology                | Guides            |
+| **Audience**    | Product team + stakeholders | Delivery team + clients    | Team members      |
+| **Tone**        | Analytical                  | Professional, prescriptive | Explanatory       |
+| **Lifecycle**   | Product releases            | Engagement lifecycle       | Knowledge updates |
 
 ## Growing Your Servicebook
 
 As the practice matures, the sections grow naturally:
 
 **Offerings expand as services are defined** — each service gets its own folder with overview, deliverables, and scoping:
+
 ```
 content/offerings/
 ├── overview.md
@@ -128,6 +131,7 @@ content/offerings/
 ```
 
 **Verticals deepen with experience** — each industry vertical captures specialized knowledge:
+
 ```
 content/verticals/
 ├── overview.md
@@ -143,6 +147,7 @@ content/verticals/
 ## Example Use Cases
 
 **Technical Assessment Practice**
+
 - Offerings: Security assessment, architecture review, cloud readiness evaluation
 - Methodology: Discovery interviews, tooling analysis, gap scoring, recommendations
 - Delivery: 2-4 week fixed-scope engagements with standardized quality gates
@@ -150,6 +155,7 @@ content/verticals/
 - Case Studies: Anonymized assessment outcomes with measurable improvements
 
 **Management Consulting Practice**
+
 - Offerings: Strategy advisory, operating model design, transformation planning
 - Methodology: Current-state analysis, target operating model, roadmap development
 - Delivery: Retainer-based advisory with milestone-based transformation work

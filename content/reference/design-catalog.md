@@ -19,6 +19,7 @@ Kitfly’s approach is simpler: a small catalog of **deterministic** building bl
 **Shapes** are atomic building blocks with **no internal layout logic**.
 
 They are the “ink” you can draw with:
+
 - boxes, circles, diamonds
 - arrows and connectors
 - badges, labels, callouts
@@ -32,6 +33,7 @@ You (or an agent) decide where they go.
 A figure has a known structure (a fixed topology) and a deterministic layout algorithm, such as CSS Grid or flexbox. You fill named **slots**, and the figure handles spacing and alignment inside its bounding box.
 
 Examples of figures we expect to support:
+
 - timeline
 - layer cake
 - quadrant grid
@@ -54,6 +56,7 @@ If element positions must be computed from relationships between a variable set 
 ## Where this is going
 
 This page is the entry point. During the v0.2.x cycle, we’ll extend it with:
+
 - a fuller shape list (what exists, what each is for)
 - a figure list (patterns, slot definitions, examples)
 - guidance on when to choose figures vs Mermaid (and when not to)
@@ -61,6 +64,7 @@ This page is the entry point. During the v0.2.x cycle, we’ll extend it with:
 ## What ships now (current)
 
 Current core support focuses on **shapes** as `.block` modifiers:
+
 - `circle`
 - `pill`
 - `diamond`

@@ -11,4 +11,3 @@ metrics:
   - label: "DAU"
     value: "12,400"
 :::
-

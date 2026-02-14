@@ -1,7 +1,6 @@
 # yaml-language-server: $schema=../schemas/v0/theme.schema.json
 # Paper theme - warm, readable, for narrative documentation
 name: "Paper"
-
 colors:
   light:
     background: "#fffbf5"
@@ -13,7 +12,6 @@ colors:
     primaryHover: "#994d00"
     accent: "#c44536"
     border: "#e6dfd6"
-
   dark:
     background: "#1a1816"
     surface: "#252220"
@@ -24,11 +22,9 @@ colors:
     primaryHover: "#f0b673"
     accent: "#e07b6b"
     border: "#3d3835"
-
 code:
   light: "solarized-light"
   dark: "nord"
-
 typography:
   body: "readable"
   headings: "system"

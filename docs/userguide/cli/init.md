@@ -14,24 +14,25 @@ Initializes a new kitfly project with all necessary files and folder structure. 
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `name` | Project directory name (default: current directory) |
+| Argument | Description                                         |
+| -------- | --------------------------------------------------- |
+| `name`   | Project directory name (default: current directory) |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
+| Option              | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
 | `--template <name>` | Template to use: `minimal`, `handbook`, `runbook` (default: minimal) |
-| `--standalone` | Create self-contained site with rendering code (default: true) |
-| `--brand <name>` | Set brand name |
-| `--brand-url <url>` | Set brand URL |
+| `--standalone`      | Create self-contained site with rendering code (default: true)       |
+| `--brand <name>`    | Set brand name                                                       |
+| `--brand-url <url>` | Set brand URL                                                        |
 
 ## Templates
 
 ### minimal
 
 Basic documentation site with simple structure:
+
 - Single content section
 - Clean starting point
 - Minimal example content
@@ -39,6 +40,7 @@ Basic documentation site with simple structure:
 ### handbook
 
 Team/company handbook template:
+
 - Multiple sections (About, Policies, Guides, Resources)
 - Onboarding-focused structure
 - Sample policies and guides
@@ -46,6 +48,7 @@ Team/company handbook template:
 ### runbook
 
 Operations runbook template:
+
 - Procedures, Troubleshooting, Reference, Incidents sections
 - Operations-focused structure
 - Incident response templates
@@ -100,6 +103,7 @@ bun run dev
 ## Standalone Mode
 
 By default, `kitfly init` creates a standalone site with its own copy of:
+
 - Rendering scripts (dev, build, bundle)
 - Engine and theme code
 - Configuration schemas

@@ -106,11 +106,11 @@ brand:
 
 The logo renders inside a bounded slot that preserves aspect ratio:
 
-| Breakpoint | Max Height | Max Width |
-|------------|-----------|-----------|
-| Desktop | 64px | 180px |
-| Tablet (≤1024px) | 56px | 150px |
-| Mobile (≤768px) | 48px | 130px |
+| Breakpoint       | Max Height | Max Width |
+| ---------------- | ---------- | --------- |
+| Desktop          | 64px       | 180px     |
+| Tablet (≤1024px) | 56px       | 150px     |
+| Mobile (≤768px)  | 48px       | 130px     |
 
 Both square marks and wide wordmarks fit cleanly. SVG and PNG formats are supported. For SVGs, ensure the `viewBox` is tightly cropped to the artwork — an oversized canvas will render the logo too small.
 
@@ -135,9 +135,9 @@ sections:
     maxDepth: 6 # Discover up to 6 levels deep (default: 4, max: 10)
 ```
 
-| Setting | Default | Range | Effect |
-|---------|---------|-------|--------|
-| `maxDepth` | 4 | 1–10 | How many directory levels to scan for `.md` files |
+| Setting    | Default | Range | Effect                                            |
+| ---------- | ------- | ----- | ------------------------------------------------- |
+| `maxDepth` | 4       | 1–10  | How many directory levels to scan for `.md` files |
 
 Deeper sections produce hierarchical sidebar navigation with collapsible groups. Set a lower `maxDepth` for sections where you want a flatter sidebar.
 
@@ -159,12 +159,12 @@ v0.1.1 · Published 2026-02-10     © 2026 Acme Inc. · acme.com     Built with 
 ← provenance (automatic)          ← copyright + links (configurable) → ← attribution →
 ```
 
-| Field | Default | What it controls |
-|-------|---------|-----------------|
-| `copyright` | `© {publish-year} {brand.name}` | The copyright text in the center zone |
-| `copyrightUrl` | *(none)* | Makes the copyright text a clickable link |
-| `links` | Your `brand.url` shown as a link | Links after the copyright text (max 10) |
-| `attribution` | `true` | "Built with Kitfly" on the right |
+| Field          | Default                          | What it controls                          |
+| -------------- | -------------------------------- | ----------------------------------------- |
+| `copyright`    | `© {publish-year} {brand.name}`  | The copyright text in the center zone     |
+| `copyrightUrl` | _(none)_                         | Makes the copyright text a clickable link |
+| `links`        | Your `brand.url` shown as a link | Links after the copyright text (max 10)   |
+| `attribution`  | `true`                           | "Built with Kitfly" on the right          |
 
 **Common case: product name differs from copyright holder.** The default copyright uses `brand.name`, which is your product title (shown in the header). If your legal entity is different, override it:
 

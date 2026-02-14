@@ -28,11 +28,7 @@ Minimal IAM policy for deployment (scope to your bucket):
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:DeleteObject",
-        "s3:ListBucket"
-      ],
+      "Action": ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
       "Resource": [
         "arn:aws:s3:::YOUR_BUCKET_NAME",
         "arn:aws:s3:::YOUR_BUCKET_NAME/*"
@@ -79,6 +75,7 @@ S3 alone can serve a website, but CloudFront gives you:
 ### Basic CloudFront setup shape
 
 1. **Create an ACM certificate** for your domain (must be in `us-east-1` for CloudFront):
+
    ```bash
    aws acm request-certificate \
      --domain-name docs.example.com \

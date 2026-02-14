@@ -1,14 +1,10 @@
----
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
-
 permissions:
   contents: read
-
 jobs:
   quality:
     strategy:
@@ -25,53 +21,41 @@ jobs:
             name: windows-x64
           - os: windows-latest-arm64-s
             name: windows-arm64
-            skip-lint: true  # Biome has no win32-arm64 binary
-            skip-test: true  # Rollup/Vitest has no win32-arm64 binary
-
+            skip-lint: true # Biome has no win32-arm64 binary
+            skip-test: true # Rollup/Vitest has no win32-arm64 binary
     runs-on: ${{ matrix.os }}
     name: quality (${{ matrix.name }})
-
     defaults:
       run:
         shell: bash
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Install prerequisites (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q minisign
-
       - name: Install prerequisites (macOS)
         if: runner.os == 'macOS'
         run: brew install minisign
-
       - name: Install prerequisites (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: choco install make minisign -y --no-progress
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
       - name: Bootstrap
         run: make bootstrap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Lint
         if: matrix.skip-lint != true
         run: make lint
-
       - name: Typecheck
         run: make typecheck
-
       - name: Test
         if: matrix.skip-test != true
         run: make test
-
       - name: Build
         run: make build

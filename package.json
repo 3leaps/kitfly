@@ -38,7 +38,7 @@
     "version:check": "bun run scripts/version-sync.ts --check"
   },
   "dependencies": {
-    "@3leaps/sysprims": "^0.1.12",
+    "@3leaps/sysprims": "^0.1.13",
     "@fulmenhq/tsfulmen": "^0.2.7",
     "marked": "^15.0.0"
   },

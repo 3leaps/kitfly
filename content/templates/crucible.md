@@ -57,14 +57,14 @@ my-crucible/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Specs** | What the standards are | Specifications, technical definitions, RFC 2119 requirements |
-| **Schemas** | The contracts | Schema catalog, versioning policy, field documentation |
-| **Config** | The data | Configuration catalogs, taxonomies, role and prompt definitions |
-| **Policies** | The rules | Security model, dependency governance, change procedures |
-| **Guides** | How to use it | Getting started, contributing, integration guides |
-| **Reference** | Look-up material | Decision records, changelog, glossary |
+| Section       | Purpose                | Typical Content                                                 |
+| ------------- | ---------------------- | --------------------------------------------------------------- |
+| **Specs**     | What the standards are | Specifications, technical definitions, RFC 2119 requirements    |
+| **Schemas**   | The contracts          | Schema catalog, versioning policy, field documentation          |
+| **Config**    | The data               | Configuration catalogs, taxonomies, role and prompt definitions |
+| **Policies**  | The rules              | Security model, dependency governance, change procedures        |
+| **Guides**    | How to use it          | Getting started, contributing, integration guides               |
+| **Reference** | Look-up material       | Decision records, changelog, glossary                           |
 
 ## The Four-Zone Model
 
@@ -81,12 +81,14 @@ my-crucible/
 ```
 
 **Zone rules:**
+
 - `content/` documents the artifacts in other zones (e.g., `content/schemas/` documents `schemas/`)
 - `schemas/` and `config/` are machine-consumable — other projects `$ref` or import from these paths
 - `internal/` holds repo housekeeping, project code (lang wrappers, code generators), and automation
 - `src/` and `scripts/` are kitfly's territory (standalone mode only)
 
 For a WASM skill platform, this might look like:
+
 - **Machine zone**: `schemas/ipc/v0/control.schema.json`, `config/agentic/roles/devlead.yaml`
 - **Content zone**: `content/schemas/ipc-protocol.md` documenting those schemas
 - **Internal zone**: `internal/src/` for language-specific SDK generators
@@ -116,20 +118,21 @@ kitfly init my-crucible --template crucible --standalone --ai-assist
 
 ## Crucible vs. Other Templates
 
-| Aspect | Handbook | Productbook | Crucible |
-|--------|----------|-------------|----------|
-| **Orientation** | How we work | What we build | What everything is built on |
-| **Assumes** | Team exists | Product exists | Ecosystem starting |
-| **Key section** | Guides | Domain | Specs |
-| **Audience** | Team members | Product team | All consumers + machines |
-| **Tone** | Explanatory | Analytical | Prescriptive (RFC 2119) |
-| **Machine artifacts** | None | None | Schemas + config alongside docs |
+| Aspect                | Handbook     | Productbook    | Crucible                        |
+| --------------------- | ------------ | -------------- | ------------------------------- |
+| **Orientation**       | How we work  | What we build  | What everything is built on     |
+| **Assumes**           | Team exists  | Product exists | Ecosystem starting              |
+| **Key section**       | Guides       | Domain         | Specs                           |
+| **Audience**          | Team members | Product team   | All consumers + machines        |
+| **Tone**              | Explanatory  | Analytical     | Prescriptive (RFC 2119)         |
+| **Machine artifacts** | None         | None           | Schemas + config alongside docs |
 
 ## Growing Your Crucible
 
 As the ecosystem matures, the sections grow naturally:
 
 **Specs accumulate as standards are defined** — each standard gets its own page:
+
 ```
 content/specs/
 ├── overview.md
@@ -141,6 +144,7 @@ content/specs/
 ```
 
 **Schemas grow with the type system** — organized by domain and version:
+
 ```
 schemas/
 ├── ipc/v0/
@@ -161,6 +165,7 @@ schemas/
 ## Example Use Cases
 
 **WASM Skill Platform (Lanyte)**
+
 - Specs: Skill ABI, IPC protocol, autonomy model, capability taxonomy
 - Schemas: IPC message schemas, skill manifest, assessment pipeline
 - Config: Autonomy gates, delegation rules, proxy policies
@@ -169,6 +174,7 @@ schemas/
 - Reference: ADRs for architecture choices, CalVer changelog
 
 **Enterprise Ecosystem (FulmenHQ-style)**
+
 - Specs: Coding standards, repository category standards, testing standards
 - Schemas: Logging schemas, config schemas, error handling schemas
 - Config: Repository taxonomy, fixture catalog, branding ecosystem
@@ -177,6 +183,7 @@ schemas/
 - Reference: Two-tier ADR system, release notes, glossary
 
 **Open Source Foundation**
+
 - Specs: API standards, data format specifications, interop requirements
 - Schemas: API schemas, event schemas, config schemas
 - Config: Project taxonomy, maintainer roles

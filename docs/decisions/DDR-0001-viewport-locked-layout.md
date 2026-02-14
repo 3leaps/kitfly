@@ -53,18 +53,18 @@ Adopt a **viewport-locked layout** where fixed chrome (footer ribbon, and mobile
 
 ### CSS Variables
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `--sidebar-width` | `280px` | Sidebar column width |
+| Variable          | Value     | Purpose              |
+| ----------------- | --------- | -------------------- |
+| `--sidebar-width` | `280px`   | Sidebar column width |
 | `--footer-height` | `2.25rem` | Footer ribbon height |
 
 ### Z-Index Stack
 
-| Layer | Z-Index | Element |
-|-------|---------|---------|
-| Footer ribbon | 300 | `.site-footer` |
-| Mobile header | 200 | `.mobile-header` |
-| Mobile sidebar | 100 | `.sidebar` (mobile overlay) |
+| Layer          | Z-Index | Element                     |
+| -------------- | ------- | --------------------------- |
+| Footer ribbon  | 300     | `.site-footer`              |
+| Mobile header  | 200     | `.mobile-header`            |
+| Mobile sidebar | 100     | `.sidebar` (mobile overlay) |
 
 ### Key Rules
 
@@ -77,11 +77,11 @@ Adopt a **viewport-locked layout** where fixed chrome (footer ribbon, and mobile
 
 ### Responsive Behavior
 
-| Breakpoint | Sidebar | TOC | Footer |
-|------------|---------|-----|--------|
-| > 1200px | Fixed left | Fixed right | Fixed bottom, full-width |
-| 769–1200px | Fixed left (240px) | Hidden | Fixed bottom, full-width |
-| ≤ 768px | Overlay (toggle) | Hidden | Fixed bottom, full-width |
+| Breakpoint | Sidebar            | TOC         | Footer                   |
+| ---------- | ------------------ | ----------- | ------------------------ |
+| > 1200px   | Fixed left         | Fixed right | Fixed bottom, full-width |
+| 769–1200px | Fixed left (240px) | Hidden      | Fixed bottom, full-width |
+| ≤ 768px    | Overlay (toggle)   | Hidden      | Fixed bottom, full-width |
 
 The footer ribbon is consistent across all breakpoints — it never changes position or width.
 
@@ -103,7 +103,9 @@ The footer ribbon is consistent across all breakpoints — it never changes posi
 ## Alternatives Considered
 
 ### Sticky footer (content-appended)
+
 The original approach. Footer stays in document flow but sticks to bottom on short pages. Rejected because it doesn't span the sidebar and creates layout inconsistencies across page lengths.
 
 ### CSS Grid viewport layout
+
 Use `grid-template-rows: 1fr auto` on the body. Would work but requires restructuring the HTML template (moving sidebar inside a grid container). More invasive than necessary for the current fix.

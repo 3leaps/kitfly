@@ -11,12 +11,12 @@ How to set up a Kitfly development environment from a fresh clone.
 
 ## Prerequisites
 
-| Tool | Purpose | Install |
-|------|---------|---------|
-| [Bun](https://bun.sh) | Runtime and package manager | `curl -fsSL https://bun.sh/install \| bash` |
-| [GNU Make](https://www.gnu.org/software/make/) | Task runner | macOS: included with Xcode CLI tools. Linux: `apt install make` |
-| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`. Linux: `apt install minisign` |
-| curl | HTTP client (bootstrap downloads) | Usually pre-installed |
+| Tool                                             | Purpose                                 | Install                                                         |
+| ------------------------------------------------ | --------------------------------------- | --------------------------------------------------------------- |
+| [Bun](https://bun.sh)                            | Runtime and package manager             | `curl -fsSL https://bun.sh/install \| bash`                     |
+| [GNU Make](https://www.gnu.org/software/make/)   | Task runner                             | macOS: included with Xcode CLI tools. Linux: `apt install make` |
+| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`. Linux: `apt install minisign`   |
+| curl                                             | HTTP client (bootstrap downloads)       | Usually pre-installed                                           |
 
 ## Quick Start
 
@@ -55,15 +55,15 @@ make check-all
 
 ## Daily Commands
 
-| Command | What it does |
-|---------|-------------|
-| `make dev` | Dev server with hot reload |
-| `make build` | Build static site to `dist/` |
-| `make bundle` | Build single-file HTML bundle |
-| `make fmt` | Format all code (Biome for TS, goneat for YAML/MD) |
-| `make test` | Run test suite |
-| `make check-all` | Full quality check (lint + typecheck + test) |
-| `make clean` | Remove build artifacts |
+| Command          | What it does                                       |
+| ---------------- | -------------------------------------------------- |
+| `make dev`       | Dev server with hot reload                         |
+| `make build`     | Build static site to `dist/`                       |
+| `make bundle`    | Build single-file HTML bundle                      |
+| `make fmt`       | Format all code (Biome for TS, goneat for YAML/MD) |
+| `make test`      | Run test suite                                     |
+| `make check-all` | Full quality check (lint + typecheck + test)       |
+| `make clean`     | Remove build artifacts                             |
 
 ## Local CLI Install
 

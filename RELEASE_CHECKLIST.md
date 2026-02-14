@@ -59,12 +59,14 @@ This checklist covers the full release process for kitfly, from preparation thro
 ## 3. Sign Release (Local Machine)
 
 Source environment variables:
+
 ```bash
 source ~/devsecops/vars/3leaps-kitfly-cicd.sh
 export KITFLY_RELEASE_TAG=v0.2.0
 ```
 
 **Full workflow (recommended):**
+
 ```bash
 make release-all
 ```
@@ -72,56 +74,69 @@ make release-all
 **Or step by step:**
 
 1. **Clean previous release artifacts**
+
    ```bash
    make release-clean
    ```
 
 2. **Download artifacts from draft release**
+
    ```bash
    make release-download
    ```
 
 3. **Generate checksum manifests**
+
    ```bash
    make release-checksums
    ```
 
 4. **Verify checksums** (before signing)
+
    ```bash
    make release-verify-checksums
    ```
 
 5. **Sign checksums with minisign + GPG** (dual-format)
+
    ```bash
    make release-sign
    ```
+
    Produces: `SHA256SUMS.minisig`, `SHA256SUMS.asc`, `SHA512SUMS.minisig`, `SHA512SUMS.asc`
 
 6. **Verify signatures**
+
    ```bash
    make release-verify-signatures
    ```
 
 7. **Export public keys**
+
    ```bash
    make release-export-keys
    ```
+
    Produces: `kitfly-minisign.pub`, `kitfly-release-signing-key.asc`
 
 8. **Verify exported keys** (safety check — public-only)
+
    ```bash
    make release-verify-keys
    ```
 
 9. **Copy release notes** (requires `docs/releases/v<version>.md`)
+
    ```bash
    make release-notes
    ```
 
 10. **Upload provenance** (manifests, signatures, keys, notes — not tarballs)
+
     ```bash
     make release-upload
     ```
+
     > **Note:** CI uploads tarballs. This only uploads signing provenance.
     > For manual rebuilds where you need to replace everything: `make release-upload-all`
 
@@ -167,6 +182,7 @@ make release-all
 ## One-Time Setup: npm OIDC Trusted Publishing
 
 1. **First publish** (must be manual with token):
+
    ```bash
    npm login
    npm publish --access public
@@ -186,16 +202,19 @@ make release-all
 ## Verification Commands
 
 **Verify minisign signature:**
+
 ```bash
 minisign -Vm SHA256SUMS -p kitfly-minisign.pub
 ```
 
 **Verify GPG signature:**
+
 ```bash
 gpg --verify SHA256SUMS.asc SHA256SUMS
 ```
 
 **Verify package checksum:**
+
 ```bash
 shasum -a 256 -c SHA256SUMS
 ```

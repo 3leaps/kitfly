@@ -3,4 +3,3 @@ label: A
 
 value: B
 :::
-

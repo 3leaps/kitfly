@@ -4,17 +4,17 @@ Command-line interface for kitfly - turn your writing into a website.
 
 ## Quick Reference
 
-| Command | Description |
-|---------|-------------|
-| `kitfly dev` | Start development server with hot reload |
-| `kitfly build` | Build static site to dist/ |
-| `kitfly bundle` | Build single-file HTML bundle |
-| `kitfly init` | Create new project from template |
-| `kitfly update` | Update standalone site code |
-| `kitfly servers` | List running dev servers |
-| `kitfly stop` | Stop dev server(s) |
-| `kitfly version` | Show version information |
-| `kitfly help` | Show help message |
+| Command          | Description                              |
+| ---------------- | ---------------------------------------- |
+| `kitfly dev`     | Start development server with hot reload |
+| `kitfly build`   | Build static site to dist/               |
+| `kitfly bundle`  | Build single-file HTML bundle            |
+| `kitfly init`    | Create new project from template         |
+| `kitfly update`  | Update standalone site code              |
+| `kitfly servers` | List running dev servers                 |
+| `kitfly stop`    | Stop dev server(s)                       |
+| `kitfly version` | Show version information                 |
+| `kitfly help`    | Show help message                        |
 
 ## Global Behavior
 

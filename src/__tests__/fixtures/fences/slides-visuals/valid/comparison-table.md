@@ -12,4 +12,3 @@ rows:
   - ["AI generation", "Yes", "Beta", "No"]
   - ["Price (team/mo)", "$49", "$79", "$39"]
 :::
-

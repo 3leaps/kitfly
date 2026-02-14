@@ -3,13 +3,11 @@ schemaVersion: "0.1.0"
 docroot: "content"
 title: "Kitfly Docs"
 home: "index.md"
-
 brand:
   name: "Kitfly"
   url: "/"
   logo: "assets/brand/kitfly-neon-256.png"
   favicon: "assets/brand/kitfly-favicon-32.png"
-
 sections:
   - name: "Guide"
     path: "guide"
@@ -26,7 +24,6 @@ sections:
   - name: "Schemas"
     path: "../schemas"
     exclude: ["site.schema.json", "theme.schema.json"]
-
 footer:
   copyright: "© 2026 3 Leaps, LLC"
   copyrightUrl: "https://3leaps.net"

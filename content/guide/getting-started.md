@@ -31,16 +31,19 @@ Your browser opens to `http://localhost:3333` with hot reload.
 ## Add Your Content
 
 1. **Delete the sample content:**
+
    ```bash
    rm -rf content/*
    ```
 
 2. **Add your markdown files:**
+
    ```bash
    cp -r ~/my-docs/* content/
    ```
 
 3. **Organize into sections:**
+
    ```
    content/
    ├── index.md           # Home page
@@ -85,7 +88,6 @@ title: "Page Title"
 description: "Brief description"
 last_updated: "2026-02-03"
 ---
-
 # Your Content Here
 ```
 

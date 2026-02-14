@@ -14,15 +14,15 @@ Stops one or more running kitfly dev servers. Can target a specific port or stop
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `port` | Port number of server to stop |
-| `all` | Stop all running kitfly servers |
+| Argument | Description                     |
+| -------- | ------------------------------- |
+| `port`   | Port number of server to stop   |
+| `all`    | Stop all running kitfly servers |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
+| Option    | Description                              |
+| --------- | ---------------------------------------- |
 | `--force` | Skip graceful shutdown, kill immediately |
 
 ## Examples
@@ -52,21 +52,23 @@ kitfly stop all --force
 ## Graceful vs Force Shutdown
 
 **Graceful** (default):
+
 - Sends SIGTERM signal
 - Allows server to clean up
 - Waits briefly for process to exit
 
 **Force** (`--force`):
+
 - Sends SIGKILL signal
 - Immediate termination
 - Use when graceful shutdown hangs
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Server(s) stopped successfully |
-| 1 | Error (server not found, permission denied, etc.) |
+| Code | Meaning                                           |
+| ---- | ------------------------------------------------- |
+| 0    | Server(s) stopped successfully                    |
+| 1    | Error (server not found, permission denied, etc.) |
 
 ## See Also
 

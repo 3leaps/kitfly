@@ -10,11 +10,11 @@ You're looking at a kitfly site. This content is both a demo and the help guide.
 
 ## Choose Your Approach
 
-| Approach | Best For | Command |
-|----------|----------|---------|
-| **CLI Init** | New site root folder | `kitfly init my-docs` |
-| **Point at Folder** | Existing markdown, quick preview | `kitfly dev ./my-folder` |
-| **Clone & Customize** | Contributors / engine changes | `git clone ... kitfly` |
+| Approach              | Best For                         | Command                  |
+| --------------------- | -------------------------------- | ------------------------ |
+| **CLI Init**          | New site root folder             | `kitfly init my-docs`    |
+| **Point at Folder**   | Existing markdown, quick preview | `kitfly dev ./my-folder` |
+| **Clone & Customize** | Contributors / engine changes    | `git clone ... kitfly`   |
 
 ### CLI Init
 

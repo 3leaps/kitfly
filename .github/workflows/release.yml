@@ -19,18 +19,14 @@
 #   5. make release-sign KITFLY_RELEASE_TAG=vX.Y.Z
 #   6. make release-export-keys
 #   7. make release-upload KITFLY_RELEASE_TAG=vX.Y.Z
----
 name: Release
-
 "on":
   push:
     tags:
       - "v*.*.*"
       - "v*.*.*-*"
-
 permissions:
   contents: write
-
 jobs:
   release:
     name: Build & Draft Release
@@ -38,7 +34,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Verify tag matches VERSION
         run: |
           VERSION=$(cat VERSION)
@@ -49,34 +44,26 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_ENV"
           echo "Tag matches VERSION: $VERSION"
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Quality gates
         run: |
           bun run format:check
           bun run lint:ci
           bun run typecheck
           bun run test
-
       - name: Build cross-platform binaries
         run: bun run build:all
-
       - name: Package npm tarball
         run: |
           npm pack --pack-destination dist/release/
-
       - name: Generate checksums
         run: ./scripts/generate-checksums.sh dist/release kitfly
-
       - name: List release artifacts
         run: ls -la dist/release/
-
       - name: Create draft GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

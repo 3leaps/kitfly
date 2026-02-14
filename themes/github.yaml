@@ -1,7 +1,6 @@
 # yaml-language-server: $schema=../schemas/v0/theme.schema.json
 # GitHub-inspired theme - familiar to developers
 name: "GitHub"
-
 colors:
   light:
     background: "#ffffff"
@@ -13,7 +12,6 @@ colors:
     primaryHover: "#0550ae"
     accent: "#8250df"
     border: "#d0d7de"
-
   dark:
     background: "#0d1117"
     surface: "#161b22"
@@ -24,11 +22,9 @@ colors:
     primaryHover: "#79c0ff"
     accent: "#a371f7"
     border: "#30363d"
-
 code:
   light: "default"
   dark: "okaidia"
-
 typography:
   body: "system"
   headings: "system"

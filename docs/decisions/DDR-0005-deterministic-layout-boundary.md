@@ -16,7 +16,7 @@ Proposed
 
 ## Context
 
-Kitfly generates slidesites — fixed-aspect pages that are not “infinite scroll” documents. A key use case is AI agents generating presentation-quality slides, including infographic-style layouts with shapes, connectors, and composed visual patterns. (If content is long, it may scroll *within* the slide frame; the page layout remains slide-like.)
+Kitfly generates slidesites — fixed-aspect pages that are not “infinite scroll” documents. A key use case is AI agents generating presentation-quality slides, including infographic-style layouts with shapes, connectors, and composed visual patterns. (If content is long, it may scroll _within_ the slide frame; the page layout remains slide-like.)
 
 Kitfly is not trying to recreate diagram engines like Mermaid or PlantUML. Those tools compute layout from relationships, which is powerful but hard to control precisely in slide composition and hard for agents to predict.
 
@@ -48,13 +48,13 @@ Examples: cycle-wheel, quadrant-grid, layer-cake, funnel, hub-spoke, horizontal-
 
 > **If you can name the pieces and where they go (explicit positions or slots), it is a figure. If layout must be computed from relationships between a variable set of nodes, it is a diagram engine.**
 
-| Criterion | Primitives / Figures | Diagramming Engine |
-|---|---|---|
-| Agent knows element count | Yes | Maybe not |
-| Agent controls placement | Yes (explicit or via slots) | No (engine decides) |
-| Adding a node requires recalculating others | No | Yes |
-| Relationships determine layout | No | Yes |
-| Topology is fixed per figure type | Yes | No |
+| Criterion                                   | Primitives / Figures        | Diagramming Engine  |
+| ------------------------------------------- | --------------------------- | ------------------- |
+| Agent knows element count                   | Yes                         | Maybe not           |
+| Agent controls placement                    | Yes (explicit or via slots) | No (engine decides) |
+| Adding a node requires recalculating others | No                          | Yes                 |
+| Relationships determine layout              | No                          | Yes                 |
+| Topology is fixed per figure type           | Yes                         | No                  |
 
 ### Diagramming Engine Integration
 

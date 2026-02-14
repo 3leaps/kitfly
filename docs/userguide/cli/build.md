@@ -14,16 +14,16 @@ Generates a complete static HTML site from your markdown files. The output can b
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument | Description                                                                      |
+| -------- | -------------------------------------------------------------------------------- |
 | `folder` | Content folder to build (default: current directory or `docroot` from site.yaml) |
 
 ## Options
 
-| Option | Environment Variable | Default | Description |
-|--------|---------------------|---------|-------------|
-| `--out <dir>` | `KITFLY_BUILD_OUT` | dist | Output directory |
-| `--no-raw` | - | false | Don't include raw markdown files |
+| Option        | Environment Variable | Default | Description                      |
+| ------------- | -------------------- | ------- | -------------------------------- |
+| `--out <dir>` | `KITFLY_BUILD_OUT`   | dist    | Output directory                 |
+| `--no-raw`    | -                    | false   | Don't include raw markdown files |
 
 ## Examples
 
@@ -64,6 +64,7 @@ dist/
 ## Raw Markdown Files
 
 By default, kitfly includes the original `.md` files alongside the generated HTML. This allows:
+
 - Downloading source for offline editing
 - Transparency about content source
 - Easy content migration

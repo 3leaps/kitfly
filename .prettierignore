@@ -1,0 +1,7 @@
+# Test fixtures with intentional formatting
+#
+# These files contain deliberately malformed or precisely indented content
+# that exercises the slides-visuals fence contract validator. Automated
+# formatting (prettier, goneat format) will destroy the test semantics.
+# Do NOT remove these entries or allow formatters to rewrite these files.
+src/__tests__/fixtures/fences/

@@ -102,7 +102,10 @@ export default {
     if (!object) return new Response("Not found", { status: 404 });
 
     const headers = new Headers();
-    headers.set("Content-Type", object.httpMetadata?.contentType || "text/html");
+    headers.set(
+      "Content-Type",
+      object.httpMetadata?.contentType || "text/html",
+    );
     return new Response(object.body, { headers });
   },
 };

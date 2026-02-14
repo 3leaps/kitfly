@@ -68,25 +68,27 @@ my-productbook/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Product** | What we're building | Vision, features, releases, acceptance criteria |
-| **Domain** | The business reality | Processes, terminology, data dictionary, industry context |
-| **Planning** | Why and when | Roadmap, ADRs, specifications, research |
-| **Operations** | How we run it | Environments, deployment, configuration |
-| **Guides** | How to use it | Onboarding, tutorials, user documentation |
-| **Reference** | Look-up material | Architecture, integrations, data models, contacts, metrics |
+| Section        | Purpose              | Typical Content                                            |
+| -------------- | -------------------- | ---------------------------------------------------------- |
+| **Product**    | What we're building  | Vision, features, releases, acceptance criteria            |
+| **Domain**     | The business reality | Processes, terminology, data dictionary, industry context  |
+| **Planning**   | Why and when         | Roadmap, ADRs, specifications, research                    |
+| **Operations** | How we run it        | Environments, deployment, configuration                    |
+| **Guides**     | How to use it        | Onboarding, tutorials, user documentation                  |
+| **Reference**  | Look-up material     | Architecture, integrations, data models, contacts, metrics |
 
 ## The Domain Section
 
 This is what makes productbook different from every other template. It captures the **complex business reality** that the product operates in.
 
 For a propane delivery company, this might hold:
+
 - **Processes**: Tank monitoring workflow, delivery scheduling, seasonal demand forecasting
 - **Data Dictionary**: What "will-call" vs "automatic" delivery means, ERP entity definitions
 - **Industry Notes**: DOT regulations for hazmat transport, state-level propane licensing
 
 For a healthcare platform:
+
 - **Processes**: Claims adjudication, prior authorization, formulary management
 - **Data Dictionary**: CPT codes, NDC numbers, explanation of benefits
 - **Industry Notes**: HIPAA requirements, CMS guidelines, state insurance mandates
@@ -98,18 +100,21 @@ This section is the "context dump" that every new team member and AI agent needs
 The planning section includes built-in support for common planning patterns:
 
 **Decision Records (ADRs)** — each decision documented with:
+
 - Context: What prompted this decision
 - Options: What we considered
 - Decision: What we chose and why
 - Consequences: What follows from this choice
 
 **Specifications** — feature specs with:
+
 - Problem statement
 - Proposed solution
 - Acceptance criteria
 - Status tracking
 
 **Research** — structured research outputs:
+
 - Market analysis
 - User research findings
 - Technology assessments
@@ -128,19 +133,20 @@ kitfly init client-docs --template productbook --standalone --ai-assist
 
 ## Productbook vs. Other Templates
 
-| Aspect | Handbook | Runbook | Productbook |
-|--------|----------|---------|-------------|
-| **Orientation** | How we work | How we keep it running | What we're building and why |
-| **Assumes** | Team exists | System exists | Starting from scratch |
-| **Key section** | Guides | Procedures | Domain |
-| **Audience** | Team members | Operators | Product team + stakeholders |
-| **Tone** | Explanatory | Imperative | Analytical |
+| Aspect          | Handbook     | Runbook                | Productbook                 |
+| --------------- | ------------ | ---------------------- | --------------------------- |
+| **Orientation** | How we work  | How we keep it running | What we're building and why |
+| **Assumes**     | Team exists  | System exists          | Starting from scratch       |
+| **Key section** | Guides       | Procedures             | Domain                      |
+| **Audience**    | Team members | Operators              | Product team + stakeholders |
+| **Tone**        | Explanatory  | Imperative             | Analytical                  |
 
 ## Growing Your Productbook
 
 As the engagement matures, the sections grow naturally:
 
 **Domain deepens first** — business process docs accumulate as the team learns the domain:
+
 ```
 content/domain/processes/
 ├── index.md
@@ -151,6 +157,7 @@ content/domain/processes/
 ```
 
 **Product fills in as features ship** — feature pages link to the domain processes they automate:
+
 ```
 content/product/features/
 ├── index.md
@@ -164,6 +171,7 @@ content/product/features/
 ## Example Use Cases
 
 **Enterprise SaaS for Complex Industry**
+
 - Product: Platform features, integrations, user workflows
 - Domain: Industry processes, regulatory requirements, competitive context
 - Planning: Roadmap, ADRs for technology and vendor choices
@@ -171,6 +179,7 @@ content/product/features/
 - Reference: API architecture, third-party integrations, data models
 
 **Client Engagement with Legacy System Modernization**
+
 - Product: New platform capabilities replacing legacy functions
 - Domain: Existing business processes, data structures, edge cases the legacy handles
 - Planning: Migration specs, cutover decisions, research on replacement options

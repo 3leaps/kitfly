@@ -5,7 +5,11 @@
   "title": "Site Configuration",
   "description": "Configuration for Kitfly static site generator",
   "type": "object",
-  "required": ["title", "brand", "sections"],
+  "required": [
+    "title",
+    "brand",
+    "sections"
+  ],
   "properties": {
     "schemaVersion": {
       "type": "string",
@@ -26,18 +30,33 @@
     "version": {
       "type": "string",
       "description": "Site version shown in footer provenance. Supports literal values, auto (read VERSION in site root), or file:<path> (read from relative file).",
-      "examples": ["1.0.0", "2024.03", "draft", "auto", "file:VERSION", "file:./meta/site version.txt"]
+      "examples": [
+        "1.0.0",
+        "2024.03",
+        "draft",
+        "auto",
+        "file:VERSION",
+        "file:./meta/site version.txt"
+      ]
     },
     "mode": {
       "type": "string",
       "description": "Site layout mode",
-      "enum": ["docs", "slides"],
+      "enum": [
+        "docs",
+        "slides"
+      ],
       "default": "docs"
     },
     "aspect": {
       "type": "string",
       "description": "Slide aspect ratio (only applies when mode is slides)",
-      "enum": ["16/9", "4/3", "3/2", "16/10"],
+      "enum": [
+        "16/9",
+        "4/3",
+        "3/2",
+        "16/10"
+      ],
       "default": "16/9"
     },
     "home": {
@@ -47,7 +66,10 @@
     "brand": {
       "type": "object",
       "description": "Brand configuration for logo and links",
-      "required": ["name", "url"],
+      "required": [
+        "name",
+        "url"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -76,7 +98,10 @@
         "logoType": {
           "type": "string",
           "description": "Logo type: icon (square) or wordmark (wide)",
-          "enum": ["icon", "wordmark"],
+          "enum": [
+            "icon",
+            "wordmark"
+          ],
           "default": "icon"
         }
       },
@@ -88,7 +113,10 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "path"],
+        "required": [
+          "name",
+          "path"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -102,7 +130,9 @@
           "files": {
             "type": "array",
             "description": "Specific files to include (for root-level sections)",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
           "maxDepth": {
             "type": "integer",
@@ -114,7 +144,9 @@
           "exclude": {
             "type": "array",
             "description": "Glob patterns to exclude from auto-discovery",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -138,7 +170,10 @@
           "maxItems": 10,
           "items": {
             "type": "object",
-            "required": ["text", "url"],
+            "required": [
+              "text",
+              "url"
+            ],
             "properties": {
               "text": {
                 "type": "string",

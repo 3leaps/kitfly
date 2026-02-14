@@ -34,13 +34,13 @@ Kitfly sits in the gap: professional output, minimal complexity, no lock-in.
 
 Kitfly is not trying to replace full static site generators or app frameworks. These are excellent — use them when you need their power:
 
-| Tool | Strength | Use When |
-|------|----------|----------|
-| **Obsidian** | Personal knowledge, journaling | You need a second brain |
-| **Docusaurus** | React ecosystem, versioned docs | You have a dev team |
-| **Hugo** | Speed, themes, flexibility | You want a powerful SSG |
-| **Astro/Starlight** | Modern, component-driven | You need interactivity |
-| **VitePress** | Vue ecosystem, great DX | You're in the Vue world |
+| Tool                | Strength                        | Use When                |
+| ------------------- | ------------------------------- | ----------------------- |
+| **Obsidian**        | Personal knowledge, journaling  | You need a second brain |
+| **Docusaurus**      | React ecosystem, versioned docs | You have a dev team     |
+| **Hugo**            | Speed, themes, flexibility      | You want a powerful SSG |
+| **Astro/Starlight** | Modern, component-driven        | You need interactivity  |
+| **VitePress**       | Vue ecosystem, great DX         | You're in the Vue world |
 
 Use Kitfly when you don't need those. Your content is just markdown — migration is straightforward when you outgrow it.
 
@@ -115,10 +115,10 @@ This is the kitfly engine repo. The `content/` folder **is** the kitfly document
 
 Kitfly makes docs "fly" by producing artifacts that travel well:
 
-| Command | Output | Use Case |
-|---------|--------|----------|
-| `kitfly dev` | Live preview | Writing and editing |
-| `kitfly build` | `dist/` folder | Deploy to any static host |
+| Command         | Output           | Use Case                   |
+| --------------- | ---------------- | -------------------------- |
+| `kitfly dev`    | Live preview     | Writing and editing        |
+| `kitfly build`  | `dist/` folder   | Deploy to any static host  |
 | `kitfly bundle` | Single HTML file | Email, Slack, shared drive |
 
 The bundle is typically 1-2MB and works offline — open it in any browser.
@@ -127,11 +127,11 @@ The bundle is typically 1-2MB and works offline — open it in any browser.
 
 The code that `kitfly init` copies to your project follows strict constraints:
 
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| Total lines | ~500 | Understandable in an afternoon |
-| Dependencies | 1 | No supply chain risk |
-| Files | ~10 | Nothing hidden |
+| Metric       | Target | Rationale                      |
+| ------------ | ------ | ------------------------------ |
+| Total lines  | ~500   | Understandable in an afternoon |
+| Dependencies | 1      | No supply chain risk           |
+| Files        | ~10    | Nothing hidden                 |
 
 > **Rule of thumb**: If it can be done with CSS, vanilla JS under 50 lines, or a marked plugin, it belongs. Otherwise, it doesn't.
 

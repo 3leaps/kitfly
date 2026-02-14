@@ -4,4 +4,3 @@ levels:
   - "Strategy"
   - "Execution"
 :::
-

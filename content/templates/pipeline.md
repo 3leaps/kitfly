@@ -56,25 +56,25 @@ my-pipeline/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Pipeline** | Core dataflow documentation | Stage definitions, data movement, processing logic |
-| **Sources** | Input systems | Connection details, schemas, auth profiles, data formats |
-| **Destinations** | Output systems | Target structures, path layouts, landing zones |
-| **Operations** | Run procedures | Execution steps, schedules, checkpoint/resume |
-| **Troubleshooting** | Problem resolution | Auth expiry, index locks, duplicate conflicts, collision handling |
-| **Reference** | Supporting materials | Manifests, field mappings, metrics, checklists, contacts |
+| Section             | Purpose                     | Typical Content                                                   |
+| ------------------- | --------------------------- | ----------------------------------------------------------------- |
+| **Pipeline**        | Core dataflow documentation | Stage definitions, data movement, processing logic                |
+| **Sources**         | Input systems               | Connection details, schemas, auth profiles, data formats          |
+| **Destinations**    | Output systems              | Target structures, path layouts, landing zones                    |
+| **Operations**      | Run procedures              | Execution steps, schedules, checkpoint/resume                     |
+| **Troubleshooting** | Problem resolution          | Auth expiry, index locks, duplicate conflicts, collision handling |
+| **Reference**       | Supporting materials        | Manifests, field mappings, metrics, checklists, contacts          |
 
 ### Pipeline vs. Runbook
 
 Both are operational templates, but they serve different shapes of work:
 
-| Aspect | Runbook | Pipeline |
-|--------|---------|----------|
-| **Focus** | Service operations | Data movement |
-| **Structure** | Procedures + incidents | Sequential stages + sources/destinations |
-| **Key question** | "What do I do when X breaks?" | "How does data flow from A to B?" |
-| **Reference model** | Interfaces, contacts, checklists | Manifests, field mappings, metrics |
+| Aspect              | Runbook                          | Pipeline                                 |
+| ------------------- | -------------------------------- | ---------------------------------------- |
+| **Focus**           | Service operations               | Data movement                            |
+| **Structure**       | Procedures + incidents           | Sequential stages + sources/destinations |
+| **Key question**    | "What do I do when X breaks?"    | "How does data flow from A to B?"        |
+| **Reference model** | Interfaces, contacts, checklists | Manifests, field mappings, metrics       |
 
 ## Usage
 
@@ -108,6 +108,7 @@ Adapt these to your actual pipeline. Add, remove, or rename stages as needed.
 As your pipeline matures, consider expanding:
 
 **Multiple pipelines** — add subdirectories under `content/pipeline/`:
+
 ```
 content/pipeline/
 ├── overview.md
@@ -123,6 +124,7 @@ content/pipeline/
 The sidebar automatically organizes these into collapsible groups — each subdirectory becomes an expandable section in the navigation.
 
 **Multiple sources/destinations** — add a page per system:
+
 ```
 content/sources/
 ├── index.md           # Catalog table
@@ -133,6 +135,7 @@ content/sources/
 ## Example Use Cases
 
 **Cloud Data Migration**
+
 - Pipeline: S3 scan → content probe → key rewrite → validation
 - Sources: AWS S3 buckets with legacy key structure
 - Destinations: GCS with date-partitioned layout
@@ -140,6 +143,7 @@ content/sources/
 - Reference/Manifests: Job definitions per source bucket
 
 **ETL for Analytics**
+
 - Pipeline: Extract from APIs → transform/enrich → load to warehouse
 - Sources: REST APIs, SFTP drops, webhook events
 - Destinations: Snowflake tables, Parquet files in S3

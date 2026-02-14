@@ -36,11 +36,11 @@ my-handbook/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Overview** | Big picture, concepts | Architecture, key decisions, principles |
-| **Guides** | How to do things | Tutorials, walkthroughs, recipes |
-| **Reference** | Look-up information | API docs, glossaries, specifications |
+| Section       | Purpose               | Typical Content                         |
+| ------------- | --------------------- | --------------------------------------- |
+| **Overview**  | Big picture, concepts | Architecture, key decisions, principles |
+| **Guides**    | How to do things      | Tutorials, walkthroughs, recipes        |
+| **Reference** | Look-up information   | API docs, glossaries, specifications    |
 
 This follows the [Diátaxis](https://diataxis.fr/) documentation framework's distinction between explanation (Overview), how-to guides (Guides), and reference material (Reference).
 
@@ -65,16 +65,19 @@ The starter files are placeholders with `<!-- ← CUSTOMIZE -->` comments showin
 ## Example Use Cases
 
 **Engineering Handbook**
+
 - Overview: Team principles, tech stack decisions
 - Guides: Development setup, deployment process, code review
 - Reference: API contracts, environment variables, tooling
 
 **Product Documentation**
+
 - Overview: Product vision, target users
 - Guides: Getting started, common workflows
 - Reference: Feature specs, integration docs
 
 **Onboarding Docs**
+
 - Overview: Company culture, team structure
 - Guides: First week checklist, tool setup
 - Reference: Glossary, org chart, contacts

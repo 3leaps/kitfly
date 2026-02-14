@@ -1,7 +1,6 @@
 # yaml-language-server: $schema=./schemas/v0/theme.schema.json
 # Kitfly Theme - Edit colors here, not in CSS
 name: "Kitfly Default"
-
 colors:
   light:
     background: "#ffffff"
@@ -13,7 +12,6 @@ colors:
     primaryHover: "#0a6172"
     accent: "#D17059"
     border: "#e5e7eb"
-
   dark:
     background: "#0d1117"
     surface: "#152F46"
@@ -24,11 +22,9 @@ colors:
     primaryHover: "#8fb5bc"
     accent: "#e8947f"
     border: "#374151"
-
 code:
   light: "default"
   dark: "okaidia"
-
 typography:
   body: "system"
   headings: "system"

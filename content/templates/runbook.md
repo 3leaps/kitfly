@@ -46,21 +46,21 @@ my-runbook/
 
 ## Sections
 
-| Section | Purpose | Typical Content |
-|---------|---------|-----------------|
-| **Procedures** | How to perform operational tasks | Deployment steps, maintenance tasks, migrations |
-| **Troubleshooting** | Diagnose and fix issues | Error codes, symptoms → causes, remediation |
-| **Reference** | Look-up information | Interfaces, contacts, checklists, glossary |
-| **Incidents** | Emergency response | Escalation paths, severity definitions, post-mortems |
+| Section             | Purpose                          | Typical Content                                      |
+| ------------------- | -------------------------------- | ---------------------------------------------------- |
+| **Procedures**      | How to perform operational tasks | Deployment steps, maintenance tasks, migrations      |
+| **Troubleshooting** | Diagnose and fix issues          | Error codes, symptoms → causes, remediation          |
+| **Reference**       | Look-up information              | Interfaces, contacts, checklists, glossary           |
+| **Incidents**       | Emergency response               | Escalation paths, severity definitions, post-mortems |
 
 The **Reference** section consolidates supporting materials:
 
-| Subsection | Purpose |
-|------------|---------|
+| Subsection              | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
 | `reference/interfaces/` | API specs, protocol docs, vendor integration details |
-| `reference/contacts/` | Team directory, vendor contacts, escalation matrix |
-| `reference/checklists/` | Pre/post deployment, audit, maintenance checklists |
-| `reference/analytics/` | Dashboard links, KPIs, SLA definitions |
+| `reference/contacts/`   | Team directory, vendor contacts, escalation matrix   |
+| `reference/checklists/` | Pre/post deployment, audit, maintenance checklists   |
+| `reference/analytics/`  | Dashboard links, KPIs, SLA definitions               |
 
 ## Usage
 
@@ -73,12 +73,12 @@ kitfly init ops-docs --template runbook --brand "Platform Team"
 
 Runbooks differ from handbooks in key ways:
 
-| Aspect | Handbook | Runbook |
-|--------|----------|---------|
-| **Audience** | Learning | Doing (often urgently) |
-| **Reading mode** | Sequential | Jump to specific procedure |
-| **Goal** | Understanding | Task completion |
-| **Tone** | Explanatory | Direct, imperative |
+| Aspect           | Handbook      | Runbook                    |
+| ---------------- | ------------- | -------------------------- |
+| **Audience**     | Learning      | Doing (often urgently)     |
+| **Reading mode** | Sequential    | Jump to specific procedure |
+| **Goal**         | Understanding | Task completion            |
+| **Tone**         | Explanatory   | Direct, imperative         |
 
 ## Procedure Document Format
 
@@ -88,9 +88,11 @@ Each procedure should follow a consistent structure:
 # Procedure Name
 
 ## Objective
+
 What this procedure accomplishes and when to use it.
 
 ## Prerequisites
+
 - [ ] Required access or permissions
 - [ ] Tools or systems that must be available
 - [ ] Related procedures to complete first
@@ -104,12 +106,15 @@ What this procedure accomplishes and when to use it.
    - Verification: How to confirm success
 
 ## Verification
+
 How to confirm the procedure completed successfully.
 
 ## Rollback
+
 If something goes wrong, how to revert.
 
 ## Related
+
 - Link to related procedures
 - Escalation path if this fails
 ```
@@ -119,6 +124,7 @@ If something goes wrong, how to revert.
 As your runbook matures, consider:
 
 **Numbered sections** for ordering (enterprise pattern):
+
 ```
 content/
 ├── 00-bootstrap/    # Initial setup, first-run procedures
@@ -128,6 +134,7 @@ content/
 ```
 
 **Recipes** - reusable procedures organized by topic:
+
 ```
 content/procedures/
 ├── security/
@@ -146,12 +153,14 @@ content/procedures/
 Every runbook includes `CUSTOMIZING.md` - a commissioning guide for both humans and AI assistants:
 
 **What it covers:**
+
 - How to add content to each section
 - Adding new sections to `site.yaml`
 - Conventions used in this runbook
 - File linking and cross-references
 
 **Important limitations:**
+
 - Content must live within the site folder (kitfly cannot include files from outside)
 - External resources should be linked via URL, not copied
 - Binary files (PDFs, images) go in `assets/` and are linked, not rendered
@@ -161,6 +170,7 @@ This guide helps onboard team members and ensures AI coding assistants understan
 ## Example Use Cases
 
 **Integration Runbook** (like Blossman/Cargas)
+
 - Procedures: Data sync, batch processing, error recovery
 - Troubleshooting: Connection failures, data format errors, timeout issues
 - Reference/Interfaces: ERP API specs (extracted from vendor PDF), protocol details
@@ -168,6 +178,7 @@ This guide helps onboard team members and ensures AI coding assistants understan
 - Incidents: Sync failure response, data reconciliation
 
 **Platform Runbook**
+
 - Procedures: Deploy service, rotate secrets, scale cluster
 - Troubleshooting: High CPU, memory leaks, connection timeouts
 - Reference/Checklists: Production deploy, database migration
@@ -175,6 +186,7 @@ This guide helps onboard team members and ensures AI coding assistants understan
 - Incidents: P1 response, rollback procedure
 
 **Security Operations**
+
 - Procedures: Credential rotation, access reviews, patch deployment
 - Troubleshooting: Auth failures, certificate expiry, firewall issues
 - Reference/Contacts: Security team, vendor security contacts

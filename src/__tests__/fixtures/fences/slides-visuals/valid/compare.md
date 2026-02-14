@@ -8,4 +8,3 @@ right:
   - "Limited"
   - "Opinionated"
 :::
-

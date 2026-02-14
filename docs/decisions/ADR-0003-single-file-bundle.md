@@ -26,16 +26,16 @@ Implement `kitfly bundle` as a first-class output mode alongside `kitfly build`.
 
 ### What Gets Inlined
 
-| Asset | Inlining Strategy |
-|-------|-------------------|
-| CSS (styles.css) | `<style>` block in `<head>` |
-| Theme CSS | Generated `<style id="kitfly-theme">` block |
-| Images (PNG, JPG, SVG, GIF) | Base64 data URIs in `<img src>` |
-| Brand logo + favicon | Base64 data URIs |
-| Prism.js (syntax highlighting) | Full JS inlined in `<script>` |
-| Mermaid (diagrams) | Full JS inlined in `<script>` |
-| Dark mode toggle | Inline `<script>` |
-| All page content | Inline HTML sections with `id` anchors |
+| Asset                          | Inlining Strategy                           |
+| ------------------------------ | ------------------------------------------- |
+| CSS (styles.css)               | `<style>` block in `<head>`                 |
+| Theme CSS                      | Generated `<style id="kitfly-theme">` block |
+| Images (PNG, JPG, SVG, GIF)    | Base64 data URIs in `<img src>`             |
+| Brand logo + favicon           | Base64 data URIs                            |
+| Prism.js (syntax highlighting) | Full JS inlined in `<script>`               |
+| Mermaid (diagrams)             | Full JS inlined in `<script>`               |
+| Dark mode toggle               | Inline `<script>`                           |
+| All page content               | Inline HTML sections with `id` anchors      |
 
 ### Navigation Model
 

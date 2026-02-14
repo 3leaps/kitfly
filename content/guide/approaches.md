@@ -126,14 +126,14 @@ my-project/
 
 ## Comparison Table
 
-| Factor | Clone & Customize | CLI Init | Point at Folder |
-|--------|-------------------|----------|-----------------|
-| Setup time | ~1 min | ~30 sec | Instant |
-| Files in repo | Many | Few | None added |
-| Customization | Full | Config only | Config only |
-| Requires install | Bun | Kitfly CLI | Kitfly CLI |
-| Updates | Manual merge | CLI upgrade | CLI upgrade |
-| Best for | Power users | New projects | Existing docs |
+| Factor           | Clone & Customize | CLI Init     | Point at Folder |
+| ---------------- | ----------------- | ------------ | --------------- |
+| Setup time       | ~1 min            | ~30 sec      | Instant         |
+| Files in repo    | Many              | Few          | None added      |
+| Customization    | Full              | Config only  | Config only     |
+| Requires install | Bun               | Kitfly CLI   | Kitfly CLI      |
+| Updates          | Manual merge      | CLI upgrade  | CLI upgrade     |
+| Best for         | Power users       | New projects | Existing docs   |
 
 ## Migrating Between Approaches
 

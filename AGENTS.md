@@ -55,22 +55,24 @@ Kitfly is intentionally limited. When users outgrow it, they migrate - their con
 ## Dual Delivery Model
 
 **Job 1: Review ("Send it")**
+
 - Single HTML file or small bundle
 - Email attachment, Slack upload, shared drive
 - Competes with: PDF, Google Docs link
 
 **Job 2: Publish ("Host it")**
+
 - Static site deployed anywhere
 - GitHub Pages, Netlify, S3
 - Competes with: Obsidian Publish, GitBook
 
 ## Product Phases
 
-| Phase | Version | Status | Description |
-|-------|---------|--------|-------------|
-| CLI + Init | v0.1.x | **NOW** | `kitfly init` creates standalone sites |
-| Update command | v0.2.x | Next | `kitfly update` upgrades site code |
-| Binary | v0.3.x | Future | Single executable, no runtime |
+| Phase          | Version | Status  | Description                            |
+| -------------- | ------- | ------- | -------------------------------------- |
+| CLI + Init     | v0.1.x  | **NOW** | `kitfly init` creates standalone sites |
+| Update command | v0.2.x  | Next    | `kitfly update` upgrades site code     |
+| Binary         | v0.3.x  | Future  | Single executable, no runtime          |
 
 ## Architecture
 
@@ -103,47 +105,51 @@ kitfly/
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Dev server | `make dev` or `bun run dev` |
+| Task         | Command                         |
+| ------------ | ------------------------------- |
+| Dev server   | `make dev` or `bun run dev`     |
 | Build static | `make build` or `bun run build` |
-| Format files | `make fmt` |
-| Clean dist/ | `make clean` |
-| CLI directly | `bun run src/cli.ts <command>` |
+| Format files | `make fmt`                      |
+| Clean dist/  | `make clean`                    |
+| CLI directly | `bun run src/cli.ts <command>`  |
 
 ## Roles
 
 See `config/agentic/roles/README.md` for the full role catalog.
 
 ### Development & Engineering
-| Role | Focus | Use When |
-|------|-------|----------|
-| `devlead` | Implementation, architecture | Building features, fixing bugs |
-| `devrev` | Code review, bug finding | Reviewing code changes |
-| `qa` | Testing, quality gates | Test design, coverage analysis |
-| `secrev` | Security analysis | Security-sensitive review |
-| `releng` | Releases, CI/CD | Version bumps, changelogs, releases |
-| `uxdev` | UI/UX design | Frontend, templates, styles |
+
+| Role      | Focus                        | Use When                            |
+| --------- | ---------------------------- | ----------------------------------- |
+| `devlead` | Implementation, architecture | Building features, fixing bugs      |
+| `devrev`  | Code review, bug finding     | Reviewing code changes              |
+| `qa`      | Testing, quality gates       | Test design, coverage analysis      |
+| `secrev`  | Security analysis            | Security-sensitive review           |
+| `releng`  | Releases, CI/CD              | Version bumps, changelogs, releases |
+| `uxdev`   | UI/UX design                 | Frontend, templates, styles         |
 
 ### Documentation & Content
-| Role | Focus | Use When |
-|------|-------|----------|
-| `infoarch` | Documentation structure | Site organization, schemas |
-| `prodmktg` | Brand, content, positioning | README, messaging, personas |
-| `datavis` | Charts, dashboards | Data visualization, Mermaid diagrams |
+
+| Role       | Focus                       | Use When                             |
+| ---------- | --------------------------- | ------------------------------------ |
+| `infoarch` | Documentation structure     | Site organization, schemas           |
+| `prodmktg` | Brand, content, positioning | README, messaging, personas          |
+| `datavis`  | Charts, dashboards          | Data visualization, Mermaid diagrams |
 
 ### Governance & Coordination
-| Role | Focus | Use When |
-|------|-------|----------|
+
+| Role           | Focus                                 | Use When                              |
+| -------------- | ------------------------------------- | ------------------------------------- |
 | `deliverylead` | Project lifecycle, delivery timelines | Sprint planning, release coordination |
 
 ### Strategy & Consulting
-| Role | Focus | Use When |
-|------|-------|----------|
-| `advisor` | Strategic guidance | Stakeholder engagement |
-| `analyst` | Research, assessment | Competitive analysis, due diligence |
-| `architect` | System design | ADRs, technical decisions |
-| `prodstrat` | Product strategy | Roadmaps, prioritization |
+
+| Role        | Focus                | Use When                            |
+| ----------- | -------------------- | ----------------------------------- |
+| `advisor`   | Strategic guidance   | Stakeholder engagement              |
+| `analyst`   | Research, assessment | Competitive analysis, due diligence |
+| `architect` | System design        | ADRs, technical decisions           |
+| `prodstrat` | Product strategy     | Roadmaps, prioritization            |
 
 **Default to `devlead`** for most implementation work.
 
@@ -214,13 +220,13 @@ Committer-of-Record: Dave Thompson <dave.thompson@3leaps.net> [@3leapsdave]
 
 ## Target Personas
 
-| Persona | Pain Point | Kitfly Solution |
-|---------|------------|-----------------|
-| Data scientist | Jupyter isn't for sharing | Narrative alongside notebooks |
-| Product manager | Confluence is slow | Own it, professional, shareable |
-| DevSecOps | Wikis are ugly | Versioned, auditable, offline |
-| Developer | Tired of build tooling | Just render markdown |
-| Student | LaTeX is hard | Portfolio-ready, no design skills |
+| Persona         | Pain Point                | Kitfly Solution                   |
+| --------------- | ------------------------- | --------------------------------- |
+| Data scientist  | Jupyter isn't for sharing | Narrative alongside notebooks     |
+| Product manager | Confluence is slow        | Own it, professional, shareable   |
+| DevSecOps       | Wikis are ugly            | Versioned, auditable, offline     |
+| Developer       | Tired of build tooling    | Just render markdown              |
+| Student         | LaTeX is hard             | Portfolio-ready, no design skills |
 
 ## Key Decisions
 
@@ -233,6 +239,7 @@ Committer-of-Record: Dave Thompson <dave.thompson@3leaps.net> [@3leapsdave]
 ## Brand Assets
 
 Brand study and logo concepts in `.plans/brand/`:
+
 - `kitfly-brand-study.md` - Full brand analysis
 - `images/kitfly_brand-mark_03.png` - Selected logo direction (needs sizing)
 
@@ -244,4 +251,4 @@ Brand study and logo concepts in `.plans/brand/`:
 
 ---
 
-*Pack your docs. Watch them fly.*
+_Pack your docs. Watch them fly._

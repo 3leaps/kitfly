@@ -5,4 +5,3 @@ stages:
   - "Proposals (120)"
   - "Closed (47)"
 :::
-

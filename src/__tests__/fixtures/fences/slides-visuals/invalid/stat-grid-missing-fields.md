@@ -3,4 +3,3 @@ metrics:
   - label: "Users"
   - label: "Revenue"
 :::
-

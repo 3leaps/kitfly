@@ -1,7 +1,6 @@
 # yaml-language-server: $schema=../schemas/v0/theme.schema.json
 # Terminal theme - high contrast, monospace-heavy, for technical runbooks
 name: "Terminal"
-
 colors:
   light:
     background: "#fafafa"
@@ -13,7 +12,6 @@ colors:
     primaryHover: "#0052a3"
     accent: "#cc3300"
     border: "#d4d4d4"
-
   dark:
     background: "#0a0a0a"
     surface: "#171717"
@@ -24,11 +22,9 @@ colors:
     primaryHover: "#99ccff"
     accent: "#ff6b4a"
     border: "#404040"
-
 code:
   light: "default"
   dark: "one-dark"
-
 typography:
   body: "mono"
   headings: "mono"

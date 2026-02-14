@@ -7,4 +7,3 @@ left:
 right:
   - "Fast to ship"
 :::
-

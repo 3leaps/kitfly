@@ -32,6 +32,7 @@ Two operational choices must be explicit:
 Kitfly will define a versioned plugin contract (`plugin.schema.json` + hook semantics) as a compatibility boundary.
 
 Contract rules:
+
 - Contract version is explicit (e.g. `contract: "1"`).
 - Breaking changes require a new major contract version.
 - Backward-compatible additions are allowed within a contract major version.
@@ -42,6 +43,7 @@ Contract rules:
 For v0.2.0 delivery speed, first-party plugins are developed in the main kitfly repository under a dedicated plugin path and registry/config structure.
 
 Why now:
+
 - Faster iteration while contract and hooks are stabilizing.
 - Lower coordination overhead across core + plugin changes.
 - Simpler QA and dogfooding in a single branch/CI surface.
@@ -51,6 +53,7 @@ Why now:
 In-repo is not permanent by requirement. Plugin layout, manifest format, and loader/registry interfaces must remain portable so plugins can move to `kitfly-plugins` later with minimal disruption.
 
 Extraction trigger signals:
+
 - plugin maintenance cadence diverges from core,
 - external contribution volume rises,
 - plugin release/security pipeline becomes materially heavier.
@@ -58,6 +61,7 @@ Extraction trigger signals:
 ### 4. Security and policy baseline
 
 Distribution policy applies regardless of repo location:
+
 - version pinning required,
 - checksum verification required,
 - SRI required for CDN assets,

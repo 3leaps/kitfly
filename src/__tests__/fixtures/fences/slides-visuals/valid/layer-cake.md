@@ -4,4 +4,3 @@ layers:
   - "Platform"
   - "Infrastructure"
 :::
-

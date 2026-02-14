@@ -31,13 +31,13 @@ Use **Bun** as the primary runtime for development, testing, and production exec
 
 ### What Bun Provides
 
-| Capability | Replaces |
-|-----------|----------|
-| Native TypeScript execution | `tsc` compilation step, `ts-node`, `tsx` |
-| Built-in test runner | Separate test framework install (jest/mocha for execution) |
-| Fast startup (~25ms) | Node.js cold start (~100-200ms) |
-| Built-in package manager | npm/yarn/pnpm (for install speed) |
-| `Bun.serve()` HTTP server | Express, Koa, or manual `http.createServer` |
+| Capability                  | Replaces                                                   |
+| --------------------------- | ---------------------------------------------------------- |
+| Native TypeScript execution | `tsc` compilation step, `ts-node`, `tsx`                   |
+| Built-in test runner        | Separate test framework install (jest/mocha for execution) |
+| Fast startup (~25ms)        | Node.js cold start (~100-200ms)                            |
+| Built-in package manager    | npm/yarn/pnpm (for install speed)                          |
+| `Bun.serve()` HTTP server   | Express, Koa, or manual `http.createServer`                |
 
 ### Runtime Boundary
 

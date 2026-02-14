@@ -14,19 +14,19 @@ Launches a local development server that renders your markdown files and automat
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument | Description                                                                      |
+| -------- | -------------------------------------------------------------------------------- |
 | `folder` | Content folder to serve (default: current directory or `docroot` from site.yaml) |
 
 ## Options
 
-| Option | Environment Variable | Default | Description |
-|--------|---------------------|---------|-------------|
-| `--port <n>` | `KITFLY_DEV_PORT` | 3333 | Server port |
-| `--host <h>` | `KITFLY_DEV_HOST` | localhost | Server host |
-| `--daemon`, `-d` | - | false | Run in background, return immediately |
-| `--json` | - | false | Output JSON (implies --daemon) |
-| `--no-open` | - | false | Don't open browser automatically |
+| Option           | Environment Variable | Default   | Description                           |
+| ---------------- | -------------------- | --------- | ------------------------------------- |
+| `--port <n>`     | `KITFLY_DEV_PORT`    | 3333      | Server port                           |
+| `--host <h>`     | `KITFLY_DEV_HOST`    | localhost | Server host                           |
+| `--daemon`, `-d` | -                    | false     | Run in background, return immediately |
+| `--json`         | -                    | false     | Output JSON (implies --daemon)        |
+| `--no-open`      | -                    | false     | Don't open browser automatically      |
 
 ## Examples
 
@@ -70,6 +70,7 @@ If the specified port is already in use, kitfly will report an error rather than
 ## Hot Reload
 
 The dev server watches for changes to:
+
 - Markdown files (`.md`)
 - Configuration (`site.yaml`, `theme.yaml`)
 - Template files

@@ -8,8 +8,14 @@
     "kitflyMode": {
       "type": "string",
       "description": "Kitfly rendering mode.",
-      "enum": ["docs", "slides"],
-      "examples": ["docs", "slides"]
+      "enum": [
+        "docs",
+        "slides"
+      ],
+      "examples": [
+        "docs",
+        "slides"
+      ]
     },
     "kitflyModesAllowlist": {
       "type": "array",
@@ -23,7 +29,10 @@
       "type": "string",
       "description": "Semantic version string (semver).",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
-      "examples": ["1.0.0", "1.2.3-beta.1"]
+      "examples": [
+        "1.0.0",
+        "1.2.3-beta.1"
+      ]
     },
     "semverRange": {
       "type": "string",
@@ -31,19 +40,25 @@
       "minLength": 1,
       "maxLength": 80,
       "pattern": "^\\s*(?:[<>=~^]*\\s*)?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\s+(?:[<>=~^]*\\s*)?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*))*\\s*$",
-      "examples": [">=0.2.0 <1.0.0"]
+      "examples": [
+        ">=0.2.0 <1.0.0"
+      ]
     },
     "sriIntegrity": {
       "type": "string",
       "description": "Subresource Integrity value (sha256/sha384/sha512 base64).",
       "pattern": "^(sha256|sha384|sha512)-[A-Za-z0-9+/=]+$",
-      "examples": ["sha384-abcDEF123+/="]
+      "examples": [
+        "sha384-abcDEF123+/="
+      ]
     },
     "checksumSha256": {
       "type": "string",
       "description": "SHA256 checksum (hex) prefixed with sha256:",
       "pattern": "^sha256:[0-9a-fA-F]{64}$",
-      "examples": ["sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
+      "examples": [
+        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
     }
   }
 }

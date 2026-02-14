@@ -17,10 +17,10 @@ Displays the current kitfly version. Use `extended` for detailed provenance info
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `extended` | Show extended version with git and platform info |
-| `--extended` | Same as `extended` subcommand |
+| Option       | Description                                      |
+| ------------ | ------------------------------------------------ |
+| `extended`   | Show extended version with git and platform info |
+| `--extended` | Same as `extended` subcommand                    |
 
 ## Output
 
@@ -45,14 +45,14 @@ Platform: darwin/arm64
 
 ## Extended Output Fields
 
-| Field | Description |
-|-------|-------------|
-| `kitfly` | Current version from VERSION file |
-| `Git commit` | Short SHA of current commit |
-| `Git branch` | Current git branch name |
-| `Git status` | "clean" or "dirty (uncommitted changes)" |
-| `Bun` | Bun runtime version |
-| `Platform` | OS and architecture (e.g., darwin/arm64, linux/x64) |
+| Field        | Description                                         |
+| ------------ | --------------------------------------------------- |
+| `kitfly`     | Current version from VERSION file                   |
+| `Git commit` | Short SHA of current commit                         |
+| `Git branch` | Current git branch name                             |
+| `Git status` | "clean" or "dirty (uncommitted changes)"            |
+| `Bun`        | Bun runtime version                                 |
+| `Platform`   | OS and architecture (e.g., darwin/arm64, linux/x64) |
 
 ## Use Cases
 

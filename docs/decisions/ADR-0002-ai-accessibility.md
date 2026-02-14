@@ -23,6 +23,7 @@ Kitfly sites are primarily viewed by humans in browsers. However, AI agents incr
 - Automated documentation indexing and search
 
 HTML parsing is inefficient for AI agents. They prefer:
+
 - Structured metadata for discovery
 - Raw markdown for content consumption
 - Predictable paths for programmatic access

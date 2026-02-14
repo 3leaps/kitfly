@@ -12,7 +12,6 @@
 #
 # Validate changes with: goneat doctor tools validate
 # See schema: schemas/tools/tools.v1.0.0.json
-
 scopes:
   foundation:
     description: Core tools for kitfly development
@@ -22,7 +21,6 @@ scopes:
       - jq
       - yq
       - yamlfmt
-
 tools:
   bun:
     name: bun
@@ -47,7 +45,6 @@ tools:
         - winget
     version_scheme: semver
     minimum_version: 1.0.0
-
   ripgrep:
     name: ripgrep
     description: Fast text search - used by goneat for license auditing
@@ -67,7 +64,6 @@ tools:
       windows:
         - scoop
         - winget
-
   jq:
     name: jq
     description: JSON processor - used in CI/CD scripts
@@ -87,7 +83,6 @@ tools:
       windows:
         - scoop
         - winget
-
   yq:
     name: yq
     description: YAML processor
@@ -107,7 +102,6 @@ tools:
       windows:
         - scoop
         - winget
-
   yamlfmt:
     name: yamlfmt
     description: YAML formatter and linter

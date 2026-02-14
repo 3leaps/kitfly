@@ -57,19 +57,19 @@ sequenceDiagram
 
 Standard markdown tables with clean styling:
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Hot reload | ✅ | Instant updates |
-| Dark mode | ✅ | System preference |
-| TOC | ✅ | Auto-generated |
-| Search | 🚧 | Coming soon |
+| Feature    | Status | Notes             |
+| ---------- | ------ | ----------------- |
+| Hot reload | ✅     | Instant updates   |
+| Dark mode  | ✅     | System preference |
+| TOC        | ✅     | Auto-generated    |
+| Search     | 🚧     | Coming soon       |
 
 ## Text Formatting
 
 Standard markdown formatting:
 
 - **Bold text** for emphasis
-- *Italic text* for nuance
+- _Italic text_ for nuance
 - `inline code` for technical terms
 - ~~Strikethrough~~ for corrections
 

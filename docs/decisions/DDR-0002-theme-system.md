@@ -72,16 +72,16 @@ These fallbacks ensure the site renders correctly if `theme.yaml` is missing or 
 
 ### Token Mapping
 
-| theme.yaml token | CSS variable | CSS usage |
-|-------------------|-------------|-----------|
-| `colors.light.background` | `--color-bg` | Page background |
-| `colors.light.surface` | `--color-bg-sidebar` | Sidebar, code block backgrounds |
-| `colors.light.text` | `--color-text` | Body text |
-| `colors.light.textMuted` | `--color-text-muted` | Secondary text, metadata |
-| `colors.light.heading` | `--color-accent` | Headings, logo color |
-| `colors.light.primary` | `--color-link` | Links, active nav |
-| `colors.light.primaryHover` | `--color-link-hover` | Link hover state |
-| `colors.light.border` | `--color-border` | Borders, dividers |
+| theme.yaml token            | CSS variable         | CSS usage                       |
+| --------------------------- | -------------------- | ------------------------------- |
+| `colors.light.background`   | `--color-bg`         | Page background                 |
+| `colors.light.surface`      | `--color-bg-sidebar` | Sidebar, code block backgrounds |
+| `colors.light.text`         | `--color-text`       | Body text                       |
+| `colors.light.textMuted`    | `--color-text-muted` | Secondary text, metadata        |
+| `colors.light.heading`      | `--color-accent`     | Headings, logo color            |
+| `colors.light.primary`      | `--color-link`       | Links, active nav               |
+| `colors.light.primaryHover` | `--color-link-hover` | Link hover state                |
+| `colors.light.border`       | `--color-border`     | Borders, dividers               |
 
 Dark mode uses the same mapping under `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`.
 

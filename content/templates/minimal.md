@@ -128,11 +128,11 @@ brand:
 
 If your site fits one of these patterns, start with a specialized template — you'll get curated sections, starter content, and a `CUSTOMIZING.md` guide:
 
-| Pattern | Template | Why |
-|---------|----------|-----|
-| Team knowledge base | `handbook` | Overview / Guides / Reference structure |
-| Service operations | `runbook` | Procedures, troubleshooting, incidents |
-| Data pipeline ops | `pipeline` | Stages, sources, destinations, manifests |
+| Pattern                   | Template      | Why                                        |
+| ------------------------- | ------------- | ------------------------------------------ |
+| Team knowledge base       | `handbook`    | Overview / Guides / Reference structure    |
+| Service operations        | `runbook`     | Procedures, troubleshooting, incidents     |
+| Data pipeline ops         | `pipeline`    | Stages, sources, destinations, manifests   |
 | Product + business domain | `productbook` | Features, domain processes, planning, ADRs |
 
 You can always restructure later — templates are starting points, not constraints.

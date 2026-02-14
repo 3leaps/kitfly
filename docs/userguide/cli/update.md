@@ -16,16 +16,16 @@ Updates the kitfly rendering code in a standalone site to a newer version. Prese
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument  | Description                      |
+| --------- | -------------------------------- |
 | `version` | Target version (default: latest) |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview changes without applying |
-| `--force` | Update even if local modifications detected |
+| Option      | Description                                 |
+| ----------- | ------------------------------------------- |
+| `--dry-run` | Preview changes without applying            |
+| `--force`   | Update even if local modifications detected |
 
 ## Examples
 
@@ -59,6 +59,7 @@ kitfly update --dry-run
 ## Modification Detection
 
 Kitfly tracks file checksums to detect local modifications. If you've customized engine files:
+
 1. Update will warn about modifications
 2. Use `--force` to overwrite
 3. Or manually merge changes
@@ -66,6 +67,7 @@ Kitfly tracks file checksums to detect local modifications. If you've customized
 ## Version Compatibility
 
 Updates follow semantic versioning:
+
 - **Patch** (0.1.x): Safe, backward-compatible fixes
 - **Minor** (0.x.0): New features, may need config updates
 - **Major** (x.0.0): Breaking changes, migration may be required

@@ -27,15 +27,15 @@ Every template **extends `minimal`**, which provides the essential files every s
 
 When you run `kitfly init`, the template generates:
 
-| Component | Source | Purpose |
-|-----------|--------|---------|
-| `site.yaml` | Template | Site configuration with sections defined |
-| `index.md` | Template | Home page with navigation to sections |
-| `content/` | Template | Folder structure with starter files |
-| `.gitignore` | `minimal` | Standard ignores for builds, deps, OS files |
-| `README.md` | `minimal` | Project readme with dev commands |
-| `CUSTOMIZING.md` | Specialized templates | How to customize (AI + human friendly) |
-| `assets/brand/` | `minimal` | Placeholder for logo, favicon |
+| Component        | Source                | Purpose                                     |
+| ---------------- | --------------------- | ------------------------------------------- |
+| `site.yaml`      | Template              | Site configuration with sections defined    |
+| `index.md`       | Template              | Home page with navigation to sections       |
+| `content/`       | Template              | Folder structure with starter files         |
+| `.gitignore`     | `minimal`             | Standard ignores for builds, deps, OS files |
+| `README.md`      | `minimal`             | Project readme with dev commands            |
+| `CUSTOMIZING.md` | Specialized templates | How to customize (AI + human friendly)      |
+| `assets/brand/`  | `minimal`             | Placeholder for logo, favicon               |
 
 ### The Customizing Guide
 
@@ -60,6 +60,7 @@ kitfly_version: 0.1.0
 ```
 
 This tracks:
+
 - **template**: Which template was used
 - **template_version**: Version of that template's structure
 - **created**: When the site was initialized
@@ -102,6 +103,7 @@ Standalone sites additionally track copied files with SHA256 hashes:
 ```
 
 **Why hashes?** For future `kitfly update` support:
+
 - Compare hashes to detect user modifications
 - Safely update unmodified files
 - Warn before overwriting customized code
@@ -129,15 +131,15 @@ This enables rollback awareness and audit trails for managed sites.
 
 ## Choosing a Template
 
-| Template | Best For | Sections |
-|----------|----------|----------|
-| `minimal` | Custom structures, experimentation | None predefined — you define your own |
-| `handbook` | Team docs, onboarding, knowledge bases | Overview, Guides, Reference |
-| `runbook` | Operations, procedures, incidents | Procedures, Troubleshooting, Reference, Incidents |
-| `pipeline` | Data pipeline operations | Pipeline, Sources, Destinations, Operations, Troubleshooting, Reference |
-| `productbook` | Product + domain docs for complex engagements | Product, Domain, Planning, Operations, Guides, Reference |
-| `servicebook` | Professional services, consulting catalogs | Offerings, Methodology, Delivery, Verticals, Case Studies, Reference |
-| `crucible` | Information architecture SSOT, ecosystem standards | Specs, Schemas, Config, Policies, Guides, Reference |
+| Template      | Best For                                           | Sections                                                                |
+| ------------- | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| `minimal`     | Custom structures, experimentation                 | None predefined — you define your own                                   |
+| `handbook`    | Team docs, onboarding, knowledge bases             | Overview, Guides, Reference                                             |
+| `runbook`     | Operations, procedures, incidents                  | Procedures, Troubleshooting, Reference, Incidents                       |
+| `pipeline`    | Data pipeline operations                           | Pipeline, Sources, Destinations, Operations, Troubleshooting, Reference |
+| `productbook` | Product + domain docs for complex engagements      | Product, Domain, Planning, Operations, Guides, Reference                |
+| `servicebook` | Professional services, consulting catalogs         | Offerings, Methodology, Delivery, Verticals, Case Studies, Reference    |
+| `crucible`    | Information architecture SSOT, ecosystem standards | Specs, Schemas, Config, Policies, Guides, Reference                     |
 
 ## Usage
 
@@ -165,12 +167,12 @@ kitfly init my-docs --template handbook --no-git
 
 Kitfly focuses on **creation** only:
 
-| Operation | Support | Notes |
-|-----------|---------|-------|
-| Create | `kitfly init` | Full template system |
-| Read | `kitfly dev` | Preview any markdown folder |
-| Update | `kitfly update` | Planned for v0.2.x |
-| Delete | Not supported | Use `rm -rf` - sites are just folders |
+| Operation | Support         | Notes                                 |
+| --------- | --------------- | ------------------------------------- |
+| Create    | `kitfly init`   | Full template system                  |
+| Read      | `kitfly dev`    | Preview any markdown folder           |
+| Update    | `kitfly update` | Planned for v0.2.x                    |
+| Delete    | Not supported   | Use `rm -rf` - sites are just folders |
 
 **Why no delete?** Sites are self-contained folders with no external references. Deleting is simply removing the folder. There's no registry or metadata outside the site to clean up.
 

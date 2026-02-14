@@ -20,14 +20,14 @@ This produces one self-contained HTML file with everything inlined: content, sty
 
 ### When to use bundle
 
-| Scenario | Example |
-|----------|---------|
-| Email attachment | Send docs to a client or reviewer |
-| Slack/Teams upload | Drop into a channel for quick reference |
-| Shared drive | Put on Google Drive, Dropbox, OneDrive |
-| USB/offline handoff | Works without internet |
-| Review cycle | Stakeholders open in any browser |
-| Archival | Point-in-time snapshot of your docs |
+| Scenario            | Example                                 |
+| ------------------- | --------------------------------------- |
+| Email attachment    | Send docs to a client or reviewer       |
+| Slack/Teams upload  | Drop into a channel for quick reference |
+| Shared drive        | Put on Google Drive, Dropbox, OneDrive  |
+| USB/offline handoff | Works without internet                  |
+| Review cycle        | Stakeholders open in any browser        |
+| Archival            | Point-in-time snapshot of your docs     |
 
 ### Bundle tips
 
@@ -47,14 +47,14 @@ This produces a `dist/` directory with standard HTML, CSS, and assets. Deploy it
 
 ### Deployment targets
 
-| Platform | How |
-|----------|-----|
-| **GitHub Pages** | Push `dist/` to `gh-pages` branch or configure Pages to serve from a folder |
-| **Netlify** | Set build command to `kitfly build`, publish directory to `dist` |
-| **Vercel** | Same pattern — build command + output directory |
-| **AWS S3** | Sync `dist/` to an S3 bucket with static hosting enabled |
-| **Any web server** | Copy `dist/` contents to your server's document root |
-| **Local preview** | `open dist/index.html` in your browser |
+| Platform           | How                                                                         |
+| ------------------ | --------------------------------------------------------------------------- |
+| **GitHub Pages**   | Push `dist/` to `gh-pages` branch or configure Pages to serve from a folder |
+| **Netlify**        | Set build command to `kitfly build`, publish directory to `dist`            |
+| **Vercel**         | Same pattern — build command + output directory                             |
+| **AWS S3**         | Sync `dist/` to an S3 bucket with static hosting enabled                    |
+| **Any web server** | Copy `dist/` contents to your server's document root                        |
+| **Local preview**  | `open dist/index.html` in your browser                                      |
 
 ### Build tips
 
@@ -64,16 +64,16 @@ This produces a `dist/` directory with standard HTML, CSS, and assets. Deploy it
 
 ## Choosing Between Bundle and Build
 
-| Need | Use |
-|------|-----|
-| Share with one person | `bundle` |
+| Need                          | Use      |
+| ----------------------------- | -------- |
+| Share with one person         | `bundle` |
 | Share with a team (no server) | `bundle` |
-| Publish to the web | `build` |
-| Need search engine indexing | `build` |
-| Must work offline (no setup) | `bundle` |
-| CI/CD pipeline | `build` |
-| Email attachment | `bundle` |
-| GitHub Pages / Netlify | `build` |
+| Publish to the web            | `build`  |
+| Need search engine indexing   | `build`  |
+| Must work offline (no setup)  | `bundle` |
+| CI/CD pipeline                | `build`  |
+| Email attachment              | `bundle` |
+| GitHub Pages / Netlify        | `build`  |
 
 You can use both — `bundle` for quick reviews, `build` for the published site.
 

@@ -6,4 +6,3 @@ metrics:
     value: 99.95%
     trend: +0.3%
 :::
-

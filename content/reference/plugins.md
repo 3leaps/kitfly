@@ -85,16 +85,19 @@ When `slides-visuals` is enabled, Kitfly validates blocks before rendering and r
 ### Supported types
 
 Widgets:
+
 - `kpi` (scalar keys: `label`, `value`, optional `trend`)
 - `stat-grid` (list key: `metrics` of `{label,value,trend?}` objects)
 - `compare` (scalar keys: `left-title`, `right-title`; list keys: `left`, `right` as **strings only**)
 
 Notes:
+
 - `compare.left` and `compare.right` items are simple strings (not `{label: ..., value: ...}` objects).
 - If you need multi-field items, use `stat-grid` / `scorecard` instead.
 - If an item contains a colon (`:`), quote it as a string.
 
 Figures:
+
 - `quadrant-grid` (scalar keys: `axis-x`, `axis-y`, `tl`, `tr`, `bl`, `br`)
 - `scorecard` (list key: `metrics` of `{label,value,trend?}` objects)
 - `comparison-table` (list keys: `headers` (strings), `rows` (strings))
@@ -107,12 +110,13 @@ Figures:
 ```markdown
 :::stat-grid
 metrics:
-  - label: Users
-    value: 1,234
-  - label: Uptime
-    value: 99.95%
-    trend: +0.3%
-:::
+
+- label: Users
+  value: 1,234
+- label: Uptime
+  value: 99.95%
+  trend: +0.3%
+  :::
 ```
 
 ### How to know it’s correct
@@ -120,6 +124,7 @@ metrics:
 When `slides-visuals@...` is enabled, Kitfly validates your `:::` blocks before it renders pages.
 
 You know your fences are valid if:
+
 - `kitfly dev` starts successfully, and pages load normally
 - `kitfly build` completes successfully
 - `kitfly bundle` completes successfully
@@ -140,10 +145,10 @@ If a block is invalid, Kitfly will fail fast with an error that points to the fi
 #### 1) Indented fence (invalid)
 
 ```markdown
-  :::kpi
-  label: Users
-  value: 1,234
-  :::
+:::kpi
+label: Users
+value: 1,234
+:::
 ```
 
 Fixed:
@@ -179,9 +184,10 @@ value: 1,234
 ```markdown
 :::stat-grid
 metrics:
- - label: Users
-   value: 1,234
-:::
+
+- label: Users
+  value: 1,234
+  :::
 ```
 
 Fixed:
@@ -189,9 +195,10 @@ Fixed:
 ```markdown
 :::stat-grid
 metrics:
-  - label: Users
-    value: 1,234
-:::
+
+- label: Users
+  value: 1,234
+  :::
 ```
 
 #### 4) Unknown type (invalid)

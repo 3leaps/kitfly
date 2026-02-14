@@ -14,8 +14,8 @@ Displays all kitfly dev servers currently running on this machine. Useful for ma
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
+| Option   | Description    |
+| -------- | -------------- |
 | `--json` | Output as JSON |
 
 ## Examples
@@ -48,15 +48,16 @@ No kitfly servers running
 
 ## Output Fields
 
-| Field | Description |
-|-------|-------------|
-| `PORT` | Server port number |
-| `PID` | Process ID |
+| Field     | Description            |
+| --------- | ---------------------- |
+| `PORT`    | Server port number     |
+| `PID`     | Process ID             |
 | `PROJECT` | Project directory path |
 
 ## Server Registry
 
 Kitfly maintains a registry of running servers at:
+
 - macOS/Linux: `~/.kitfly/servers.json`
 - Windows: `%USERPROFILE%\.kitfly\servers.json`
 

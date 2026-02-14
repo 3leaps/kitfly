@@ -1,4 +1,3 @@
 :::mystery
 key: value
 :::
-
