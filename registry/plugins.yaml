@@ -16,7 +16,7 @@ plugins:
       js: "plugins-dist/callouts.js"
       css: "plugins-dist/callouts.css"
       assetSha256:
-        js: "sha256:271c262b6f38a7d2773ec2067df68e34efcf223f649fc1228fcfd98144798253"
+        js: "sha256:94cc1a1a0ef4107b531defe915c6fbcc848e2b60c13c8cce7c5bbe6ae9130148"
         css: "sha256:7f8eb0c7f0aa75c9ce74b1f242e548e2fefcd4109c4ae93c93d479cbc08c1849"
   slides-visuals:
     name: "Slides Visuals"

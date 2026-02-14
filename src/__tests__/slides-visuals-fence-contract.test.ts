@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { validateSlidesVisualsFences } from "../shared.ts";
 
-const FIXTURES = join(import.meta.dir, "fixtures", "fences", "slides-visuals");
+const FIXTURES = join(__dirname, "fixtures", "fences", "slides-visuals");
 
 describe("slides-visuals fence contract", () => {
 	it("accepts valid fixtures", async () => {

@@ -30,6 +30,7 @@ class FakeElement {
 
 async function loadHooks(): Promise<SlidesVisualsTestHooks> {
 	// Executes the plugin file and registers hooks on globalThis (in non-DOM test env).
+	// @ts-expect-error — JS plugin file, no declaration needed
 	await import("../../plugins-dist/slides-visuals.js");
 	const hooks = (globalThis as any).__kitflySlidesVisualsTest as SlidesVisualsTestHooks | undefined;
 	if (!hooks) throw new Error("slides-visuals test hooks not found on globalThis");
