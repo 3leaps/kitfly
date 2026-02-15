@@ -98,7 +98,7 @@ A 5-event vertical timeline plus a callout often exceeds the frame at `16/9`.
 
 ### Example (safe with callout)
 
-```markdown
+```text
 :::timeline-vertical
 events:
 - label: "Detect"

@@ -2,6 +2,18 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.1] - 2026-02-15
+
+### Added
+
+- 5 new `slides-visuals` figure types: `timeline-horizontal`, `timeline-vertical`, `flow-branching`, `flow-converging`, `staircase`
+- Slides authoring guidelines for content-density pitfalls in visual figures
+
+### Fixed
+
+- Dev server shows friendly error page on plugin version mismatch instead of raw stack trace
+- vitest/bun test compatibility: use `__dirname` over `import.meta.dir`, exclude `.bun.test.*` from vitest runs
+
 ## [0.2.0] - 2026-02-14
 
 ### Added
