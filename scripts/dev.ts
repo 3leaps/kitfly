@@ -18,7 +18,13 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
 import { marked, Renderer } from "marked";
 import { ENGINE_ASSETS_DIR, ENGINE_SITE_DIR } from "../src/engine.ts";
-import { loadPluginInjections } from "../src/plugin-loader.ts";
+import {
+	loadPluginInjections,
+	PluginConfigError,
+	PluginIntegrityError,
+	PluginNetworkError,
+	PluginPolicyError,
+} from "../src/plugin-loader.ts";
 import {
 	buildBreadcrumbsSimple,
 	buildFooter,
@@ -75,6 +81,60 @@ let daemonLog: {
 	warn: (msg: string) => void;
 	error: (msg: string) => void;
 } | null = null;
+
+function isPluginLoaderError(error: unknown): error is Error {
+	return (
+		error instanceof PluginConfigError ||
+		error instanceof PluginIntegrityError ||
+		error instanceof PluginPolicyError ||
+		error instanceof PluginNetworkError
+	);
+}
+
+function pluginVersionMismatchHint(message: string): string {
+	const m = message.match(/^Plugin ([a-z0-9-]+) version mismatch: ([^ ]+) != ([^ ]+)$/i);
+	if (!m) return "";
+	const pluginId = m[1];
+	const expected = m[3];
+	return `Update <code>kitfly.plugins.yaml</code> to <code>${pluginId}@${expected}</code>, then refresh.`;
+}
+
+export function buildDevPluginErrorHtml(message: string): string {
+	const hint = pluginVersionMismatchHint(message);
+	const safeMessage = escapeHtml(message);
+	const hintBlock = hint
+		? `<p>${hint}</p>`
+		: "<p>Check <code>kitfly.plugins.yaml</code> and <code>registry/plugins.yaml</code>, then refresh.</p>";
+	return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plugin Configuration Error</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #0b1020; color: #e8ecf3; }
+    main { max-width: 820px; margin: 8vh auto; padding: 1.25rem; }
+    .card { background: #131a2e; border: 1px solid #2a3557; border-radius: 12px; padding: 1rem 1.1rem; }
+    h1 { margin: 0 0 0.75rem; font-size: 1.25rem; }
+    p, li { line-height: 1.5; }
+    code { background: #0e1528; padding: 0.08rem 0.3rem; border-radius: 6px; border: 1px solid #2a3557; }
+    pre { margin: 0.8rem 0 0; padding: 0.75rem; background: #0e1528; border: 1px solid #2a3557; border-radius: 8px; overflow: auto; }
+    .muted { color: #b5bfd2; font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>Plugin setup error</h1>
+      <p>Kitfly could not load one or more plugins for dev preview.</p>
+      ${hintBlock}
+      <pre><code>${safeMessage}</code></pre>
+      <p class="muted">After updating config, refresh this page. No dev server restart required.</p>
+    </div>
+  </main>
+</body>
+</html>`;
+}
 
 /** Log info — uses structured logger in daemon mode, console.log otherwise */
 function logInfo(msg: string): void {
@@ -857,19 +917,44 @@ async function main() {
 		return new Response("Not found", { status: 404 });
 	}
 
-	// Wrap with request logging middleware when in structured log mode
-	const fetch = daemonLog
-		? async (req: Request) => {
-				const start = performance.now();
-				const response = await handleRequest(req);
+	// Wrap with request logging + friendly plugin errors.
+	const fetch = async (req: Request) => {
+		const start = performance.now();
+		const url = new URL(req.url);
+		try {
+			const response = await handleRequest(req);
+			if (daemonLog && url.pathname !== "/__reload") {
 				const duration = (performance.now() - start).toFixed(0);
-				const url = new URL(req.url);
-				if (url.pathname !== "/__reload") {
-					daemonLog?.info(`${req.method} ${url.pathname} ${response.status} ${duration}ms`);
-				}
-				return response;
+				daemonLog.info(`${req.method} ${url.pathname} ${response.status} ${duration}ms`);
 			}
-		: handleRequest;
+			return response;
+		} catch (error) {
+			const duration = (performance.now() - start).toFixed(0);
+			const message = error instanceof Error ? error.message : String(error);
+			if (isPluginLoaderError(error)) {
+				if (daemonLog && url.pathname !== "/__reload") {
+					daemonLog.warn(
+						`${req.method} ${url.pathname} 500 ${duration}ms plugin error: ${message}`,
+					);
+				} else if (!daemonLog) {
+					logWarn(`Plugin error: ${message}`);
+				}
+				return new Response(buildDevPluginErrorHtml(message), {
+					status: 500,
+					headers: { "Content-Type": "text/html; charset=utf-8" },
+				});
+			}
+			if (daemonLog && url.pathname !== "/__reload") {
+				daemonLog.error(`${req.method} ${url.pathname} 500 ${duration}ms ${message}`);
+			} else if (!daemonLog) {
+				console.error(error);
+			}
+			return new Response("Internal server error", {
+				status: 500,
+				headers: { "Content-Type": "text/plain; charset=utf-8" },
+			});
+		}
+	};
 
 	// Create server
 	Bun.serve({
