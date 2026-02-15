@@ -332,6 +332,26 @@ plugins:
 		expect(html).toContain(js);
 	});
 
+	it("injects latex plugin in docs mode", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir);
+		await writeMd(
+			siteDir,
+			"docs/math.md",
+			"# Math\n\nInline: $x^2$.\n\n$$\n\\\\int_0^1 x^2 dx\n$$\n\n```math\n\\\\sum_{i=1}^{n} i\n```",
+		);
+		await writeFile(join(siteDir, "kitfly.plugins.yaml"), "plugins:\n  - latex@0.2.2\n", "utf-8");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="latex@0.2.2"');
+		expect(html).toContain('.katex .katex-version:after{content:"0.16.21"}');
+		expect(html).toContain("kitfly-katex-display");
+		expect(html).not.toContain("const KATEX_JS_URL =");
+	});
+
 	it("injects slides-only plugins when mode=slides", async () => {
 		const siteDir = await makeTempDir();
 		const outDir = "out";

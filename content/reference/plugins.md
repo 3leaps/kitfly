@@ -26,6 +26,19 @@ plugins:
 
 Canonical plugins are referenced as pinned strings: `name@x.y.z`.
 
+### Canonical plugins (v0.2.2)
+
+- `callouts@0.2.0` - styled NOTE/TIP/INFO/WARNING/DANGER blockquotes
+- `slides-visuals@0.2.1` - slide widgets + figures via `:::` blocks (`slides` mode only)
+- `latex@0.2.2` - KaTeX math rendering for `$...$`, `$$...$$`, and fenced `math` blocks
+
+Example:
+
+```yaml
+plugins:
+  - latex@0.2.2
+```
+
 ## Registry + assets
 
 Canonical plugins come from a registry file:

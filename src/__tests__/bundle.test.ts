@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
 	buildBundleNav,
 	buildBundleSidebarHeader,
+	bundleSite,
 	fileToDataUri,
 	imageMime,
 	inlineLocalImages,
@@ -813,5 +814,27 @@ describe("buildBundleSidebarHeader", () => {
 		const logo = "data:image/svg+xml;base64,PHN2Zy8+";
 		const html = buildBundleSidebarHeader(config, "1.0", logo);
 		expect(html).toContain(`src="${logo}"`);
+	});
+});
+
+describe("bundleSite plugin integration", () => {
+	it("inlines latex plugin script when enabled", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "docs"), { recursive: true });
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Test"\nbrand:\n  name: "Test"\n  url: "/"\nsections:\n  - name: Docs\n    path: docs\n',
+			"utf-8",
+		);
+		await writeFile(join(siteDir, "docs", "index.md"), "# Bundle Math\n\n$E=mc^2$", "utf-8");
+		await writeFile(join(siteDir, "kitfly.plugins.yaml"), "plugins:\n  - latex@0.2.2\n", "utf-8");
+
+		await bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" });
+
+		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="latex@0.2.2"');
+		expect(html).toContain('.katex .katex-version:after{content:"0.16.21"}');
+		expect(html).toContain("kitfly-katex-display");
+		expect(html).not.toContain("const KATEX_JS_URL =");
 	});
 });

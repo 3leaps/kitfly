@@ -33,3 +33,17 @@ plugins:
       assetSha256:
         js: "sha256:716059fbb0045af5305e552557368fe812569121986e0ce533f96753197c6ee1"
         css: "sha256:dae86214e5f3f628deb6fec3f7bd871fa419f0310993cde9e845392ac16d9ec1"
+  latex:
+    name: "LaTeX/KaTeX Math Rendering"
+    description: "LaTeX math rendering via KaTeX ($...$ inline, $$...$$ display, fenced math)"
+    version: "0.2.2"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/latex.js"
+      css: "plugins-dist/latex.css"
+      assetSha256:
+        js: "sha256:ae7a436e26080858ceb16e2275f0c1fbee13156a2e8573c058e924c595a9f451"
+        css: "sha256:eb36765ab6b74a83f562b75b10b0841e611c7b4a6e12457e676b20ce47628fc4"
