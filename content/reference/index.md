@@ -16,4 +16,5 @@ Use this section when you want quick definitions, mental models, and “what doe
 - [Environment Variables](content/reference/environment-variables.html) — what they are and how to set them
 - [Key Concepts](content/reference/key-concepts.html) — `docroot`, `dist/`, “bundle vs build”, and more
 - [Design Catalog](content/reference/design-catalog.html) — shapes and deterministic infographic figures
+- [Slides Authoring Guidelines](content/reference/slides-authoring-guidelines.html) — practical do/don't rules for density and visual layout
 - [Glossary](content/reference/glossary.html) — quick definitions
