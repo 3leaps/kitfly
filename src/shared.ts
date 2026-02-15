@@ -506,6 +506,11 @@ const SLIDES_VISUALS_TYPES = new Set([
 	"layer-cake",
 	"pyramid",
 	"funnel",
+	"timeline-horizontal",
+	"timeline-vertical",
+	"flow-branching",
+	"flow-converging",
+	"staircase",
 ]);
 
 const SLIDES_VISUALS_RULES: Record<
@@ -563,6 +568,31 @@ const SLIDES_VISUALS_RULES: Record<
 		required: ["stages"],
 		scalars: [],
 		lists: { stages: { kind: "strings" } },
+	},
+	"timeline-horizontal": {
+		required: ["events"],
+		scalars: [],
+		lists: { events: { kind: "objects", fields: ["label"], optional: ["date"] } },
+	},
+	"timeline-vertical": {
+		required: ["events"],
+		scalars: [],
+		lists: { events: { kind: "objects", fields: ["label"], optional: ["date"] } },
+	},
+	"flow-branching": {
+		required: ["source", "branches"],
+		scalars: ["source", "split"],
+		lists: { branches: { kind: "strings" } },
+	},
+	"flow-converging": {
+		required: ["sources", "target"],
+		scalars: ["target", "merge"],
+		lists: { sources: { kind: "strings" } },
+	},
+	staircase: {
+		required: ["steps"],
+		scalars: ["direction"],
+		lists: { steps: { kind: "strings" } },
 	},
 };
 
@@ -752,6 +782,12 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 	}
 
 	return diagnostics;
+}
+
+export function filterUnknownSlidesVisualsTypeDiagnostics(
+	diagnostics: SlidesVisualsFenceDiagnostic[],
+): SlidesVisualsFenceDiagnostic[] {
+	return diagnostics.filter((d) => !d.message.startsWith("Unknown slides-visuals block type:"));
 }
 
 /**

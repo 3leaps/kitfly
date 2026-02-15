@@ -112,3 +112,36 @@ test("slides-visuals: rowCells parses JSON array strings", async () => {
 	const hooks = await loadHooks();
 	expect(hooks.rowCells('["A", "B", "C"]')).toEqual(["A", "B", "C"]);
 });
+
+test("slides-visuals: absorbed scalar marker preserves preceding item (flow-converging)", async () => {
+	const { parseBodyNodesWithFirstLines } = await loadHooks();
+
+	const out = parseBodyNodesWithFirstLines(
+		["sources:"],
+		[],
+		new FakeElement("UL", "", [
+			new FakeElement("LI", "Frontend Logs\ntarget: Dashboard"),
+			new FakeElement("LI", "API Logs"),
+		]),
+		"flow-converging",
+	);
+
+	expect(out.target).toBe("Dashboard");
+	expect(out.sources).toEqual(["Frontend Logs", "API Logs"]);
+});
+
+test("slides-visuals: parses object list items for timeline events", async () => {
+	const { parseBodyNodesWithFirstLines } = await loadHooks();
+
+	const out = parseBodyNodesWithFirstLines(
+		["events:"],
+		[],
+		new FakeElement("UL", "", [
+			new FakeElement("LI", "label: Kickoff\ndate: Jan 2026"),
+			new FakeElement("LI", "label: Alpha"),
+		]),
+		"timeline-horizontal",
+	);
+
+	expect(out.events).toEqual([{ label: "Kickoff", date: "Jan 2026" }, { label: "Alpha" }]);
+});

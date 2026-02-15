@@ -37,6 +37,7 @@ import {
 	envString,
 	// Formatting
 	escapeHtml,
+	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
 	// YAML/Config parsing
@@ -367,7 +368,9 @@ async function renderSlidesPage(
 			let inner = "";
 			if (slide.kind === "markdown") {
 				if (validateFences) {
-					const diagnostics = validateSlidesVisualsFences(slide.body);
+					const diagnostics = filterUnknownSlidesVisualsTypeDiagnostics(
+						validateSlidesVisualsFences(slide.body),
+					);
 					if (diagnostics.length) {
 						const msg = diagnostics
 							.slice(0, 12)

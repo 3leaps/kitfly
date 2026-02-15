@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=../schemas/v0/plugin-registry.schema.json
 version: 1
-updated: "2026-02-13"
+updated: "2026-02-15"
 baseUrl: "https://github.com/3leaps/kitfly/releases/download"
-# Canonical plugin registry (v0.2.0-alpha)
+# Canonical plugin registry (v0.2.1)
 plugins:
   callouts:
     name: "Callout Boxes"
@@ -21,7 +21,7 @@ plugins:
   slides-visuals:
     name: "Slides Visuals"
     description: "Widgets and composed figures for Kitfly slides (::: blocks)"
-    version: "0.2.0"
+    version: "0.2.1"
     contract: "1"
     kitfly: ">=0.2.0 <1.0.0"
     license: MIT
@@ -31,5 +31,5 @@ plugins:
       js: "plugins-dist/slides-visuals.js"
       css: "plugins-dist/slides-visuals.css"
       assetSha256:
-        js: "sha256:d122e0a23d0a5edda4521e210b9d7ff98021c9690b9545635b1167f8a3db2f6a"
-        css: "sha256:99f020d59c0c006c4941566d351067189eb69c53fe4ffa422fe7d62fc30d62d2"
+        js: "sha256:716059fbb0045af5305e552557368fe812569121986e0ce533f96753197c6ee1"
+        css: "sha256:dae86214e5f3f628deb6fec3f7bd871fa419f0310993cde9e845392ac16d9ec1"

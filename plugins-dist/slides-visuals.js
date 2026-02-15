@@ -89,6 +89,12 @@
         return ["left", "right"];
       case "comparison-table":
         return ["headers", "rows"];
+      case "flow-branching":
+        return ["branches"];
+      case "flow-converging":
+        return ["sources"];
+      case "staircase":
+        return ["steps"];
       default:
         return [];
     }
@@ -98,6 +104,12 @@
     switch (type) {
       case "compare":
         return ["left-title", "right-title"];
+      case "flow-branching":
+        return ["source", "split"];
+      case "flow-converging":
+        return ["target", "merge"];
+      case "staircase":
+        return ["direction"];
       default:
         return [];
     }
@@ -118,38 +130,6 @@
     const key = m[1].toLowerCase();
     if (!allowedScalarKeys.includes(key)) return null;
     return { key, value: parseScalar(m[2]) };
-  }
-
-  function asTextItem(value) {
-    if (typeof value === "string") return value;
-    if (!value || typeof value !== "object") return String(value ?? "");
-    if (typeof value.text === "string") return value.text;
-    if (typeof value.label === "string" && typeof value.value === "string") return `${value.label}: ${value.value}`;
-    const parts = [];
-    for (const [k, v] of Object.entries(value)) {
-      if (typeof v === "string" && v.trim()) parts.push(`${k}: ${v}`);
-    }
-    return parts.length ? parts.join(" · ") : "";
-  }
-
-  function listKeysForType(type) {
-    switch (type) {
-      case "compare":
-        return ["left", "right"];
-      case "comparison-table":
-        return ["headers", "rows"];
-      default:
-        return [];
-    }
-  }
-
-  function isListKeyMarker(li, allowedKeys) {
-    if (!allowedKeys || allowedKeys.length === 0) return null;
-    const raw = (li.textContent || "").trim();
-    const m = raw.match(/^([a-z0-9_-]+)\s*:\s*$/i);
-    if (!m) return null;
-    const key = m[1].toLowerCase();
-    return allowedKeys.includes(key) ? key : null;
   }
 
   function parseBodyNodes(nodes) {
@@ -366,6 +346,104 @@
     return root;
   }
 
+  function renderTimelineHorizontal(data) {
+    const events = Array.isArray(data.events) ? data.events : [];
+    const root = el("div", "kitfly-visual kitfly-timeline-h");
+    const track = el("div", "kitfly-timeline-h-track");
+    for (const event of events) {
+      const item = typeof event === "object" && event ? event : { label: String(event ?? "") };
+      const node = el("div", "kitfly-timeline-h-event");
+      node.appendChild(el("div", "kitfly-timeline-h-label", item.label || ""));
+      node.appendChild(el("div", "kitfly-timeline-h-marker"));
+      if (item.date) node.appendChild(el("div", "kitfly-timeline-h-date", item.date));
+      track.appendChild(node);
+    }
+    root.appendChild(track);
+    return root;
+  }
+
+  function renderTimelineVertical(data) {
+    const events = Array.isArray(data.events) ? data.events : [];
+    const root = el("div", "kitfly-visual kitfly-timeline-v");
+    const track = el("div", "kitfly-timeline-v-track");
+    for (const event of events) {
+      const item = typeof event === "object" && event ? event : { label: String(event ?? "") };
+      const row = el("div", "kitfly-timeline-v-event");
+      row.appendChild(el("div", "kitfly-timeline-v-marker"));
+      const content = el("div", "kitfly-timeline-v-content");
+      content.appendChild(el("div", "kitfly-timeline-v-label", item.label || ""));
+      if (item.date) content.appendChild(el("div", "kitfly-timeline-v-date", item.date));
+      row.appendChild(content);
+      track.appendChild(row);
+    }
+    root.appendChild(track);
+    return root;
+  }
+
+  function renderFlowBranching(data) {
+    const source = String(data.source || "").trim();
+    const split = String(data.split || "").trim();
+    const branches = Array.isArray(data.branches) ? data.branches : [];
+    const branchCount = Math.max(branches.length, 1);
+    const root = el("div", "kitfly-visual kitfly-flow-branch");
+    root.style.setProperty("--kitfly-branch-count", String(branchCount));
+    root.appendChild(el("div", "kitfly-flow-branch-source block", source));
+    root.appendChild(el("div", "kitfly-flow-branch-arrow", "↓"));
+    if (split) {
+      root.appendChild(el("div", "kitfly-flow-branch-split block accent", split));
+      root.appendChild(el("div", "kitfly-flow-branch-arrow", "↓"));
+    }
+    const arms = el("div", "kitfly-flow-branch-arms");
+    const targets = el("div", "kitfly-flow-branch-targets");
+    for (const branch of branches) {
+      arms.appendChild(el("div", "kitfly-flow-branch-arm", "↓"));
+      targets.appendChild(el("div", "kitfly-flow-branch-target block", asTextItem(branch)));
+    }
+    root.appendChild(arms);
+    root.appendChild(targets);
+    return root;
+  }
+
+  function renderFlowConverging(data) {
+    const sources = Array.isArray(data.sources) ? data.sources : [];
+    const merge = String(data.merge || "").trim();
+    const target = String(data.target || "").trim();
+    const sourceCount = Math.max(sources.length, 1);
+    const root = el("div", "kitfly-visual kitfly-flow-converge");
+    root.style.setProperty("--kitfly-source-count", String(sourceCount));
+    const sourceRow = el("div", "kitfly-flow-converge-sources");
+    const armRow = el("div", "kitfly-flow-converge-arms");
+    for (const source of sources) {
+      sourceRow.appendChild(el("div", "kitfly-flow-converge-source block", asTextItem(source)));
+      armRow.appendChild(el("div", "kitfly-flow-converge-arm", "↓"));
+    }
+    root.appendChild(sourceRow);
+    root.appendChild(armRow);
+    if (merge) {
+      root.appendChild(el("div", "kitfly-flow-converge-merge block accent", merge));
+      root.appendChild(el("div", "kitfly-flow-converge-arrow", "↓"));
+    }
+    root.appendChild(el("div", "kitfly-flow-converge-target block", target));
+    return root;
+  }
+
+  function renderStaircase(data) {
+    const steps = Array.isArray(data.steps) ? data.steps : [];
+    const direction = String(data.direction || "up").trim().toLowerCase();
+    const reverse = direction === "down";
+    const total = Math.max(steps.length - 1, 1);
+    const root = el("div", "kitfly-visual kitfly-staircase");
+    if (reverse) root.classList.add("is-down");
+    steps.forEach((step, idx) => {
+      const row = el("div", "kitfly-staircase-step", asTextItem(step));
+      const normalized = reverse ? (steps.length - 1 - idx) / total : idx / total;
+      row.style.setProperty("--kitfly-step-idx", String(idx));
+      row.style.setProperty("--kitfly-step-level", String(normalized));
+      root.appendChild(row);
+    });
+    return root;
+  }
+
   function renderBlock(type, data) {
     switch (type) {
       case "kpi":
@@ -386,6 +464,16 @@
         return renderPyramid(data);
       case "funnel":
         return renderFunnel(data);
+      case "timeline-horizontal":
+        return renderTimelineHorizontal(data);
+      case "timeline-vertical":
+        return renderTimelineVertical(data);
+      case "flow-branching":
+        return renderFlowBranching(data);
+      case "flow-converging":
+        return renderFlowConverging(data);
+      case "staircase":
+        return renderStaircase(data);
       default:
         return null;
     }
@@ -481,7 +569,10 @@
         buckets[currentKey] = [];
 
         for (const li of node.querySelectorAll(":scope > li")) {
-          if ((type === "stat-grid" || type === "scorecard") && currentKey === "metrics") {
+          if (
+            ((type === "stat-grid" || type === "scorecard") && currentKey === "metrics") ||
+            ((type === "timeline-horizontal" || type === "timeline-vertical") && currentKey === "events")
+          ) {
             buckets[currentKey].push(parseListItemToValue(li));
             continue;
           }

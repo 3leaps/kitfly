@@ -24,6 +24,7 @@ import {
 	envString,
 	escapeHtml,
 	exists,
+	filterUnknownSlidesVisualsTypeDiagnostics,
 	formatDate,
 	generateProvenance,
 	getGitInfo,
@@ -42,6 +43,7 @@ import {
 	stripQuotes,
 	toUrlPath,
 	validatePath,
+	validateSlidesVisualsFences,
 } from "../shared.ts";
 
 describe("slugify", () => {
@@ -152,6 +154,27 @@ Still one slide`;
 		expect(slides).toHaveLength(2);
 		expect(slides[0]).toContain("--- slide ---");
 		expect(slides[1].trim()).toBe("# Real slide");
+	});
+});
+
+describe("slides-visuals diagnostics filtering", () => {
+	it("drops unknown-type diagnostics while preserving schema violations", () => {
+		const markdown = `:::future-thing
+foo: bar
+:::
+
+:::kpi
+label: Missing value
+:::`;
+		const diagnostics = validateSlidesVisualsFences(markdown);
+		const filtered = filterUnknownSlidesVisualsTypeDiagnostics(diagnostics);
+		expect(
+			diagnostics.some((d) => d.message.startsWith("Unknown slides-visuals block type:")),
+		).toBe(true);
+		expect(filtered.some((d) => d.message.startsWith("Unknown slides-visuals block type:"))).toBe(
+			false,
+		);
+		expect(filtered.some((d) => d.message.includes("Missing required key: value"))).toBe(true);
 	});
 });
 

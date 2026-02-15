@@ -33,6 +33,7 @@ import {
 	envString,
 	// Formatting
 	escapeHtml,
+	filterUnknownSlidesVisualsTypeDiagnostics,
 	// YAML/Config parsing
 	loadSiteConfig,
 	// Markdown utilities
@@ -320,7 +321,9 @@ async function buildSlidesBundleContent(files: ContentFile[], config: SiteConfig
 			let inner = "";
 			if (slide.kind === "markdown") {
 				if (validateFences) {
-					const diagnostics = validateSlidesVisualsFences(slide.body);
+					const diagnostics = filterUnknownSlidesVisualsTypeDiagnostics(
+						validateSlidesVisualsFences(slide.body),
+					);
 					if (diagnostics.length) {
 						const msg = diagnostics
 							.slice(0, 12)
