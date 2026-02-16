@@ -326,8 +326,40 @@ Place images in \`assets/\` and reference them:
 | Asset | Location | Recommended Size |
 |-------|----------|------------------|
 | Logo | \`assets/brand/logo.png\` | 200x50px (or SVG) |
+| Logo (dark) | \`assets/brand/logo-dark.png\` | Same as logo, for dark backgrounds |
 | Favicon | \`assets/brand/favicon.ico\` | 32x32px |
 | Social image | \`assets/brand/social.png\` | 1200x630px |
+| Footer logo | \`assets/brand/footer-logo.png\` | Max height 20px |
+
+### Header Logo
+
+Single logo — kitfly auto-adjusts brightness in dark mode:
+
+\`\`\`yaml
+brand:
+  logo: "assets/brand/logo.png"
+\`\`\`
+
+Light + dark variants — no automatic filters applied:
+
+\`\`\`yaml
+brand:
+  logo: "assets/brand/logo.png"
+  logoDark: "assets/brand/logo-dark.png"
+\`\`\`
+
+### Footer Logo
+
+Add a separate logo to the footer ribbon (e.g. a parent company or client logo):
+
+\`\`\`yaml
+footer:
+  logo: "assets/brand/footer-logo.png"
+  logoUrl: "https://example.com"       # optional link
+  logoAlt: "Company Name"              # optional alt text
+  logoHeight: 20                        # optional max height in px
+  logoDark: "assets/brand/footer-logo-dark.png"  # optional dark variant
+\`\`\`
 
 ## Getting Help
 
