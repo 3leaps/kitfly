@@ -332,6 +332,67 @@ plugins:
 		expect(html).toContain(js);
 	});
 
+	it("preserves dollar-sign replacement patterns in injected plugin JS", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir);
+		await writeMd(siteDir, "docs/page.md", "# Test");
+
+		const js = "const expr='x'; const sample = `$${expr}$`; const marker = '$`';";
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await writeFile(join(siteDir, "plugins-dist", "literal.js"), js, "utf-8");
+
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-02-16"
+baseUrl: ""
+plugins:
+  literal:
+    name: "Literal"
+    description: "Replacement pattern regression"
+    version: "1.0.0"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/literal.js"
+      assetSha256:
+        js: "sha256:${sha256Hex(js)}"
+`,
+			"utf-8",
+		);
+
+		await writeFile(join(siteDir, "kitfly.plugins.yaml"), "plugins:\n  - literal@1.0.0\n", "utf-8");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain("const sample = `$${expr}$`;");
+		expect(html).toContain("const marker = '$`';");
+		expect(html).not.toContain("<!DOCTYPE html><html");
+	});
+
+	it("preserves dollar-sign replacement patterns in markdown content", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir);
+		await writeMd(
+			siteDir,
+			"docs/dollars.md",
+			"# Dollars\n\nLiteral dollars: $$ and $` and $' and $&\n\nMath style: $$x^2$$",
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain("Literal dollars: $$ and $` and $&#39; and $&amp;");
+		expect(html).toContain("Math style: $$x^2$$");
+		expect(html.match(/<!DOCTYPE html>/g)?.length ?? 0).toBe(1);
+	});
+
 	it("injects latex plugin in docs mode", async () => {
 		const siteDir = await makeTempDir();
 		const outDir = "out";
