@@ -86,7 +86,7 @@ If you do: `theme.yaml` is your main “make it mine” knob.
 Kitfly can render the same Markdown content in two layouts:
 
 - **docs** (default): scrolling pages optimized for reading
-- **slides**: fixed-aspect “one page at a time” slides with keyboard navigation
+- **slides**: fixed-aspect "one page at a time" slides with keyboard navigation
 
 Slides mode is configured in `site.yaml`:
 
@@ -94,6 +94,8 @@ Slides mode is configured in `site.yaml`:
 mode: slides
 aspect: "16/9"
 ```
+
+In both modes, organizing content into subfolders produces hierarchical sidebar navigation with collapsible groups. In slides mode, the nav links remain `#slide-N` hash anchors — the tree structure is visual grouping only.
 
 ## Assets
 

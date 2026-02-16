@@ -31,7 +31,9 @@ Alternative: `npm install -g kitfly` (still requires Bun, because the CLI runs w
 
 No global install: `bunx kitfly --version`
 
-Note: `bun`/`npm` installs the latest published release. If you’re reading `main` before a release is cut, clone this repo for the newest features.
+Note: `bun`/`npm` installs the latest published release. If you're reading `main` before a release is cut, clone this repo for the newest features.
+
+**Don't need the CLI?** `kitfly init` creates a [standalone site](#create-a-standalone-site-recommended) that runs with just Bun — no kitfly binary required after setup.
 
 For contributor/development setup, see [docs/development.md](docs/development.md).
 

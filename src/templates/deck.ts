@@ -181,6 +181,26 @@ Built-in classes:
 For markdown-only content, \`two-column\` will flow content into columns.
 For strict side-by-side control, use explicit HTML wrappers inside the slide body.
 
+## Content Organization
+
+Slides in the same section can be organized into subfolders:
+
+\`\`\`
+content/
+├── overview/
+│   └── slides.md
+├── deep-dive/
+│   ├── architecture/
+│   │   └── slides.md
+│   ├── data-flow/
+│   │   └── slides.md
+│   └── slides.md
+\`\`\`
+
+Subfolders produce nested, collapsible navigation groups in the sidebar. When all slides are at the root level (no subfolders), the nav stays flat — no change from the default.
+
+Arrow keys and prev/next still navigate linearly through all slides regardless of nesting.
+
 ## Brand Assets
 
 | Asset | Location | Recommended Size |

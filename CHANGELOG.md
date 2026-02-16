@@ -2,6 +2,28 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.2] - 2026-02-16
+
+### Added
+
+- `slides-charts-lite` plugin: bar/line/pie charts via Chart.js 4.4.7 CDN with fenced `chart` code blocks
+- `latex` plugin: math typesetting via KaTeX 0.16.21 CDN ($inline$, $$display$$, fenced `math` blocks)
+- `brief` template: external-audience product documentation with 4 sections and starter content
+- Footer logo: `footer.logo`, `logoUrl`, `logoAlt`, `logoHeight` fields for image logos in the footer ribbon
+- Dark mode logo variants: `brand.logoDark` and `footer.logoDark` fields with CSS show/hide swap (no JS)
+- Hierarchical slide navigation: nested nav with collapsible groups for decks with subfolder content
+- Branding guide (`content/guide/branding.md`): canonical reference for header logos, footer logos, dark mode variants
+
+### Fixed
+
+- Plugin template injection: `$` replacement corruption that broke LaTeX delimiter rendering
+- Plugin CDN loader: path resolution for LaTeX plugin assets
+
+### Docs
+
+- Configuration reference updated with footer logo and dark mode logo fields
+- All templates (handbook, runbook, brief, deck) updated with expanded Brand Assets documentation
+
 ## [0.2.1] - 2026-02-15
 
 ### Added

@@ -142,7 +142,7 @@ sections:
 | ---------- | ------- | ----- | ------------------------------------------------- |
 | `maxDepth` | 4       | 1–10  | How many directory levels to scan for `.md` files |
 
-Deeper sections produce hierarchical sidebar navigation with collapsible groups. Set a lower `maxDepth` for sections where you want a flatter sidebar.
+Deeper sections produce hierarchical sidebar navigation with collapsible groups. This applies to both docs and slides modes — slide decks with subfolder content get nested, collapsible nav while keeping `#slide-N` hash navigation. Set a lower `maxDepth` for sections where you want a flatter sidebar.
 
 **Explicit files:** For precise control over which files appear (bypasses auto-discovery):
 
