@@ -62,6 +62,14 @@ const DEFAULT_OUT = "dist";
 let ROOT = process.cwd();
 let OUT_DIR = DEFAULT_OUT;
 
+function normalizeMsysPath(p: string): string {
+	// Git Bash / MSYS-style paths: /c/Users/... -> C:\Users\...
+	if (process.platform !== "win32") return p;
+	const m = p.match(/^\/([a-zA-Z])\/(.*)$/);
+	if (!m) return p;
+	return `${m[1].toUpperCase()}:\\${m[2].replaceAll("/", "\\")}`;
+}
+
 // ---------------------------------------------------------------------------
 // CLI argument parsing
 // ---------------------------------------------------------------------------
@@ -490,7 +498,7 @@ export async function build(options: BuildOptions = {}) {
 
 // Rename internal function
 async function buildSite() {
-	const DIST = join(ROOT, OUT_DIR);
+	const DIST = resolve(ROOT, normalizeMsysPath(OUT_DIR));
 
 	console.log("Building site...\n");
 

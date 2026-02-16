@@ -57,6 +57,14 @@ let ROOT = process.cwd();
 let OUT_DIR = DEFAULT_OUT;
 let BUNDLE_NAME = DEFAULT_NAME;
 
+function normalizeMsysPath(p: string): string {
+	// Git Bash / MSYS-style paths: /c/Users/... -> C:\Users\...
+	if (process.platform !== "win32") return p;
+	const m = p.match(/^\/([a-zA-Z])\/(.*)$/);
+	if (!m) return p;
+	return `${m[1].toUpperCase()}:\\${m[2].replaceAll("/", "\\")}`;
+}
+
 // ---------------------------------------------------------------------------
 // CLI argument parsing
 // ---------------------------------------------------------------------------
@@ -900,7 +908,7 @@ ${JSON.stringify(
 </html>`;
 
 	// Write the bundle
-	const outDir = join(ROOT, OUT_DIR);
+	const outDir = resolve(ROOT, normalizeMsysPath(OUT_DIR));
 	await mkdir(outDir, { recursive: true });
 	const bundlePath = join(outDir, BUNDLE_NAME);
 	await writeFile(bundlePath, html);

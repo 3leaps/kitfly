@@ -188,8 +188,18 @@ install: build ## Install kitfly CLI to ~/.local/bin for local use
 	@if [ -L "$(INSTALL_TARGET)" ] || [ -f "$(INSTALL_TARGET)" ]; then \
 		rm -f "$(INSTALL_TARGET)"; \
 	fi
-	@ln -s "$(CURDIR)/src/cli.ts" "$(INSTALL_TARGET)"
-	@chmod +x "$(INSTALL_TARGET)"
+	@# On Windows (Git Bash/MSYS/MINGW), symlinks often require admin/Developer Mode.
+	@# Use a tiny launcher script instead.
+	@uname_s="$$(uname -s 2>/dev/null || echo unknown)"; \
+	if [ "$$OS" = "Windows_NT" ] || echo "$$uname_s" | grep -qiE 'mingw|msys|cygwin'; then \
+		echo "-> Windows detected ($$uname_s): installing launcher script"; \
+		echo '#!/usr/bin/env bash' > "$(INSTALL_TARGET)"; \
+		echo 'exec bun run "$(CURDIR)/src/cli.ts" "$$@"' >> "$(INSTALL_TARGET)"; \
+	else \
+		echo "-> Unix detected ($$uname_s): installing symlink"; \
+		ln -s "$(CURDIR)/src/cli.ts" "$(INSTALL_TARGET)"; \
+	fi
+	@chmod +x "$(INSTALL_TARGET)" || true
 	@echo "[ok] Installed kitfly to $(INSTALL_TARGET)"
 	@echo "    Ensure $(INSTALL_BINDIR) is in your PATH"
 	@echo "    Test: kitfly --version"
@@ -216,7 +226,14 @@ lint: ## Run linting checks
 	@echo "Linting TypeScript (Biome)..."
 	@bunx biome check --no-errors-on-unmatched src/ scripts/
 	@echo "Assessing YAML/JSON/Markdown (goneat)..."
-	@$(GONEAT_RESOLVE); $$GONEAT assess --categories format,lint --check
+	@# goneat assess can fail on Windows due to upstream glob/path issues.
+	@# Prefer a partial pass (Biome) over blocking Windows contributors.
+	@uname_s="$$(uname -s 2>/dev/null || echo unknown)"; \
+	if [ "$$OS" = "Windows_NT" ] || echo "$$uname_s" | grep -qiE 'mingw|msys|cygwin'; then \
+		echo "-> Windows detected ($$uname_s): skipping goneat assess (upstream glob issue)"; \
+	else \
+		$(GONEAT_RESOLVE); $$GONEAT assess --categories format,lint --check; \
+	fi
 	@echo "All linting passed"
 
 typecheck: ## Run TypeScript type checking

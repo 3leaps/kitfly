@@ -1053,9 +1053,22 @@ async function main() {
 		}
 	}
 
-	// Open browser (macOS)
+	// Open browser (cross-platform)
 	if (OPEN_BROWSER) {
-		Bun.spawn(["open", serverUrl]);
+		try {
+			if (process.platform === "win32") {
+				// cmd.exe built-in: start
+				// Empty title argument avoids treating URL as window title.
+				Bun.spawn(["cmd", "/c", "start", "", serverUrl]);
+			} else if (process.platform === "darwin") {
+				Bun.spawn(["open", serverUrl]);
+			} else {
+				// Most Linux distros
+				Bun.spawn(["xdg-open", serverUrl]);
+			}
+		} catch {
+			// Non-fatal: server is already running; user can open manually.
+		}
 	}
 }
 

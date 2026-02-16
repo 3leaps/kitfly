@@ -13,10 +13,46 @@ How to set up a Kitfly development environment from a fresh clone.
 
 | Tool                                             | Purpose                                 | Install                                                         |
 | ------------------------------------------------ | --------------------------------------- | --------------------------------------------------------------- |
-| [Bun](https://bun.sh)                            | Runtime and package manager             | `curl -fsSL https://bun.sh/install \| bash`                     |
-| [GNU Make](https://www.gnu.org/software/make/)   | Task runner                             | macOS: included with Xcode CLI tools. Linux: `apt install make` |
-| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`. Linux: `apt install minisign`   |
-| curl                                             | HTTP client (bootstrap downloads)       | Usually pre-installed                                           |
+| [Bun](https://bun.sh)                            | Runtime and package manager             | macOS/Linux: `curl -fsSL https://bun.sh/install \| bash`<br>Windows (PowerShell): `powershell -c "irm https://bun.sh/install.ps1|iex"` |
+| [GNU Make](https://www.gnu.org/software/make/)   | Task runner                             | macOS: included with Xcode CLI tools<br>Linux: `apt install make`<br>Windows: `scoop install make` |
+| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`<br>Linux: `apt install minisign`<br>Windows: `scoop install minisign` |
+| curl                                             | HTTP client (bootstrap downloads)       | macOS/Linux: usually pre-installed<br>Windows: available in PowerShell (`Invoke-RestMethod`) |
+
+## Windows notes (contributors)
+
+Kitfly works well on Windows, but **shell choice matters** for development.
+
+### Recommended setup
+
+- Use **Git Bash** (or MSYS2) for `make`-based workflows.
+- Use **PowerShell** for installing Bun.
+
+### Install Bun (PowerShell)
+
+```powershell
+powershell -c "irm https://bun.sh/install.ps1|iex"
+```
+
+If VS Code’s default terminal is `cmd.exe`, you may need to restart VS Code (or ensure `C:\Users\<you>\.bun\bin` is on PATH).
+
+### Install prerequisites (Scoop)
+
+If you don’t already have Scoop, install it from https://scoop.sh.
+
+Then install the tools used by `make bootstrap`:
+
+```powershell
+scoop install make minisign git
+```
+
+### Paths
+
+Kitfly’s bootstrap tools install into `~/.local/bin`.
+
+- In Git Bash, that’s the usual `~/.local/bin`.
+- In Windows terms, it’s typically `%USERPROFILE%\.local\bin`.
+
+Ensure that directory is on your PATH in the shell you use.
 
 ## Quick Start
 
@@ -73,7 +109,11 @@ To use the `kitfly` command from anywhere (dogfooding):
 make install
 ```
 
-This symlinks `src/cli.ts` to `~/.local/bin/kitfly`. Remove with `make uninstall`.
+On macOS/Linux, this symlinks `src/cli.ts` to `~/.local/bin/kitfly`.
+
+On Windows (Git Bash/MSYS/MINGW), it installs a small launcher script instead of a symlink (symlinks often require admin/Developer Mode).
+
+Remove with `make uninstall`.
 
 ## Common gotchas
 
