@@ -415,6 +415,53 @@ plugins:
 		expect(html).toContain(js);
 	});
 
+	it("injects slides-charts-lite plugin in slides mode", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { mode: "slides" });
+		await writeMd(
+			siteDir,
+			"docs/deck.md",
+			`# Chart
+
+\`\`\`chart
+kind: bar
+title: Revenue
+labels: ["Q1", "Q2"]
+data: [10, 12]
+\`\`\`
+`,
+		);
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - slides-charts-lite@0.2.2\n",
+			"utf-8",
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="slides-charts-lite@0.2.2"');
+		expect(html).toContain("kitfly-chart-wrapper");
+	});
+
+	it("does not inject slides-charts-lite in docs mode", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { mode: "docs" });
+		await writeMd(siteDir, "docs/page.md", "# Page");
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - slides-charts-lite@0.2.2\n",
+			"utf-8",
+		);
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).not.toContain('data-kitfly-plugin="slides-charts-lite@0.2.2"');
+	});
+
 	it("ignores unknown slides-visuals block types while enforcing known contracts", async () => {
 		const siteDir = await makeTempDir();
 		const outDir = "out";

@@ -47,3 +47,16 @@ plugins:
       assetSha256:
         js: "sha256:ae7a436e26080858ceb16e2275f0c1fbee13156a2e8573c058e924c595a9f451"
         css: "sha256:eb36765ab6b74a83f562b75b10b0841e611c7b4a6e12457e676b20ce47628fc4"
+  slides-charts-lite:
+    name: "Slides Charts Lite"
+    description: "Simple charts for Kitfly slides (bar, line, pie)"
+    version: "0.2.2"
+    contract: "1"
+    kitfly: ">=0.2.0 <1.0.0"
+    license: MIT
+    verified: true
+    modes: ["slides"]
+    assets:
+      js: "plugins-dist/slides-charts-lite.js"
+      assetSha256:
+        js: "sha256:ea1afbe48bc94c617af1ee2d53febcaa8d48e83253094a1cbef598f77ec15013"

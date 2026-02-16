@@ -749,6 +749,9 @@ ${assets.mermaid}
       if (window.reinitMermaid) {
         window.reinitMermaid();
       }
+      if (window.reinitCharts) {
+        window.reinitCharts();
+      }
     }
 
     // Slides mode hash routing

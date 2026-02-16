@@ -837,4 +837,30 @@ describe("bundleSite plugin integration", () => {
 		expect(html).toContain("kitfly-katex-display");
 		expect(html).not.toContain("const KATEX_JS_URL =");
 	});
+
+	it("inlines slides-charts-lite plugin in slides mode", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "slides"), { recursive: true });
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Charts Test"\nmode: "slides"\nbrand:\n  name: "Test"\n  url: "/"\nsections:\n  - name: Slides\n    path: slides\n',
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "slides", "deck.md"),
+			'# Deck\n\n```chart\nkind: line\nlabels: ["W1", "W2"]\ndata: [2, 3]\n```',
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - slides-charts-lite@0.2.2\n",
+			"utf-8",
+		);
+
+		await bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" });
+
+		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="slides-charts-lite@0.2.2"');
+		expect(html).toContain("kitfly-chart-wrapper");
+	});
 });
