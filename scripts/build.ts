@@ -23,7 +23,7 @@ import {
 	buildLogoImgHtml,
 	buildNavStatic,
 	buildPageMeta,
-	buildSlideNav,
+	buildSlideNavHierarchical,
 	buildToc,
 	type ContentFile,
 	collectFiles,
@@ -413,7 +413,7 @@ async function renderSlidesIndex(
           </div>
         </div>`;
 
-	const nav = buildSlideNav(slides, config, "slide-1");
+	const nav = buildSlideNavHierarchical(slides, config, "slide-1");
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const themeCSS = generateThemeCSS(theme);

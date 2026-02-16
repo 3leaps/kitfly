@@ -15,6 +15,7 @@ import {
 	buildNavStatic,
 	buildPageMeta,
 	buildSlideNav,
+	buildSlideNavHierarchical,
 	buildToc,
 	type ContentFile,
 	collectFiles,
@@ -347,6 +348,140 @@ title: Intro
 		expect(nav).toContain('<a href="#slide-1">Slide A</a>');
 		expect(nav).toContain('<a href="#slide-2" class="active">Slide B</a>');
 		expect(nav).toContain('<span class="nav-section">Slides</span>');
+	});
+
+	it("builds hierarchical slide nav for nested source paths", () => {
+		const nav = buildSlideNavHierarchical(
+			[
+				{
+					index: 0,
+					frontmatter: {},
+					body: "# Overview",
+					title: "Overview",
+					id: "slide-1",
+					section: "Data Integration",
+					sourcePath: "/tmp/di/slides.md",
+					sourceUrlPath: "data-integration/slides",
+					kind: "markdown",
+				},
+				{
+					index: 1,
+					frontmatter: {},
+					body: "# POS Data",
+					title: "POS Data",
+					id: "slide-2",
+					section: "Data Integration",
+					sourcePath: "/tmp/di/sources/slides.md",
+					sourceUrlPath: "data-integration/sources/slides",
+					kind: "markdown",
+				},
+				{
+					index: 2,
+					frontmatter: {},
+					body: "# ETL Pipeline",
+					title: "ETL Pipeline",
+					id: "slide-3",
+					section: "Data Integration",
+					sourcePath: "/tmp/di/transforms/slides.md",
+					sourceUrlPath: "data-integration/transforms/slides",
+					kind: "markdown",
+				},
+			],
+			{
+				docroot: ".",
+				title: "Deck",
+				brand: { name: "Test", url: "/" },
+				sections: [{ name: "Data Integration", path: "data-integration" }],
+			},
+			"slide-2",
+		);
+
+		expect(nav).toContain('<summary class="nav-group">Sources</summary>');
+		expect(nav).toContain('<summary class="nav-group">Transforms</summary>');
+		expect(nav).toContain('<a href="#slide-2" class="active">POS Data</a>');
+		expect(nav).toContain('<a href="#slide-3">ETL Pipeline</a>');
+		expect(nav).toContain("<details open>");
+	});
+
+	it("keeps flat nav output when slides are not nested", () => {
+		const nav = buildSlideNavHierarchical(
+			[
+				{
+					index: 0,
+					frontmatter: {},
+					body: "# Intro",
+					title: "Intro",
+					id: "slide-1",
+					section: "Slides",
+					sourcePath: "/tmp/slides/a.md",
+					sourceUrlPath: "slides/a",
+					kind: "markdown",
+				},
+				{
+					index: 1,
+					frontmatter: {},
+					body: "# Next",
+					title: "Next",
+					id: "slide-2",
+					section: "Slides",
+					sourcePath: "/tmp/slides/b.md",
+					sourceUrlPath: "slides/b",
+					kind: "markdown",
+				},
+			],
+			{
+				docroot: ".",
+				title: "Deck",
+				brand: { name: "Test", url: "/" },
+				sections: [{ name: "Slides", path: "slides" }],
+			},
+			"slide-1",
+		);
+
+		expect(nav).toContain('<a href="#slide-1" class="active">Intro</a>');
+		expect(nav).toContain('<a href="#slide-2">Next</a>');
+		expect(nav).not.toContain('class="nav-group"');
+	});
+
+	it("keeps flat nav output when section path has trailing slash", () => {
+		const nav = buildSlideNavHierarchical(
+			[
+				{
+					index: 0,
+					frontmatter: {},
+					body: "# Intro",
+					title: "Intro",
+					id: "slide-1",
+					section: "Slides",
+					sourcePath: "/tmp/slides/a.md",
+					sourceUrlPath: "slides/a",
+					kind: "markdown",
+				},
+				{
+					index: 1,
+					frontmatter: {},
+					body: "# Next",
+					title: "Next",
+					id: "slide-2",
+					section: "Slides",
+					sourcePath: "/tmp/slides/b.md",
+					sourceUrlPath: "slides/b",
+					kind: "markdown",
+				},
+			],
+			{
+				docroot: ".",
+				title: "Deck",
+				brand: { name: "Test", url: "/" },
+				sections: [{ name: "Slides", path: "slides/" }],
+			},
+			"slide-1",
+		);
+
+		expect(nav).toContain('<a href="#slide-1" class="active">Intro</a>');
+		expect(nav).toContain('<a href="#slide-2">Next</a>');
+		expect(nav).not.toContain('class="nav-group"');
+		expect(nav).not.toContain("<summary");
 	});
 });
 

@@ -932,7 +932,82 @@ export async function collectSlides(files: ContentFile[]): Promise<SlideContent[
 	return slides;
 }
 
-export function buildSlideNav(
+interface SlideNavGroup {
+	name: string;
+	groups: Map<string, SlideNavGroup>;
+	slides: SlideContent[];
+}
+
+function sectionRelativePath(sourceUrlPath: string, sectionBase: string): string {
+	if (!sectionBase) return sourceUrlPath;
+	if (sourceUrlPath === sectionBase) return "";
+	if (sourceUrlPath.startsWith(`${sectionBase}/`))
+		return sourceUrlPath.slice(sectionBase.length + 1);
+	return sourceUrlPath;
+}
+
+function toTitleCaseSlug(segment: string): string {
+	return segment
+		.split(/[-_]/)
+		.filter(Boolean)
+		.map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+		.join(" ");
+}
+
+function createSlideNavGroup(name: string): SlideNavGroup {
+	return { name, groups: new Map(), slides: [] };
+}
+
+function buildSlideSectionTree(items: SlideContent[], sectionBase: string): SlideNavGroup {
+	const root = createSlideNavGroup("");
+	for (const slide of items) {
+		const rel = sectionRelativePath(slide.sourceUrlPath, sectionBase);
+		const segments = rel.split("/").filter(Boolean);
+		segments.pop(); // Drop file stem so nav groups only reflect subfolders.
+
+		let node = root;
+		for (const segment of segments) {
+			let next = node.groups.get(segment);
+			if (!next) {
+				next = createSlideNavGroup(toTitleCaseSlug(segment));
+				node.groups.set(segment, next);
+			}
+			node = next;
+		}
+		node.slides.push(slide);
+	}
+	return root;
+}
+
+function slideGroupContains(group: SlideNavGroup, currentSlideId: string | undefined): boolean {
+	if (!currentSlideId) return false;
+	if (group.slides.some((slide) => slide.id === currentSlideId)) return true;
+	for (const child of group.groups.values()) {
+		if (slideGroupContains(child, currentSlideId)) return true;
+	}
+	return false;
+}
+
+function renderSlideGroup(group: SlideNavGroup, currentSlideId?: string): string {
+	let html = "<ul>";
+
+	for (const slide of group.slides) {
+		const active = currentSlideId === slide.id ? ' class="active"' : "";
+		html += `<li><a href="#${slide.id}"${active}>${escapeHtml(slide.title)}</a></li>`;
+	}
+
+	for (const child of group.groups.values()) {
+		const open = slideGroupContains(child, currentSlideId) ? " open" : "";
+		html += `<li><details${open}><summary class="nav-group">${escapeHtml(child.name)}</summary>`;
+		html += renderSlideGroup(child, currentSlideId);
+		html += "</details></li>";
+	}
+
+	html += "</ul>";
+	return html;
+}
+
+export function buildSlideNavHierarchical(
 	slides: SlideContent[],
 	config: SiteConfig,
 	currentSlideId?: string,
@@ -947,15 +1022,23 @@ export function buildSlideNav(
 	for (const section of config.sections) {
 		const items = grouped.get(section.name);
 		if (!items || items.length === 0) continue;
-		html += `<li><span class="nav-section">${escapeHtml(section.name)}</span><ul>`;
-		for (const slide of items) {
-			const active = currentSlideId === slide.id ? ' class="active"' : "";
-			html += `<li><a href="#${slide.id}"${active}>${escapeHtml(slide.title)}</a></li>`;
-		}
-		html += "</ul></li>";
+		const sectionBase = section.path.replace(/^\/+|\/+$/g, "");
+		const tree = buildSlideSectionTree(items, sectionBase);
+		html += `<li><span class="nav-section">${escapeHtml(section.name)}</span>`;
+		html += renderSlideGroup(tree, currentSlideId);
+		html += "</li>";
 	}
 	html += "</ul>";
 	return html;
+}
+
+// Backwards-compatible alias.
+export function buildSlideNav(
+	slides: SlideContent[],
+	config: SiteConfig,
+	currentSlideId?: string,
+): string {
+	return buildSlideNavHierarchical(slides, config, currentSlideId);
 }
 
 function resolveRelativeContentPath(pathOrRef: string, currentUrlPath?: string): string {

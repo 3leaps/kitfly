@@ -31,7 +31,7 @@ import {
 	buildLogoImgHtml,
 	buildNavSimple,
 	buildPageMeta,
-	buildSlideNav,
+	buildSlideNavHierarchical,
 	buildToc,
 	// Network utilities
 	checkPortOrExit,
@@ -495,7 +495,7 @@ async function renderSlidesPage(
           </div>
         </div>`;
 
-	const nav = buildSlideNav(slides, config, "slide-1");
+	const nav = buildSlideNavHierarchical(slides, config, "slide-1");
 	const footer = buildFooter(provenance, config, pathPrefix);
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const themeCSS = generateThemeCSS(theme);

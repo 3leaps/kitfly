@@ -24,7 +24,7 @@ import {
 	buildLogoImgHtml,
 	buildSectionNav,
 	// Navigation/template building
-	buildSlideNav,
+	buildSlideNavHierarchical,
 	// Types
 	type ContentFile,
 	collectFiles,
@@ -535,7 +535,7 @@ async function bundle() {
 				section: slide.section,
 			});
 		}
-		navHtml = buildSlideNav(slides, config, "slide-1");
+		navHtml = buildSlideNavHierarchical(slides, config, "slide-1");
 		contentHtml = await buildSlidesBundleContent(files, config);
 	} else {
 		// Build navigation and content sections
