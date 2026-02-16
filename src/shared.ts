@@ -54,6 +54,10 @@ export interface SiteFooter {
 	copyrightUrl?: string;
 	links?: FooterLink[];
 	attribution?: boolean;
+	logo?: string;
+	logoUrl?: string;
+	logoAlt?: string;
+	logoHeight?: number;
 	// social?: SocialLinks; // Reserved for future
 }
 
@@ -1481,7 +1485,27 @@ export function buildPageMeta(frontmatter: Record<string, unknown>): string {
 /**
  * Build footer HTML from provenance
  */
-export function buildFooter(provenance: Provenance, config: SiteConfig): string {
+function renderFooterLogo(
+	footer: SiteFooter,
+	config: SiteConfig,
+	pathPrefix: string,
+	logoOverride?: string,
+): string {
+	const footerLogo = logoOverride || footer.logo;
+	if (!footerLogo) return "";
+
+	const altText = escapeHtml(footer.logoAlt || footer.copyright || config.brand.name);
+	const logoHeight = footer.logoHeight ?? 20;
+	const source = logoOverride ? logoOverride : `${pathPrefix}${footerLogo}`;
+	const image = `<img src="${escapeHtml(source)}" alt="${altText}" class="footer-logo-img" style="max-height: ${logoHeight}px" onerror="this.onerror=null;this.style.display='none'">`;
+	const wrapped = footer.logoUrl
+		? `<a href="${escapeHtml(footer.logoUrl)}" class="footer-logo-link">${image}</a>`
+		: `<span class="footer-logo-link">${image}</span>`;
+
+	return `${wrapped}<span class="footer-separator">·</span>`;
+}
+
+export function buildFooter(provenance: Provenance, config: SiteConfig, pathPrefix = ""): string {
 	const commitDate = formatDate(provenance.gitCommitDate);
 	const publishYear = Number.isNaN(new Date(provenance.gitCommitDate).getTime())
 		? new Date().getFullYear().toString()
@@ -1510,11 +1534,13 @@ export function buildFooter(provenance: Provenance, config: SiteConfig): string 
 		? `<span class="footer-version">v${escapeHtml(provenance.version)}</span>
           <span class="footer-separator">·</span>`
 		: "";
+	const footerLogoHtml = renderFooterLogo(footer, config, pathPrefix);
 
 	return `
     <footer class="site-footer">
       <div class="footer-content">
         <div class="footer-left">
+          ${footerLogoHtml}
           ${versionHtml}
           <span class="footer-commit" title="Commit: ${escapeHtml(provenance.gitCommit)}">Published ${commitDate}</span>
         </div>
@@ -1536,7 +1562,11 @@ export function buildFooter(provenance: Provenance, config: SiteConfig): string 
 /**
  * Build bundle footer HTML.
  */
-export function buildBundleFooter(version: string | undefined, config: SiteConfig): string {
+export function buildBundleFooter(
+	version: string | undefined,
+	config: SiteConfig,
+	logoOverride?: string,
+): string {
 	const footer = config.footer || {};
 	const copyrightText = footer.copyright
 		? escapeHtml(footer.copyright)
@@ -1561,11 +1591,13 @@ export function buildBundleFooter(version: string | undefined, config: SiteConfi
 		? `<span class="footer-version">v${escapeHtml(version)}</span>
         <span class="footer-separator">·</span>`
 		: "";
+	const footerLogoHtml = renderFooterLogo(footer, config, "", logoOverride);
 
 	return `
   <footer class="site-footer">
     <div class="footer-content">
       <div class="footer-left">
+        ${footerLogoHtml}
         ${versionHtml}
         <span class="footer-commit">Published (offline bundle)</span>
       </div>
@@ -1763,6 +1795,7 @@ function normalizeFooter(footer: unknown): SiteFooter | undefined {
 	if (!footer || typeof footer !== "object") return undefined;
 	const raw = footer as Record<string, unknown>;
 	let links: FooterLink[] | undefined;
+	let logoHeight: number | undefined;
 
 	if (Array.isArray(raw.links)) {
 		links = raw.links
@@ -1779,12 +1812,25 @@ function normalizeFooter(footer: unknown): SiteFooter | undefined {
 			console.warn("⚠ site.yaml footer.links supports at most 10 links; truncating extras.");
 		}
 	}
+	const parsedLogoHeight =
+		typeof raw.logoHeight === "number"
+			? raw.logoHeight
+			: typeof raw.logoHeight === "string"
+				? Number.parseInt(raw.logoHeight, 10)
+				: NaN;
+	if (Number.isInteger(parsedLogoHeight)) {
+		logoHeight = Math.max(10, Math.min(40, parsedLogoHeight));
+	}
 
 	return {
 		copyright: typeof raw.copyright === "string" ? raw.copyright : undefined,
 		copyrightUrl: typeof raw.copyrightUrl === "string" ? raw.copyrightUrl : undefined,
 		links,
 		attribution: typeof raw.attribution === "boolean" ? raw.attribution : undefined,
+		logo: typeof raw.logo === "string" ? raw.logo : undefined,
+		logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : undefined,
+		logoAlt: typeof raw.logoAlt === "string" ? raw.logoAlt : undefined,
+		logoHeight,
 	};
 }
 

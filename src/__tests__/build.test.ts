@@ -35,7 +35,8 @@ async function writeSiteYaml(dir: string, extra: Record<string, unknown> = {}): 
 	const mode = extra.mode ? `mode: ${extra.mode}\n` : "";
 	const aspect = extra.aspect ? `aspect: ${extra.aspect}\n` : "";
 	const home = extra.home ? `home: ${extra.home}\n` : "";
-	const yaml = `title: ${title}\n${version}${mode}${aspect}brand:\n${brand}\n${home}sections:\n${sections}\n`;
+	const footer = extra.footer ? `footer:\n${extra.footer}\n` : "";
+	const yaml = `title: ${title}\n${version}${mode}${aspect}brand:\n${brand}\n${home}${footer}sections:\n${sections}\n`;
 	await writeFile(join(dir, "site.yaml"), yaml);
 }
 
@@ -214,6 +215,23 @@ describe("build", () => {
 
 		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
 		expect(html).toContain("unversioned");
+	});
+
+	it("renders footer logo with static path prefix in built output", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, {
+			footer: '  logo: "assets/brand/footer-logo.png"\n  logoAlt: "Footer Brand"\n  logoHeight: 24',
+		});
+		await writeMd(siteDir, "docs/page.md", "# Page");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('class="footer-logo-img"');
+		expect(html).toContain('src="./assets/brand/footer-logo.png"');
+		expect(html).toContain('alt="Footer Brand"');
+		expect(html).toContain("max-height: 24px");
 	});
 
 	it("builds a single-page hash-routed deck when mode is slides", async () => {

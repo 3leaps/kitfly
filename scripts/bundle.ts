@@ -427,6 +427,18 @@ async function inlineBrandAsset(assetPath: string): Promise<string> {
 			/* continue */
 		}
 	}
+
+	// Support any safe site-root-relative path (e.g., logos/footer.png).
+	const siteRootPath = validatePath(ROOT, ".", clean, false);
+	if (siteRootPath) {
+		try {
+			await stat(siteRootPath);
+			const uri = await fileToDataUri(siteRootPath);
+			if (uri) return uri;
+		} catch {
+			/* continue */
+		}
+	}
 	return assetPath;
 }
 
@@ -618,6 +630,10 @@ async function bundle() {
 	// Inline brand assets for self-contained bundle
 	const brandLogo = await inlineBrandAsset(config.brand.logo || "assets/brand/logo.png");
 	const brandFavicon = await inlineBrandAsset(config.brand.favicon || "assets/brand/favicon.png");
+	const footerLogo =
+		typeof config.footer?.logo === "string"
+			? await inlineBrandAsset(config.footer.logo)
+			: undefined;
 
 	// Build the complete HTML document
 	const html = `<!DOCTYPE html>
@@ -683,7 +699,7 @@ ${buildBundleSidebarHeader(config, version, brandLogo)}
       </article>
     </main>
   </div>
-  ${buildBundleFooter(version, config)}
+  ${buildBundleFooter(version, config, footerLogo)}
   <script>
 ${assets.prismCore}
   </script>

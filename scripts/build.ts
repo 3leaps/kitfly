@@ -199,7 +199,7 @@ async function renderFile(
 
 	const pathPrefix = computePathPrefix(urlKey);
 	const nav = buildNavStatic(files, urlKey, config, pathPrefix);
-	const footer = buildFooter(provenance, config);
+	const footer = buildFooter(provenance, config, pathPrefix);
 	const breadcrumbs = buildBreadcrumbsStatic(urlKey, pathPrefix, files, config);
 	const toc = buildToc(htmlContent);
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
@@ -294,7 +294,7 @@ sections:
 		.replace("{{NAV}}", "<ul></ul>")
 		.replace("{{CONTENT}}", () => htmlContent)
 		.replace("{{TOC}}", "")
-		.replace("{{FOOTER}}", () => buildFooter(provenance, config))
+		.replace("{{FOOTER}}", () => buildFooter(provenance, config, pathPrefix))
 		.replace("{{THEME_CSS}}", () => themeCSS)
 		.replace("{{PLUGIN_HEAD}}", () => plugins.head)
 		.replace("{{PLUGIN_BODY_END}}", () => plugins.bodyEnd)
@@ -402,7 +402,7 @@ async function renderSlidesIndex(
 		.replace("{{NAV}}", () => nav)
 		.replace("{{CONTENT}}", () => htmlContent)
 		.replace("{{TOC}}", "")
-		.replace("{{FOOTER}}", () => buildFooter(provenance, config))
+		.replace("{{FOOTER}}", () => buildFooter(provenance, config, pathPrefix))
 		.replace("{{THEME_CSS}}", () => themeCSS)
 		.replace("{{PLUGIN_HEAD}}", () => plugins.head)
 		.replace("{{PLUGIN_BODY_END}}", () => plugins.bodyEnd)

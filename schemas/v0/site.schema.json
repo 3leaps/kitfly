@@ -191,6 +191,25 @@
           "type": "boolean",
           "description": "Show Built with Kitfly attribution",
           "default": true
+        },
+        "logo": {
+          "type": "string",
+          "description": "Path to footer logo image (relative to site root)"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "Make footer logo a clickable link to this URL"
+        },
+        "logoAlt": {
+          "type": "string",
+          "description": "Alt text for footer logo (defaults to copyright text if set, brand name otherwise)"
+        },
+        "logoHeight": {
+          "type": "integer",
+          "description": "Max height of footer logo in pixels",
+          "minimum": 10,
+          "maximum": 40,
+          "default": 20
         }
       },
       "additionalProperties": false

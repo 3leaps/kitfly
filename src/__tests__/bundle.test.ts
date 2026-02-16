@@ -863,4 +863,59 @@ describe("bundleSite plugin integration", () => {
 		expect(html).toContain('data-kitfly-plugin="slides-charts-lite@0.2.2"');
 		expect(html).toContain("kitfly-chart-wrapper");
 	});
+
+	it("inlines footer logo image when configured", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "docs"), { recursive: true });
+		await mkdir(join(siteDir, "assets", "brand"), { recursive: true });
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Footer Test"\nbrand:\n  name: "Test"\n  url: "/"\nfooter:\n  logo: "assets/brand/footer-logo.png"\n  logoAlt: "Footer Brand"\n  logoHeight: 24\nsections:\n  - name: Docs\n    path: docs\n',
+			"utf-8",
+		);
+		await writeFile(join(siteDir, "docs", "index.md"), "# Footer Logo");
+		await writeFile(
+			join(siteDir, "assets", "brand", "footer-logo.png"),
+			Buffer.from(
+				"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9x9kAAAAASUVORK5CYII=",
+				"base64",
+			),
+		);
+
+		await bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" });
+
+		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
+		expect(html).toContain('class="footer-logo-img"');
+		expect(html).toContain('src="data:image/png;base64,');
+		expect(html).not.toContain('src="assets/brand/footer-logo.png"');
+		expect(html).toContain('alt="Footer Brand"');
+		expect(html).toContain("max-height: 24px");
+	});
+
+	it("inlines footer logo from site-root-relative path outside assets", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "docs"), { recursive: true });
+		await mkdir(join(siteDir, "logos"), { recursive: true });
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Footer Root Path Test"\nbrand:\n  name: "Test"\n  url: "/"\nfooter:\n  logo: "logos/footer.png"\n  logoAlt: "Footer Root Logo"\nsections:\n  - name: Docs\n    path: docs\n',
+			"utf-8",
+		);
+		await writeFile(join(siteDir, "docs", "index.md"), "# Footer Root Path");
+		await writeFile(
+			join(siteDir, "logos", "footer.png"),
+			Buffer.from(
+				"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9x9kAAAAASUVORK5CYII=",
+				"base64",
+			),
+		);
+
+		await bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" });
+
+		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
+		expect(html).toContain('class="footer-logo-img"');
+		expect(html).toContain('src="data:image/png;base64,');
+		expect(html).not.toContain('src="logos/footer.png"');
+		expect(html).toContain('alt="Footer Root Logo"');
+	});
 });

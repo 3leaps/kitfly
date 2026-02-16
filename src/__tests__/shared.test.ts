@@ -1128,6 +1128,10 @@ sections:
 footer:
   copyright: "© 2026 Test"
   attribution: false
+  logo: "assets/brand/footer-logo.png"
+  logoUrl: "https://example.com/footer"
+  logoAlt: "Footer Brand"
+  logoHeight: 24
   links:
     - text: Privacy
       url: /privacy
@@ -1139,7 +1143,36 @@ footer:
 			expect(config.version).toBe("1.2.0");
 			expect(config.footer?.copyright).toBe("© 2026 Test");
 			expect(config.footer?.attribution).toBe(false);
+			expect(config.footer?.logo).toBe("assets/brand/footer-logo.png");
+			expect(config.footer?.logoUrl).toBe("https://example.com/footer");
+			expect(config.footer?.logoAlt).toBe("Footer Brand");
+			expect(config.footer?.logoHeight).toBe(24);
 			expect(config.footer?.links).toEqual([{ text: "Privacy", url: "/privacy" }]);
+		} finally {
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("clamps footer.logoHeight to supported range", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "kitfly-footer-logo-height-"));
+		try {
+			await writeFile(
+				join(dir, "site.yaml"),
+				`title: Test
+brand:
+  name: Test
+  url: /
+sections:
+  - name: Guide
+    path: guide
+footer:
+  logoHeight: 100
+`,
+				"utf-8",
+			);
+
+			const config = await loadSiteConfig(dir);
+			expect(config.footer?.logoHeight).toBe(40);
 		} finally {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -1685,6 +1718,57 @@ describe("buildFooter", () => {
 		expect(result).toContain('class="footer-link"');
 	});
 
+	it("renders footer logo before version with configurable metadata", () => {
+		const result = buildFooter(
+			baseProvenance,
+			{
+				...baseConfig,
+				footer: {
+					logo: "assets/brand/footer-logo.png",
+					logoUrl: "https://footer.example.com",
+					logoAlt: "Footer Brand",
+					logoHeight: 22,
+				},
+			},
+			"../",
+		);
+		expect(result).toContain('class="footer-logo-link"');
+		expect(result).toContain('class="footer-logo-img"');
+		expect(result).toContain('href="https://footer.example.com"');
+		expect(result).toContain('src="../assets/brand/footer-logo.png"');
+		expect(result).toContain('alt="Footer Brand"');
+		expect(result).toContain("max-height: 22px");
+		expect(result).toContain("onerror=\"this.onerror=null;this.style.display='none'\"");
+		expect(result.indexOf('class="footer-logo-img"')).toBeLessThan(
+			result.indexOf('class="footer-version"'),
+		);
+	});
+
+	it("falls back footer logo alt text to copyright then brand name", () => {
+		const withCopyrightAlt = buildFooter(
+			baseProvenance,
+			{
+				...baseConfig,
+				footer: {
+					logo: "assets/brand/footer-logo.png",
+					copyright: "Copyright 2026 Acme",
+				},
+			},
+			"./",
+		);
+		expect(withCopyrightAlt).toContain('alt="Copyright 2026 Acme"');
+
+		const withBrandAlt = buildFooter(
+			baseProvenance,
+			{
+				...baseConfig,
+				footer: { logo: "assets/brand/footer-logo.png" },
+			},
+			"./",
+		);
+		expect(withBrandAlt).toContain('alt="Acme Corp"');
+	});
+
 	it("uses publish date year in default copyright", () => {
 		const result = buildFooter(baseProvenance, baseConfig);
 		expect(result).toContain("© 2024 Acme Corp");
@@ -1750,6 +1834,24 @@ describe("buildBundleFooter", () => {
 		expect(result).not.toContain("<img");
 		expect(result).toContain("&lt;em&gt;");
 		expect(result).not.toContain("<em>");
+	});
+
+	it("renders footer logo in bundle mode with override source", () => {
+		const result = buildBundleFooter(
+			"0.1.1",
+			{
+				...baseConfig,
+				footer: {
+					logo: "assets/brand/footer-logo.png",
+					logoUrl: "https://footer.example.com",
+					logoHeight: 18,
+				},
+			},
+			"data:image/png;base64,AAAA",
+		);
+		expect(result).toContain('src="data:image/png;base64,AAAA"');
+		expect(result).toContain('href="https://footer.example.com"');
+		expect(result).toContain("max-height: 18px");
 	});
 });
 

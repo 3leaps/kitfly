@@ -945,6 +945,22 @@ body {
   color: var(--color-link);
 }
 
+.footer-logo-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.footer-logo-img {
+  height: auto;
+  width: auto;
+  vertical-align: middle;
+  opacity: 0.8;
+}
+
+.footer-logo-img:hover {
+  opacity: 1;
+}
+
 /* Mermaid diagrams */
 .mermaid {
   background: transparent;

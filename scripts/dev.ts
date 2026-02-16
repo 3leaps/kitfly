@@ -359,14 +359,14 @@ async function renderPage(
 
 	const files = await collectFiles(ROOT, config);
 	const currentUrlPath = urlPath.slice(1).replace(/\.html$/, "");
+	const pathPrefix = "/";
 	const nav = buildNavSimple(files, config, currentUrlPath);
-	const footer = buildFooter(provenance, config);
+	const footer = buildFooter(provenance, config, pathPrefix);
 	const breadcrumbs = buildBreadcrumbsSimple(urlPath, files, config);
 	const toc = buildToc(htmlContent);
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
-	const pathPrefix = "/";
 	const plugins = await getPluginInjectionsCached(config.mode === "slides" ? "slides" : "docs");
 
 	const hotReloadScript = `
@@ -477,7 +477,7 @@ async function renderSlidesPage(
         </div>`;
 
 	const nav = buildSlideNav(slides, config, "slide-1");
-	const footer = buildFooter(provenance, config);
+	const footer = buildFooter(provenance, config, pathPrefix);
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const themeCSS = generateThemeCSS(theme);
 	const prismUrls = getPrismUrls(theme);
@@ -585,7 +585,7 @@ sections:
 		.replace("{{NAV}}", "<ul></ul>")
 		.replace("{{CONTENT}}", () => htmlContent)
 		.replace("{{TOC}}", "")
-		.replace("{{FOOTER}}", () => buildFooter(provenance, config))
+		.replace("{{FOOTER}}", () => buildFooter(provenance, config, pathPrefix))
 		.replace("{{THEME_CSS}}", () => themeCSS)
 		.replace("{{PLUGIN_HEAD}}", () => plugins.head)
 		.replace("{{PLUGIN_BODY_END}}", () => plugins.bodyEnd)
