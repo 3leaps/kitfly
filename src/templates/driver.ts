@@ -11,6 +11,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { brief } from "./brief.ts";
 import { crucible } from "./crucible.ts";
 import { deck } from "./deck.ts";
 import { handbook } from "./handbook.ts";
@@ -56,6 +57,7 @@ export function listTemplates(): TemplateDef[] {
 registerTemplate(minimal);
 registerTemplate(deck);
 registerTemplate(handbook);
+registerTemplate(brief);
 registerTemplate(pipeline);
 registerTemplate(productbook);
 registerTemplate(runbook);
@@ -499,6 +501,7 @@ function generateAgentsMd(ctx: TemplateContext): string {
 	const isProductbook = templateType === "productbook";
 	const isServicebook = templateType === "servicebook";
 	const isCrucible = templateType === "crucible";
+	const isBrief = templateType === "brief";
 
 	const typeLabel = isCrucible
 		? "information architecture SSOT"
@@ -506,11 +509,13 @@ function generateAgentsMd(ctx: TemplateContext): string {
 			? "professional services catalog"
 			: isProductbook
 				? "product and domain documentation site"
-				: isPipeline
-					? "pipeline operations site"
-					: templateType === "runbook"
-						? "runbook"
-						: "documentation site";
+				: isBrief
+					? "external audience brief"
+					: isPipeline
+						? "pipeline operations site"
+						: templateType === "runbook"
+							? "runbook"
+							: "documentation site";
 
 	return `# ${ctx.branding.siteName} - AI Agent Guide
 
@@ -596,8 +601,28 @@ ${
 ### Guides
 - Write for the audience (team member vs end user)
 - Start with what they need to know first`
-				: isPipeline
-					? `### Pipeline Stages
+				: isBrief
+					? `### Audience and Tone
+- Write for external readers evaluating or onboarding
+- Keep tone **informational and professional**
+- Avoid internal jargon and sales-heavy language
+
+### Product and Capabilities
+- Explain what it is, who it serves, and why it matters
+- Focus on customer outcomes before implementation details
+- Use concise tables for capabilities and differentiators
+
+### Use Cases
+- Structure each use case as **problem -> solution -> outcome**
+- Include before/after metrics where possible
+- Keep customer profile language specific and clear
+
+### Getting Started and Reference
+- Document prerequisites and integration requirements as checklists
+- Provide realistic onboarding timelines and phase definitions
+- Keep architecture, FAQ, and contacts current and easy to scan`
+					: isPipeline
+						? `### Pipeline Stages
 - Start with **Objective** (what this stage accomplishes)
 - List **Prerequisites** as checkboxes
 - Number **Steps** explicitly with verification
@@ -618,8 +643,8 @@ ${
 - Use checkbox format: \`- [ ] Item\`
 - Group by phase or category
 - Include Go/No-Go decision point`
-					: isOperational
-						? `### Procedures
+						: isOperational
+							? `### Procedures
 - Start with **Objective** (what this accomplishes)
 - List **Prerequisites** as checkboxes
 - Number **Steps** explicitly with verification
@@ -636,7 +661,7 @@ ${
 - Use checkbox format: \`- [ ] Item\`
 - Group by phase or category
 - Include Go/No-Go decision point`
-						: `### General Guidelines
+							: `### General Guidelines
 - Use clear, descriptive headings
 - Include code examples where helpful
 - Link related content using relative paths
@@ -677,12 +702,18 @@ ${
 - \`analyst\` - Research, data modeling, business process analysis
 - \`devlead\` - Architecture, operations, implementation
 - \`infoarch\` - Documentation structure, consistency`
-				: isOperational
-					? `Recommended roles for ${isPipeline ? "pipeline operations" : "runbook"} maintenance:
+				: isBrief
+					? `Recommended roles for brief maintenance:
+- \`infoarch\` - Information architecture, narrative clarity, external readability
+- \`devlead\` - Technical accuracy for architecture, integrations, requirements
+- \`advisor\` - Client-facing framing and stakeholder alignment
+- \`prodstrat\` - Value proposition, audience fit, use-case quality`
+					: isOperational
+						? `Recommended roles for ${isPipeline ? "pipeline operations" : "runbook"} maintenance:
 - \`devlead\` - Implementation, fixing procedures
 - \`infoarch\` - Documentation structure, organization
 - \`qa\` - Testing, validation, checklists`
-					: `Recommended roles for documentation:
+						: `Recommended roles for documentation:
 - \`devlead\` - Technical content, code examples
 - \`infoarch\` - Structure, navigation, organization
 - \`prodmktg\` - Messaging, user-facing content`
@@ -727,6 +758,8 @@ async function addAiAssistInstrumentation(root: string, ctx: TemplateContext): P
 			relevantRoles.push("advisor.yaml", "analyst.yaml");
 		} else if (ctx.template.id === "productbook" || ctx.template.id === "servicebook") {
 			relevantRoles.push("prodstrat.yaml", "advisor.yaml", "analyst.yaml");
+		} else if (ctx.template.id === "brief") {
+			relevantRoles.push("prodstrat.yaml", "advisor.yaml");
 		} else if (ctx.template.id !== "runbook" && ctx.template.id !== "pipeline") {
 			relevantRoles.push("prodmktg.yaml");
 		}

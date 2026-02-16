@@ -4,7 +4,7 @@
  * Usage:
  *   kitfly init <name> [--template <type>] [--no-git]
  *
- * Templates: minimal, handbook (more coming)
+ * Templates: minimal, handbook, brief (more coming)
  */
 
 import { readdir, stat } from "node:fs/promises";

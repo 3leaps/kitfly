@@ -9,8 +9,8 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { init } from "../commands/init.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { init, listAvailableTemplates } from "../commands/init.ts";
 import { defaultBranding, getTemplate, listTemplates, runTemplate } from "../templates/driver.ts";
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,7 @@ describe("template registry", () => {
 		expect(ids).toContain("minimal");
 		expect(ids).toContain("deck");
 		expect(ids).toContain("handbook");
+		expect(ids).toContain("brief");
 		expect(templates.length).toBeGreaterThanOrEqual(2);
 	});
 
@@ -65,6 +66,17 @@ describe("template registry", () => {
 
 	it("returns undefined for unknown template", () => {
 		expect(getTemplate("nonexistent")).toBeUndefined();
+	});
+
+	it("listAvailableTemplates output includes brief", () => {
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			listAvailableTemplates();
+			const output = spy.mock.calls.map((call) => String(call[0] ?? "")).join("\n");
+			expect(output).toContain("brief");
+		} finally {
+			spy.mockRestore();
+		}
 	});
 });
 
@@ -358,6 +370,16 @@ describe("init() entry point", () => {
 		expect(generatedExists(projectName, "CUSTOMIZING.md")).toBe(true);
 	});
 
+	it("creates a brief site when template flag is set", async () => {
+		await init(projectName, { template: "brief", git: false });
+
+		expect(generatedExists(projectName, "content/product/overview.md")).toBe(true);
+		expect(generatedExists(projectName, "content/use-cases/example-use-case.md")).toBe(true);
+		expect(generatedExists(projectName, "content/getting-started/requirements.md")).toBe(true);
+		expect(generatedExists(projectName, "content/reference/contacts.md")).toBe(true);
+		expect(generatedExists(projectName, "CUSTOMIZING.md")).toBe(true);
+	});
+
 	it("passes brand overrides through to template context", async () => {
 		await init(projectName, {
 			git: false,
@@ -436,6 +458,33 @@ describe("standalone mode", () => {
 		expect(readme).toContain("standalone mode");
 		expect(readme).toContain("bun install");
 		expect(readme).toContain("bun run dev");
+	});
+});
+
+describe("ai-assist mode", () => {
+	const projectName = "test-brief-ai";
+
+	it("brief template writes AGENTS.md and brief-specific role files", async () => {
+		await runTemplate({
+			name: projectName,
+			template: "brief",
+			git: false,
+			aiAssist: true,
+		});
+
+		expect(generatedExists(projectName, "AGENTS.md")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/devlead.yaml")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/infoarch.yaml")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/qa.yaml")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/prodstrat.yaml")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/advisor.yaml")).toBe(true);
+		expect(generatedExists(projectName, "config/agentic/roles/analyst.yaml")).toBe(false);
+		expect(generatedExists(projectName, "config/agentic/roles/prodmktg.yaml")).toBe(false);
+
+		const agents = await readGenerated(projectName, "AGENTS.md");
+		expect(agents).toContain("external audience brief");
+		expect(agents).toContain("informational and professional");
+		expect(agents).toContain("problem -> solution -> outcome");
 	});
 });
 
