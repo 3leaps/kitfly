@@ -918,4 +918,34 @@ describe("bundleSite plugin integration", () => {
 		expect(html).not.toContain('src="logos/footer.png"');
 		expect(html).toContain('alt="Footer Root Logo"');
 	});
+
+	it("inlines light/dark variants for header and footer logos", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "docs"), { recursive: true });
+		await mkdir(join(siteDir, "assets", "brand"), { recursive: true });
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Dark Logos Test"\nbrand:\n  name: "Test"\n  url: "/"\n  logo: "assets/brand/logo.png"\n  logoDark: "assets/brand/logo-dark.png"\nfooter:\n  logo: "assets/brand/footer-logo.png"\n  logoDark: "assets/brand/footer-logo-dark.png"\nsections:\n  - name: Docs\n    path: docs\n',
+			"utf-8",
+		);
+		await writeFile(join(siteDir, "docs", "index.md"), "# Dark Logos");
+		const pixelPng = Buffer.from(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9x9kAAAAASUVORK5CYII=",
+			"base64",
+		);
+		await writeFile(join(siteDir, "assets", "brand", "logo.png"), pixelPng);
+		await writeFile(join(siteDir, "assets", "brand", "logo-dark.png"), pixelPng);
+		await writeFile(join(siteDir, "assets", "brand", "footer-logo.png"), pixelPng);
+		await writeFile(join(siteDir, "assets", "brand", "footer-logo-dark.png"), pixelPng);
+
+		await bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" });
+
+		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
+		expect(html).toContain('class="logo-img logo-light"');
+		expect(html).toContain('class="logo-img logo-dark"');
+		expect(html).toContain('class="footer-logo-img logo-light"');
+		expect(html).toContain('class="footer-logo-img logo-dark"');
+		expect(html).not.toContain('src="assets/brand/logo-dark.png"');
+		expect(html).not.toContain('src="assets/brand/footer-logo-dark.png"');
+	});
 });

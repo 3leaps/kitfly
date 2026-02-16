@@ -90,6 +90,10 @@
           "description": "Path to logo image (relative to site root)",
           "default": "assets/brand/logo.png"
         },
+        "logoDark": {
+          "type": "string",
+          "description": "Path to dark mode logo image (relative to site root). Shown when dark theme is active."
+        },
         "favicon": {
           "type": "string",
           "description": "Path to favicon image (relative to site root)",
@@ -195,6 +199,10 @@
         "logo": {
           "type": "string",
           "description": "Path to footer logo image (relative to site root)"
+        },
+        "logoDark": {
+          "type": "string",
+          "description": "Path to dark mode footer logo image (relative to site root)"
         },
         "logoUrl": {
           "type": "string",

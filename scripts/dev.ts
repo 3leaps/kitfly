@@ -28,6 +28,7 @@ import {
 import {
 	buildBreadcrumbsSimple,
 	buildFooter,
+	buildLogoImgHtml,
 	buildNavSimple,
 	buildPageMeta,
 	buildSlideNav,
@@ -378,6 +379,22 @@ async function renderPage(
 
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
+	const mobileLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: `logo-img ${logoClass}`,
+		pathPrefix,
+		onerrorFallback: true,
+	});
+	const sidebarLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: "logo-img",
+		pathPrefix,
+		onerrorFallback: true,
+	});
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -386,6 +403,8 @@ async function renderPage(
 		.replace(/\{\{BRAND_TARGET\}\}/g, () => brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, () => config.brand.name)
 		.replace(/\{\{BRAND_INITIAL\}\}/g, () => brandInitial)
+		.replace("{{MOBILE_BRAND_LOGO_IMG}}", () => mobileLogoHtml)
+		.replace("{{SIDEBAR_BRAND_LOGO_IMG}}", () => sidebarLogoHtml)
 		.replace(/\{\{BRAND_LOGO\}\}/g, () => config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, () => config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, () => logoClass)
@@ -490,6 +509,22 @@ async function renderSlidesPage(
 	const plugins = await getPluginInjectionsCached("slides");
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
+	const mobileLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: `logo-img ${logoClass}`,
+		pathPrefix,
+		onerrorFallback: true,
+	});
+	const sidebarLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: "logo-img",
+		pathPrefix,
+		onerrorFallback: true,
+	});
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-slides")
@@ -498,6 +533,8 @@ async function renderSlidesPage(
 		.replace(/\{\{BRAND_TARGET\}\}/g, () => brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, () => config.brand.name)
 		.replace(/\{\{BRAND_INITIAL\}\}/g, () => brandInitial)
+		.replace("{{MOBILE_BRAND_LOGO_IMG}}", () => mobileLogoHtml)
+		.replace("{{SIDEBAR_BRAND_LOGO_IMG}}", () => sidebarLogoHtml)
 		.replace(/\{\{BRAND_LOGO\}\}/g, () => config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, () => config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, () => logoClass)
@@ -565,6 +602,22 @@ sections:
 
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
+	const mobileLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: `logo-img ${logoClass}`,
+		pathPrefix,
+		onerrorFallback: true,
+	});
+	const sidebarLogoHtml = buildLogoImgHtml({
+		logo: config.brand.logo || "assets/brand/logo.png",
+		logoDark: config.brand.logoDark,
+		alt: config.brand.name,
+		className: "logo-img",
+		pathPrefix,
+		onerrorFallback: true,
+	});
 
 	return template
 		.replace("{{BODY_CLASS}}", "mode-docs")
@@ -573,6 +626,8 @@ sections:
 		.replace(/\{\{BRAND_TARGET\}\}/g, () => brandTarget)
 		.replace(/\{\{BRAND_NAME\}\}/g, () => config.brand.name)
 		.replace(/\{\{BRAND_INITIAL\}\}/g, () => brandInitial)
+		.replace("{{MOBILE_BRAND_LOGO_IMG}}", () => mobileLogoHtml)
+		.replace("{{SIDEBAR_BRAND_LOGO_IMG}}", () => sidebarLogoHtml)
 		.replace(/\{\{BRAND_LOGO\}\}/g, () => config.brand.logo || "assets/brand/logo.png")
 		.replace(/\{\{BRAND_FAVICON\}\}/g, () => config.brand.favicon || "assets/brand/favicon.png")
 		.replace(/\{\{BRAND_LOGO_CLASS\}\}/g, () => logoClass)

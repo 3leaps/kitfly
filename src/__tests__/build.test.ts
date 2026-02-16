@@ -234,6 +234,28 @@ describe("build", () => {
 		expect(html).toContain("max-height: 24px");
 	});
 
+	it("renders light/dark variants for header and footer logos when configured", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, {
+			brand:
+				'  name: Test\n  url: /\n  logo: "assets/brand/logo.png"\n  logoDark: "assets/brand/logo-dark.png"',
+			footer:
+				'  logo: "assets/brand/footer-logo.png"\n  logoDark: "assets/brand/footer-logo-dark.png"',
+		});
+		await writeMd(siteDir, "docs/page.md", "# Page");
+
+		await build({ folder: siteDir, out: outDir });
+
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain("logo-img logo-light");
+		expect(html).toContain("logo-img logo-dark");
+		expect(html).toContain("./assets/brand/logo-dark.png");
+		expect(html).toContain("footer-logo-img logo-light");
+		expect(html).toContain("footer-logo-img logo-dark");
+		expect(html).toContain("./assets/brand/footer-logo-dark.png");
+	});
+
 	it("builds a single-page hash-routed deck when mode is slides", async () => {
 		const siteDir = await makeTempDir();
 		const outDir = "out";

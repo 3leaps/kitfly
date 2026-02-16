@@ -21,6 +21,7 @@ import { ENGINE_ASSETS_DIR } from "../src/engine.ts";
 import { loadPluginInjections } from "../src/plugin-loader.ts";
 import {
 	buildBundleFooter,
+	buildLogoImgHtml,
 	buildSectionNav,
 	// Navigation/template building
 	buildSlideNav,
@@ -376,18 +377,26 @@ function buildBundleSidebarHeader(
 	config: SiteConfig,
 	version: string | undefined,
 	brandLogo: string,
+	brandLogoDark?: string,
 ): string {
 	const brandTarget = config.brand.external ? ' target="_blank" rel="noopener"' : "";
 	const logoClass = config.brand.logoType === "wordmark" ? "logo-wordmark" : "logo-icon";
 	const productHref = config.home ? "#home" : "#";
 	const versionLabel = version ? `v${version}` : "unversioned";
 	const brandInitial = escapeHtml(config.brand.name.trim().charAt(0).toUpperCase() || "K");
+	const brandLogoHtml = buildLogoImgHtml({
+		logo: brandLogo,
+		logoDark: brandLogoDark,
+		alt: config.brand.name,
+		className: "logo-img",
+		onerrorFallback: true,
+	});
 
 	return `
       <div class="sidebar-header">
         <div class="logo ${logoClass}">
           <a href="${config.brand.url}" class="logo-icon" data-initial="${brandInitial}"${brandTarget}>
-            <img src="${brandLogo}" alt="${config.brand.name}" class="logo-img" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('logo-fallback')">
+            ${brandLogoHtml}
           </a>
           <span class="logo-text">
             <a href="${config.brand.url}" class="brand"${brandTarget}>${config.brand.name}</a>
@@ -629,10 +638,18 @@ async function bundle() {
 
 	// Inline brand assets for self-contained bundle
 	const brandLogo = await inlineBrandAsset(config.brand.logo || "assets/brand/logo.png");
+	const brandLogoDark =
+		typeof config.brand.logoDark === "string"
+			? await inlineBrandAsset(config.brand.logoDark)
+			: undefined;
 	const brandFavicon = await inlineBrandAsset(config.brand.favicon || "assets/brand/favicon.png");
 	const footerLogo =
 		typeof config.footer?.logo === "string"
 			? await inlineBrandAsset(config.footer.logo)
+			: undefined;
+	const footerLogoDark =
+		typeof config.footer?.logoDark === "string"
+			? await inlineBrandAsset(config.footer.logoDark)
 			: undefined;
 
 	// Build the complete HTML document
@@ -688,7 +705,7 @@ ${assets.prismCssDark}
 <body class="${config.mode === "slides" ? "mode-slides" : "mode-docs"}">
   <div class="layout">
     <nav class="sidebar">
-${buildBundleSidebarHeader(config, version, brandLogo)}
+${buildBundleSidebarHeader(config, version, brandLogo, brandLogoDark)}
       <div class="sidebar-nav">
         ${navHtml}
       </div>
@@ -699,7 +716,7 @@ ${buildBundleSidebarHeader(config, version, brandLogo)}
       </article>
     </main>
   </div>
-  ${buildBundleFooter(version, config, footerLogo)}
+  ${buildBundleFooter(version, config, footerLogo, footerLogoDark)}
   <script>
 ${assets.prismCore}
   </script>

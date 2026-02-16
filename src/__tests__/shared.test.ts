@@ -1122,6 +1122,7 @@ version: "1.2.0"
 brand:
   name: Test
   url: /
+  logoDark: assets/brand/logo-dark.png
 sections:
   - name: Guide
     path: guide
@@ -1129,6 +1130,7 @@ footer:
   copyright: "© 2026 Test"
   attribution: false
   logo: "assets/brand/footer-logo.png"
+  logoDark: "assets/brand/footer-logo-dark.png"
   logoUrl: "https://example.com/footer"
   logoAlt: "Footer Brand"
   logoHeight: 24
@@ -1141,9 +1143,11 @@ footer:
 
 			const config = await loadSiteConfig(dir);
 			expect(config.version).toBe("1.2.0");
+			expect(config.brand.logoDark).toBe("assets/brand/logo-dark.png");
 			expect(config.footer?.copyright).toBe("© 2026 Test");
 			expect(config.footer?.attribution).toBe(false);
 			expect(config.footer?.logo).toBe("assets/brand/footer-logo.png");
+			expect(config.footer?.logoDark).toBe("assets/brand/footer-logo-dark.png");
 			expect(config.footer?.logoUrl).toBe("https://example.com/footer");
 			expect(config.footer?.logoAlt).toBe("Footer Brand");
 			expect(config.footer?.logoHeight).toBe(24);
@@ -1742,6 +1746,19 @@ describe("buildFooter", () => {
 		expect(result.indexOf('class="footer-logo-img"')).toBeLessThan(
 			result.indexOf('class="footer-version"'),
 		);
+	});
+
+	it("renders footer light/dark logo variants when logoDark is set", () => {
+		const result = buildFooter(baseProvenance, {
+			...baseConfig,
+			footer: {
+				logo: "assets/brand/footer-logo.png",
+				logoDark: "assets/brand/footer-logo-dark.png",
+			},
+		});
+		expect(result).toContain("footer-logo-img logo-light");
+		expect(result).toContain("footer-logo-img logo-dark");
+		expect(result).toContain('src="assets/brand/footer-logo-dark.png"');
 	});
 
 	it("falls back footer logo alt text to copyright then brand name", () => {

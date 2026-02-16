@@ -26,6 +26,7 @@ export interface SiteBrand {
 	url: string;
 	external?: boolean;
 	logo?: string; // Path to logo image (default: assets/brand/logo.png)
+	logoDark?: string; // Optional dark-mode logo image
 	favicon?: string; // Path to favicon (default: assets/brand/favicon.png)
 	logoType?: "icon" | "wordmark"; // icon = square, wordmark = wide
 }
@@ -55,6 +56,7 @@ export interface SiteFooter {
 	links?: FooterLink[];
 	attribution?: boolean;
 	logo?: string;
+	logoDark?: string;
 	logoUrl?: string;
 	logoAlt?: string;
 	logoHeight?: number;
@@ -1482,6 +1484,35 @@ export function buildPageMeta(frontmatter: Record<string, unknown>): string {
 	return `<div class="page-meta">Last updated: ${formatted}</div>`;
 }
 
+interface LogoImgHtmlOptions {
+	logo: string;
+	logoDark?: string;
+	alt: string;
+	className?: string;
+	pathPrefix?: string;
+	onerrorFallback?: boolean;
+	style?: string;
+}
+
+export function buildLogoImgHtml(options: LogoImgHtmlOptions): string {
+	const className = options.className || "logo-img";
+	const pathPrefix = options.pathPrefix || "";
+	const onerror = options.onerrorFallback
+		? `onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('logo-fallback')"`
+		: `onerror="this.onerror=null;this.style.display='none'"`;
+	const style = options.style ? `style="${escapeHtml(options.style)}"` : "";
+	const lightSrc = `${pathPrefix}${options.logo}`;
+	const alt = escapeHtml(options.alt);
+
+	if (!options.logoDark) {
+		return `<img src="${escapeHtml(lightSrc)}" alt="${alt}" class="${className}" ${style} ${onerror}>`;
+	}
+
+	const darkSrc = `${pathPrefix}${options.logoDark}`;
+	return `<img src="${escapeHtml(lightSrc)}" alt="${alt}" class="${className} logo-light" ${style} ${onerror}>
+<img src="${escapeHtml(darkSrc)}" alt="${alt}" class="${className} logo-dark" ${style} onerror="this.onerror=null;this.style.display='none'">`;
+}
+
 /**
  * Build footer HTML from provenance
  */
@@ -1490,14 +1521,23 @@ function renderFooterLogo(
 	config: SiteConfig,
 	pathPrefix: string,
 	logoOverride?: string,
+	logoDarkOverride?: string,
 ): string {
 	const footerLogo = logoOverride || footer.logo;
 	if (!footerLogo) return "";
 
-	const altText = escapeHtml(footer.logoAlt || footer.copyright || config.brand.name);
+	const altText = footer.logoAlt || footer.copyright || config.brand.name;
 	const logoHeight = footer.logoHeight ?? 20;
-	const source = logoOverride ? logoOverride : `${pathPrefix}${footerLogo}`;
-	const image = `<img src="${escapeHtml(source)}" alt="${altText}" class="footer-logo-img" style="max-height: ${logoHeight}px" onerror="this.onerror=null;this.style.display='none'">`;
+	const logoDark = logoDarkOverride || footer.logoDark;
+	const image = buildLogoImgHtml({
+		logo: footerLogo,
+		logoDark,
+		alt: altText,
+		className: "footer-logo-img",
+		pathPrefix: logoOverride ? "" : pathPrefix,
+		onerrorFallback: false,
+		style: `max-height: ${logoHeight}px`,
+	});
 	const wrapped = footer.logoUrl
 		? `<a href="${escapeHtml(footer.logoUrl)}" class="footer-logo-link">${image}</a>`
 		: `<span class="footer-logo-link">${image}</span>`;
@@ -1566,6 +1606,7 @@ export function buildBundleFooter(
 	version: string | undefined,
 	config: SiteConfig,
 	logoOverride?: string,
+	logoDarkOverride?: string,
 ): string {
 	const footer = config.footer || {};
 	const copyrightText = footer.copyright
@@ -1591,7 +1632,7 @@ export function buildBundleFooter(
 		? `<span class="footer-version">v${escapeHtml(version)}</span>
         <span class="footer-separator">·</span>`
 		: "";
-	const footerLogoHtml = renderFooterLogo(footer, config, "", logoOverride);
+	const footerLogoHtml = renderFooterLogo(footer, config, "", logoOverride, logoDarkOverride);
 
 	return `
   <footer class="site-footer">
@@ -1828,6 +1869,7 @@ function normalizeFooter(footer: unknown): SiteFooter | undefined {
 		links,
 		attribution: typeof raw.attribution === "boolean" ? raw.attribution : undefined,
 		logo: typeof raw.logo === "string" ? raw.logo : undefined,
+		logoDark: typeof raw.logoDark === "string" ? raw.logoDark : undefined,
 		logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : undefined,
 		logoAlt: typeof raw.logoAlt === "string" ? raw.logoAlt : undefined,
 		logoHeight,
@@ -1871,6 +1913,7 @@ export async function loadSiteConfig(
 			brand: {
 				...parsed.brand,
 				logo: parsed.brand.logo || "assets/brand/logo.png",
+				logoDark: typeof parsed.brand.logoDark === "string" ? parsed.brand.logoDark : undefined,
 				favicon: parsed.brand.favicon || "assets/brand/favicon.png",
 				logoType: parsed.brand.logoType || "icon",
 			},

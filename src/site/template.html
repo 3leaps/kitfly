@@ -37,7 +37,7 @@
       </svg>
     </button>
     <a href="{{PATH_PREFIX}}" class="mobile-logo" title="Home" data-initial="{{BRAND_INITIAL}}">
-      <img src="{{PATH_PREFIX}}{{BRAND_LOGO}}" alt="{{BRAND_NAME}}" class="logo-img {{BRAND_LOGO_CLASS}}" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('logo-fallback')"/>
+      {{MOBILE_BRAND_LOGO_IMG}}
     </a>
     <button class="mobile-theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -54,7 +54,7 @@
       <div class="sidebar-header">
         <div class="logo {{BRAND_LOGO_CLASS}}">
           <a href="{{BRAND_URL}}" class="logo-icon" data-initial="{{BRAND_INITIAL}}"{{BRAND_TARGET}}>
-            <img src="{{PATH_PREFIX}}{{BRAND_LOGO}}" alt="{{BRAND_NAME}}" class="logo-img" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('logo-fallback')"/>
+            {{SIDEBAR_BRAND_LOGO_IMG}}
           </a>
           <span class="logo-text">
             <a href="{{BRAND_URL}}" class="brand"{{BRAND_TARGET}}>{{BRAND_NAME}}</a>

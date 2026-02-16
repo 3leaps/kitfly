@@ -161,14 +161,33 @@ body {
 }
 
 /* Logo dark mode - brighten for visibility */
-[data-theme="dark"] .logo-img,
-[data-theme="dark"] .logo-icon img {
+.logo-dark {
+  display: none;
+}
+
+[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .logo-dark {
+  display: block;
+}
+
+/* Logo dark mode - brighten for visibility (only when no dark variant provided) */
+[data-theme="dark"] .logo-img:not(.logo-light):not(.logo-dark),
+[data-theme="dark"] .logo-icon img:not(.logo-light):not(.logo-dark) {
   filter: brightness(1.3) saturate(1.2);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .logo-img,
-  :root:not([data-theme="light"]) .logo-icon img {
+  :root:not([data-theme="light"]) .logo-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logo-dark {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .logo-img:not(.logo-light):not(.logo-dark),
+  :root:not([data-theme="light"]) .logo-icon img:not(.logo-light):not(.logo-dark) {
     filter: brightness(1.3) saturate(1.2);
   }
 }
