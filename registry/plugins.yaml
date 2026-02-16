@@ -43,10 +43,8 @@ plugins:
     verified: true
     assets:
       js: "plugins-dist/latex.js"
-      css: "plugins-dist/latex.css"
       assetSha256:
-        js: "sha256:ae7a436e26080858ceb16e2275f0c1fbee13156a2e8573c058e924c595a9f451"
-        css: "sha256:eb36765ab6b74a83f562b75b10b0841e611c7b4a6e12457e676b20ce47628fc4"
+        js: "sha256:5475e344dc424e3015c3a8b2fd8152101354fe2622d322a0fa4f73d1335b4232"
   slides-charts-lite:
     name: "Slides Charts Lite"
     description: "Simple charts for Kitfly slides (bar, line, pie)"

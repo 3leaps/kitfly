@@ -833,9 +833,9 @@ describe("bundleSite plugin integration", () => {
 
 		const html = await readFile(join(siteDir, "bundles", "bundle.html"), "utf-8");
 		expect(html).toContain('data-kitfly-plugin="latex@0.2.2"');
-		expect(html).toContain('.katex .katex-version:after{content:"0.16.21"}');
-		expect(html).toContain("kitfly-katex-display");
-		expect(html).not.toContain("const KATEX_JS_URL =");
+		expect(html).toContain("const KATEX_JS_URL =");
+		expect(html).toContain("cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js");
+		expect(html).toContain("cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css");
 	});
 
 	it("inlines slides-charts-lite plugin in slides mode", async () => {
