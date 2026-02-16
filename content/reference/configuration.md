@@ -100,9 +100,12 @@ brand:
   name: "My Project" # Text in header
   url: "/" # Logo link
   logo: "assets/brand/my-logo.png" # Sidebar logo image
+  logoDark: "assets/brand/my-logo-dark.png" # Dark mode logo (optional)
   favicon: "assets/brand/favicon-32.png" # Browser tab icon
   external: true # Open in new tab (optional)
 ```
+
+When `logoDark` is set, kitfly shows it in dark mode instead of applying the default brightness filter. See the [Branding](/content/guide/branding) guide for details on dark mode variants.
 
 The logo renders inside a bounded slot that preserves aspect ratio:
 
@@ -165,6 +168,11 @@ v0.1.1 · Published 2026-02-10     © 2026 Acme Inc. · acme.com     Built with 
 | `copyrightUrl` | _(none)_                         | Makes the copyright text a clickable link |
 | `links`        | Your `brand.url` shown as a link | Links after the copyright text (max 10)   |
 | `attribution`  | `true`                           | "Built with Kitfly" on the right          |
+| `logo`         | _(none)_                         | Image logo in the footer-left position    |
+| `logoDark`     | _(none)_                         | Dark mode variant of the footer logo      |
+| `logoUrl`      | _(none)_                         | Makes the footer logo a clickable link    |
+| `logoAlt`      | Copyright text or brand name     | Alt text for the footer logo              |
+| `logoHeight`   | `20`                             | Max height of footer logo in pixels       |
 
 **Common case: product name differs from copyright holder.** The default copyright uses `brand.name`, which is your product title (shown in the header). If your legal entity is different, override it:
 
@@ -204,6 +212,19 @@ footer:
 When `links` is set, it replaces the default brand URL link. When `links` is omitted, your `brand.url` appears as a link (with the protocol stripped — `https://acme.com` displays as `acme.com`).
 
 Set `footer.attribution: false` to remove the "Built with Kitfly" text from the footer entirely.
+
+**Footer logo** — add an image to the footer ribbon (e.g. a parent company logo):
+
+```yaml
+footer:
+  logo: "assets/brand/footer-logo.png"
+  logoDark: "assets/brand/footer-logo-dark.png"
+  logoUrl: "https://example.com"
+  logoAlt: "Example Corp"
+  logoHeight: 24
+```
+
+The footer logo renders at the leading edge of the ribbon, before provenance info. All footer logo fields are optional — if `logo` is omitted, the footer renders as text only. See the [Branding](/content/guide/branding) guide for full details.
 
 ### theme layout (`theme.yaml`)
 
