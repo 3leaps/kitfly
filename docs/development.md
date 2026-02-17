@@ -11,12 +11,12 @@ How to set up a Kitfly development environment from a fresh clone.
 
 ## Prerequisites
 
-| Tool                                             | Purpose                                 | Install                                                         |
-| ------------------------------------------------ | --------------------------------------- | --------------------------------------------------------------- |
-| [Bun](https://bun.sh)                            | Runtime and package manager             | macOS/Linux: `curl -fsSL https://bun.sh/install \| bash`<br>Windows (PowerShell): `powershell -c "irm https://bun.sh/install.ps1|iex"` |
-| [GNU Make](https://www.gnu.org/software/make/)   | Task runner                             | macOS: included with Xcode CLI tools<br>Linux: `apt install make`<br>Windows: `scoop install make` |
-| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`<br>Linux: `apt install minisign`<br>Windows: `scoop install minisign` |
-| curl                                             | HTTP client (bootstrap downloads)       | macOS/Linux: usually pre-installed<br>Windows: available in PowerShell (`Invoke-RestMethod`) |
+| Tool                                             | Purpose                                 | Install                                                                                                                          |
+| ------------------------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| [Bun](https://bun.sh)                            | Runtime and package manager             | macOS/Linux: `curl -fsSL https://bun.sh/install \| bash`<br>Windows (PowerShell): `powershell -c "irm https://bun.sh/install.ps1 | iex"` |
+| [GNU Make](https://www.gnu.org/software/make/)   | Task runner                             | macOS: included with Xcode CLI tools<br>Linux: `apt install make`<br>Windows: `scoop install make`                               |
+| [minisign](https://jedisct1.github.io/minisign/) | Signature verification (used by sfetch) | macOS: `brew install minisign`<br>Linux: `apt install minisign`<br>Windows: `scoop install minisign`                             |
+| curl                                             | HTTP client (bootstrap downloads)       | macOS/Linux: usually pre-installed<br>Windows: available in PowerShell (`Invoke-RestMethod`)                                     |
 
 ## Windows notes (contributors)
 

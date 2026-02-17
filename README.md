@@ -39,15 +39,28 @@ For contributor/development setup, see [docs/development.md](docs/development.md
 
 ---
 
+## What's a Kitsite?
+
+Any site created or managed by kitfly is a **kitsite** — a self-contained workspace with your content, configuration, and (optionally) build scripts. A kitsite can operate in different **modes**:
+
+| Mode     | What it produces                  | Created with                          |
+| -------- | --------------------------------- | ------------------------------------- |
+| `docs`   | Documentation site (default)      | `kitfly init my-docs`                 |
+| `slides` | Fixed-aspect slide deck (v0.2.0+) | `kitfly init my-deck --template deck` |
+
+Every kitsite has the same structure: a `content/` directory with your markdown, a `site.yaml` for configuration, and static output you can host anywhere or bundle into a single HTML file. Standalone kitsites (created with `kitfly init`) include their own build scripts and run with just Bun — no kitfly CLI required after setup.
+
+---
+
 ## Three Ways to Use Kitfly
 
-| Approach                  | Best For      | What You Get                                   |
-| ------------------------- | ------------- | ---------------------------------------------- |
-| **`kitfly init`**         | New projects  | Standalone site with your own copy of the code |
-| **`kitfly dev ./folder`** | Existing docs | Quick preview without changing anything        |
-| **Clone this repo**       | Contributors  | The kitfly engine itself                       |
+| Approach                  | Best For      | What You Get                                      |
+| ------------------------- | ------------- | ------------------------------------------------- |
+| **`kitfly init`**         | New projects  | Standalone kitsite with your own copy of the code |
+| **`kitfly dev ./folder`** | Existing docs | Quick preview without changing anything           |
+| **Clone this repo**       | Contributors  | The kitfly engine itself                          |
 
-### Create a Standalone Site (Recommended)
+### Create a Standalone Kitsite (Recommended)
 
 ```bash
 kitfly init my-docs
@@ -65,7 +78,7 @@ bun install
 bun run dev
 ```
 
-You get a complete, self-contained site: rendering code, template, styles, config. It's yours — modify it, version it, own it. No kitfly CLI required after setup.
+You get a complete, self-contained kitsite: rendering code, template, styles, config. It's yours — modify it, version it, own it. No kitfly CLI required after setup.
 
 ### Preview Existing Docs
 
@@ -151,7 +164,7 @@ Or just drop markdown files in `content/` — sections auto-discover.
 
 ## Plugins
 
-Plugins are optional CSS/JS add-ons (kept out of core) that you enable per-site.
+Plugins are optional CSS/JS add-ons (kept out of core) that you enable per-kitsite.
 
 - Config: `kitfly.plugins.yaml`
 - Versions are pinned (`name@x.y.z`)
@@ -165,7 +178,7 @@ See `content/reference/plugins.md` for the contract and examples.
 
 > **Rule of thumb**: If it can't be done with CSS, vanilla JS under 50 lines, or a marked plugin, it doesn't belong here.
 
-Kitfly is intentionally limited. The goal is a doc site that stays simple and maintainable. When you outgrow it, migrate — your content is just markdown.
+Kitfly is intentionally limited. The goal is a kitsite that stays simple and maintainable. When you outgrow it, migrate — your content is just markdown.
 
 ---
 

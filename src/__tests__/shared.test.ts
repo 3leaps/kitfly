@@ -115,7 +115,7 @@ describe("normalizeProfileTags", () => {
 	});
 
 	it("normalizes whitespace, quotes, and case", () => {
-		expect(normalizeProfileTags('["Alpha", \'beta\']')).toEqual(["alpha", "beta"]);
+		expect(normalizeProfileTags("[\"Alpha\", 'beta']")).toEqual(["alpha", "beta"]);
 	});
 });
 
