@@ -41,15 +41,20 @@ import {
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
+	loadDataBindings,
 	// YAML/Config parsing
 	loadSiteConfig,
+	mergeFrontmatterWithBody,
 	type Provenance,
+	pagePathForData,
 	// Markdown utilities
 	parseFrontmatter,
 	parseYaml,
+	resolveBindings,
 	resolveStylesPath,
 	resolveTemplatePath,
 	rewriteRelativeAssetUrls,
+	runPrebuildHooks,
 	// Types
 	type SiteConfig,
 	slugify,
@@ -64,6 +69,32 @@ const DEFAULT_OUT = "dist";
 let ROOT = process.cwd();
 let OUT_DIR = DEFAULT_OUT;
 let ACTIVE_PROFILE: string | undefined;
+
+async function applyDataBindingsToMarkdown(
+	rawMarkdown: string,
+	filePath: string,
+	config: SiteConfig,
+): Promise<{ frontmatter: Record<string, unknown>; body: string }> {
+	const parsed = parseFrontmatter(rawMarkdown);
+	const dataRef = typeof parsed.frontmatter.data === "string" ? parsed.frontmatter.data.trim() : "";
+	if (!dataRef) return parsed;
+
+	const pagePath = pagePathForData(ROOT, config.docroot, filePath);
+	const bindings = await loadDataBindings(dataRef, pagePath, ROOT, config.docroot, config.dataroot);
+	return {
+		frontmatter: parsed.frontmatter,
+		body: resolveBindings(parsed.body, bindings, pagePath),
+	};
+}
+
+async function applyDataBindingsForSlides(
+	rawMarkdown: string,
+	filePath: string,
+	config: SiteConfig,
+): Promise<string> {
+	const resolved = await applyDataBindingsToMarkdown(rawMarkdown, filePath, config);
+	return mergeFrontmatterWithBody(rawMarkdown, resolved.body);
+}
 
 function normalizeMsysPath(p: string): string {
 	// Git Bash / MSYS-style paths: /c/Users/... -> C:\Users\...
@@ -206,7 +237,7 @@ async function renderFile(
 		}
 		htmlContent = `<h1>${title}</h1>\n<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
 	} else {
-		const { frontmatter, body } = parseFrontmatter(content);
+		const { frontmatter, body } = await applyDataBindingsToMarkdown(content, filePath, config);
 		if (frontmatter.title) {
 			title = frontmatter.title as string;
 		}
@@ -366,7 +397,9 @@ async function renderSlidesIndex(
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const pathPrefix = "./";
-	const slides = await collectSlides(files);
+	const slides = await collectSlides(files, {
+		markdownTransform: (raw, file) => applyDataBindingsForSlides(raw, file.path, config),
+	});
 	let validateFences = false;
 	try {
 		const raw = await readFile(join(ROOT, "kitfly.plugins.yaml"), "utf-8");
@@ -515,6 +548,16 @@ async function buildSite() {
 	// Load configuration
 	const config = await loadSiteConfig(ROOT);
 	console.log(`  ✓ Loaded config: "${config.title}" (${config.sections.length} sections)`);
+	if (config.prebuild?.length) {
+		await runPrebuildHooks(
+			config.prebuild,
+			ROOT,
+			"build",
+			ACTIVE_PROFILE,
+			config.dataroot || "data",
+		);
+		console.log(`  ✓ prebuild hooks (${config.prebuild.length})`);
+	}
 
 	// Load theme
 	const theme = await loadTheme(ROOT);

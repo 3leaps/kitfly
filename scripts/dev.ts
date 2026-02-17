@@ -51,15 +51,20 @@ import {
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
+	loadDataBindings,
 	// YAML/Config parsing
 	loadSiteConfig,
+	mergeFrontmatterWithBody,
 	type Provenance,
+	pagePathForData,
 	// Markdown utilities
 	parseFrontmatter,
 	parseYaml,
+	resolveBindings,
 	resolveStylesPath,
 	resolveTemplatePath,
 	rewriteRelativeAssetUrls,
+	runPrebuildHooks,
 	type SiteConfig,
 	slugify,
 	validatePath,
@@ -85,6 +90,32 @@ let daemonLog: {
 	warn: (msg: string) => void;
 	error: (msg: string) => void;
 } | null = null;
+
+async function applyDataBindingsToMarkdown(
+	rawMarkdown: string,
+	filePath: string,
+	config: SiteConfig,
+): Promise<{ frontmatter: Record<string, unknown>; body: string }> {
+	const parsed = parseFrontmatter(rawMarkdown);
+	const dataRef = typeof parsed.frontmatter.data === "string" ? parsed.frontmatter.data.trim() : "";
+	if (!dataRef) return parsed;
+
+	const pagePath = pagePathForData(ROOT, config.docroot, filePath);
+	const bindings = await loadDataBindings(dataRef, pagePath, ROOT, config.docroot, config.dataroot);
+	return {
+		frontmatter: parsed.frontmatter,
+		body: resolveBindings(parsed.body, bindings, pagePath),
+	};
+}
+
+async function applyDataBindingsForSlides(
+	rawMarkdown: string,
+	filePath: string,
+	config: SiteConfig,
+): Promise<string> {
+	const resolved = await applyDataBindingsToMarkdown(rawMarkdown, filePath, config);
+	return mergeFrontmatterWithBody(rawMarkdown, resolved.body);
+}
 
 function isPluginLoaderError(error: unknown): error is Error {
 	return (
@@ -364,7 +395,7 @@ async function renderPage(
 		}
 		htmlContent = `<h1>${title}</h1>\n<pre><code class="language-json">${escapeHtml(prettyJson)}</code></pre>`;
 	} else {
-		const { frontmatter, body } = parseFrontmatter(content);
+		const { frontmatter, body } = await applyDataBindingsToMarkdown(content, filePath, config);
 		if (frontmatter.title) {
 			title = frontmatter.title as string;
 		}
@@ -448,7 +479,9 @@ async function renderSlidesPage(
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
 	const files = await getFilteredFiles(config);
-	const slides = await collectSlides(files);
+	const slides = await collectSlides(files, {
+		markdownTransform: (raw, file) => applyDataBindingsForSlides(raw, file.path, config),
+	});
 
 	if (slides.length === 0) {
 		return renderGettingStarted(provenance, config, theme);
@@ -757,17 +790,35 @@ function startWatcher(config: SiteConfig) {
 	for (const dir of watchDirs) {
 		try {
 			watch(dir, { recursive: true }, (_event, filename) => {
-				if (
-					filename &&
-					(filename.endsWith(".md") ||
-						filename.endsWith(".yaml") ||
-						filename.endsWith(".json") ||
-						filename.endsWith(".html") ||
-						filename.endsWith(".css"))
-				) {
-					logInfo(`File changed: ${filename}`);
-					notifyReload();
-				}
+				if (!filename) return;
+				void (async () => {
+					try {
+						let hooksRan = 0;
+						if (config.prebuild?.length) {
+							hooksRan = await runPrebuildHooks(
+								config.prebuild,
+								ROOT,
+								"dev",
+								ACTIVE_PROFILE,
+								config.dataroot || "data",
+								filename,
+							);
+						}
+						const shouldReload =
+							hooksRan > 0 ||
+							filename.endsWith(".md") ||
+							filename.endsWith(".yaml") ||
+							filename.endsWith(".json") ||
+							filename.endsWith(".html") ||
+							filename.endsWith(".css");
+						if (shouldReload) {
+							logInfo(`File changed: ${filename}`);
+							notifyReload();
+						}
+					} catch (error) {
+						logWarn(error instanceof Error ? error.message : String(error));
+					}
+				})();
 			});
 		} catch {
 			// Directory doesn't exist, skip
@@ -791,6 +842,10 @@ async function main() {
 	// Load configuration
 	const config = await loadSiteConfig(ROOT);
 	logInfo(`Loaded config: "${config.title}" (${config.sections.length} sections)`);
+	if (config.prebuild?.length) {
+		await runPrebuildHooks(config.prebuild, ROOT, "dev", ACTIVE_PROFILE, config.dataroot || "data");
+		logInfo(`Ran prebuild hooks (${config.prebuild.length})`);
+	}
 
 	// Apply server config from site.yaml if CLI didn't override
 	if (config.server?.port && PORT === DEFAULT_PORT) {

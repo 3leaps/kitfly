@@ -5,7 +5,7 @@
  * to reduce duplication and ensure consistency.
  */
 
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { ENGINE_SITE_DIR, siteOverridePath } from "./engine.ts";
 
@@ -75,11 +75,17 @@ export interface ProfileConfig {
 	};
 }
 
+export interface PrebuildHook {
+	command: string;
+	watch?: string[];
+}
+
 export type SiteMode = "docs" | "slides";
 export type SlideAspect = "16/9" | "4/3" | "3/2" | "16/10";
 
 export interface SiteConfig {
 	docroot: string;
+	dataroot?: string;
 	title: string;
 	version?: string;
 	mode?: SiteMode;
@@ -90,6 +96,7 @@ export interface SiteConfig {
 	footer?: SiteFooter;
 	server?: SiteServer;
 	profiles?: Record<string, ProfileConfig>;
+	prebuild?: PrebuildHook[];
 }
 
 export interface Provenance {
@@ -121,6 +128,21 @@ export interface SlideContent extends SlideSegment {
 	sourcePath: string;
 	sourceUrlPath: string;
 	kind: "markdown" | "yaml" | "json";
+}
+
+export interface CollectSlidesOptions {
+	markdownTransform?: (raw: string, file: ContentFile) => Promise<string> | string;
+}
+
+export interface DataSnippet {
+	slot: string;
+	content: string;
+}
+
+export interface DataBindings {
+	globals: Record<string, string>;
+	inject: Record<string, string>;
+	snippets: DataSnippet[];
 }
 
 // ---------------------------------------------------------------------------
@@ -461,6 +483,27 @@ export function parseFrontmatter(content: string): {
 	return { frontmatter, body };
 }
 
+export function mergeFrontmatterWithBody(originalContent: string, body: string): string {
+	const normalized = originalContent.replace(/^\uFEFF/, "").replaceAll("\r\n", "\n");
+	const lines = normalized.split("\n");
+
+	let i = 0;
+	while (i < lines.length && lines[i].trim() === "") i += 1;
+	if (i >= lines.length || lines[i].trim() !== "---") {
+		return body;
+	}
+
+	i += 1;
+	while (i < lines.length && lines[i].trim() !== "---") {
+		i += 1;
+	}
+	if (i >= lines.length) return body;
+	i += 1; // consume closing ---
+
+	const prefix = lines.slice(0, i).join("\n");
+	return `${prefix}\n${body}`;
+}
+
 export function normalizeProfileTags(value: unknown): string[] {
 	if (Array.isArray(value)) {
 		return value
@@ -483,6 +526,285 @@ export function normalizeProfileTags(value: unknown): string[] {
 	}
 
 	return [stripQuotes(raw).toLowerCase()].filter((entry) => entry.length > 0);
+}
+
+function normalizePathForMatch(pathValue: string): string {
+	return pathValue
+		.replaceAll("\\", "/")
+		.replace(/^\.\/+/, "")
+		.replace(/^\/+/, "");
+}
+
+export function pagePathForData(siteRoot: string, docroot: string, filePath: string): string {
+	const relFromDocroot = normalizePathForMatch(relative(resolve(siteRoot, docroot), filePath));
+	if (relFromDocroot && !relFromDocroot.startsWith("../")) return relFromDocroot;
+	return normalizePathForMatch(relative(siteRoot, filePath));
+}
+
+function toStringRecord(raw: unknown): Record<string, string> {
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+	const result: Record<string, string> = {};
+	for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+		if (typeof value === "string") result[key] = value;
+		else if (typeof value === "number" || typeof value === "boolean") result[key] = String(value);
+	}
+	return result;
+}
+
+function toSnippetArray(raw: unknown): DataSnippet[] {
+	if (!Array.isArray(raw)) return [];
+	return raw
+		.map((item) => {
+			if (!item || typeof item !== "object") return null;
+			const entry = item as Record<string, unknown>;
+			if (typeof entry.slot !== "string" || typeof entry.content !== "string") return null;
+			return { slot: entry.slot, content: entry.content };
+		})
+		.filter((item): item is DataSnippet => !!item);
+}
+
+function validateSchemaNode(
+	value: unknown,
+	schema: unknown,
+	pathLabel: string,
+	dataPath: string,
+): void {
+	if (!schema || typeof schema !== "object") return;
+	const schemaObj = schema as Record<string, unknown>;
+	const type = typeof schemaObj.type === "string" ? schemaObj.type : undefined;
+
+	if (type) {
+		const valid =
+			(type === "object" && value !== null && typeof value === "object" && !Array.isArray(value)) ||
+			(type === "array" && Array.isArray(value)) ||
+			(type === "string" && typeof value === "string") ||
+			(type === "number" && typeof value === "number") ||
+			(type === "boolean" && typeof value === "boolean");
+		if (!valid) {
+			throw new Error(`schema validation failed at ${pathLabel} in ${dataPath}: expected ${type}`);
+		}
+	}
+
+	if (type === "string" && typeof value === "string" && typeof schemaObj.pattern === "string") {
+		const re = new RegExp(schemaObj.pattern);
+		if (!re.test(value)) {
+			throw new Error(
+				`schema validation failed at ${pathLabel} in ${dataPath}: value does not match pattern`,
+			);
+		}
+	}
+
+	if (type === "object" && value && typeof value === "object" && !Array.isArray(value)) {
+		const obj = value as Record<string, unknown>;
+		const required = Array.isArray(schemaObj.required)
+			? schemaObj.required.filter((key): key is string => typeof key === "string")
+			: [];
+		for (const key of required) {
+			if (!(key in obj)) {
+				throw new Error(`schema validation failed at ${pathLabel}.${key} in ${dataPath}: required`);
+			}
+		}
+		if (schemaObj.properties && typeof schemaObj.properties === "object") {
+			for (const [key, subSchema] of Object.entries(
+				schemaObj.properties as Record<string, unknown>,
+			)) {
+				if (key in obj) {
+					validateSchemaNode(obj[key], subSchema, `${pathLabel}.${key}`, dataPath);
+				}
+			}
+		}
+	}
+
+	if (type === "array" && Array.isArray(value) && schemaObj.items) {
+		for (const [idx, item] of value.entries()) {
+			validateSchemaNode(item, schemaObj.items, `${pathLabel}[${idx}]`, dataPath);
+		}
+	}
+}
+
+async function maybeValidateDataSchema(resolvedDataPath: string, parsed: unknown): Promise<void> {
+	const schemaPath = resolvedDataPath.replace(/\.(ya?ml|json)$/i, ".schema.json");
+	if (!(await exists(schemaPath))) return;
+
+	let schema: unknown;
+	try {
+		schema = JSON.parse(await readFile(schemaPath, "utf-8"));
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(`schema validation failed: invalid schema JSON ${schemaPath} (${message})`);
+	}
+
+	validateSchemaNode(parsed, schema, "$", normalizePathForMatch(schemaPath));
+}
+
+function parseNumeric(value: string, formatter: string, key: string, filePath: string): number {
+	const n = Number(value);
+	if (Number.isNaN(n)) {
+		throw new Error(
+			`${formatter} formatter: "${value}" is not a number (key "${key}" in ${filePath})`,
+		);
+	}
+	return n;
+}
+
+function applyFormatter(formatter: string, value: string, key: string, filePath: string): string {
+	const round = formatter.match(/^round\((\d+)\)$/);
+	if (round) {
+		const n = parseNumeric(value, formatter, key, filePath);
+		return n.toFixed(parseInt(round[1], 10));
+	}
+
+	switch (formatter) {
+		case "dollar": {
+			const n = parseNumeric(value, formatter, key, filePath);
+			return Number.isInteger(n)
+				? `$${n.toLocaleString("en-US")}`
+				: `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+		}
+		case "number":
+			return parseNumeric(value, formatter, key, filePath).toLocaleString("en-US");
+		case "percent":
+			return `${parseNumeric(value, formatter, key, filePath) * 100}%`;
+		case "upper":
+			return value.toUpperCase();
+		case "lower":
+			return value.toLowerCase();
+		default:
+			throw new Error(`unknown formatter "${formatter}" in ${filePath}`);
+	}
+}
+
+export async function loadDataBindings(
+	dataPath: string,
+	pagePath: string,
+	siteRoot: string,
+	docroot = ".",
+	dataroot = "data",
+): Promise<DataBindings> {
+	const siteRootReal = await realpath(siteRoot);
+	const normalizedDataPath = normalizePathForMatch(dataPath);
+	const dataDir = validatePath(siteRoot, ".", dataroot);
+	const resolved = validatePath(siteRoot, ".", normalizedDataPath);
+	if (!dataDir || !resolved) throw new Error(`data path escapes kitsite: ${dataPath}`);
+	if (!resolved.startsWith(`${dataDir}${sep}`) && resolved !== dataDir) {
+		throw new Error(`data path escapes dataroot: ${dataPath}`);
+	}
+	if (!(await exists(resolved))) {
+		throw new Error(`data file not found: ${dataPath}`);
+	}
+	const dataDirReal = await realpath(dataDir);
+	const resolvedReal = await realpath(resolved);
+	if (!dataDirReal.startsWith(`${siteRootReal}${sep}`) && dataDirReal !== siteRootReal) {
+		throw new Error(`data path escapes kitsite: ${dataPath}`);
+	}
+	if (!resolvedReal.startsWith(`${siteRootReal}${sep}`) && resolvedReal !== siteRootReal) {
+		throw new Error(`data path escapes kitsite: ${dataPath}`);
+	}
+	if (!resolvedReal.startsWith(`${dataDirReal}${sep}`) && resolvedReal !== dataDirReal) {
+		throw new Error(`data path escapes dataroot: ${dataPath}`);
+	}
+
+	const raw = await readFile(resolved, "utf-8");
+	const parsed = normalizedDataPath.endsWith(".json")
+		? JSON.parse(raw)
+		: (parseYaml(raw) as Record<string, unknown>);
+	await maybeValidateDataSchema(resolved, parsed);
+
+	const doc = parsed as Record<string, unknown>;
+	const globals = toStringRecord(doc.globals);
+	const normalizedPagePath = normalizePathForMatch(pagePath);
+	const rootRelativePagePath = normalizePathForMatch(
+		relative(siteRoot, resolve(siteRoot, docroot, normalizedPagePath)),
+	);
+	const pages = Array.isArray(doc.pages) ? doc.pages : [];
+	const pageEntry = pages.find((entry) => {
+		if (!entry || typeof entry !== "object") return false;
+		const pathValue = normalizePathForMatch((entry as Record<string, unknown>).path as string);
+		return pathValue === normalizedPagePath || pathValue === rootRelativePagePath;
+	}) as Record<string, unknown> | undefined;
+
+	return {
+		globals,
+		inject: pageEntry ? toStringRecord(pageEntry.inject) : {},
+		snippets: pageEntry ? toSnippetArray(pageEntry.snippets) : [],
+	};
+}
+
+export function resolveBindings(content: string, bindings: DataBindings, filePath: string): string {
+	const values = { ...bindings.globals, ...bindings.inject };
+
+	const resolvedSnippets = content.replace(
+		/\{\{\s*snippet:([A-Za-z0-9][\w-]*)\s*\}\}/g,
+		(_match, slot: string) => {
+			const snippet = bindings.snippets.find((entry) => entry.slot === slot);
+			if (!snippet) throw new Error(`unknown snippet "${slot}" in ${filePath}`);
+			return snippet.content;
+		},
+	);
+
+	return resolvedSnippets.replace(
+		/\{\{\s*([A-Za-z0-9][\w-]*)(\s*(?:\|[^}]+)?)\s*\}\}/g,
+		(_match, key: string, rawPipeline: string) => {
+			const value = values[key];
+			if (value === undefined) throw new Error(`unresolved binding "${key}" in ${filePath}`);
+			const steps = rawPipeline
+				.split("|")
+				.map((part) => part.trim())
+				.filter(Boolean);
+			return steps.reduce((acc, step) => applyFormatter(step, acc, key, filePath), value);
+		},
+	);
+}
+
+function commandForPlatform(command: string): string[] {
+	if (process.platform === "win32") return ["cmd", "/d", "/s", "/c", command];
+	return ["sh", "-lc", command];
+}
+
+export async function runPrebuildHooks(
+	hooks: PrebuildHook[],
+	siteRoot: string,
+	buildMode: "dev" | "build" | "bundle",
+	profile?: string,
+	dataroot = "data",
+	changedPath?: string,
+): Promise<number> {
+	if (!hooks.length) return 0;
+	const normalizedChangedPath = changedPath ? normalizePathForMatch(changedPath) : undefined;
+	const filteredHooks = normalizedChangedPath
+		? hooks.filter((hook) =>
+				Array.isArray(hook.watch)
+					? hook.watch.some((pattern) => globMatch(pattern, normalizedChangedPath))
+					: false,
+			)
+		: hooks;
+	if (!filteredHooks.length) return 0;
+
+	const normalizedDataDir = `${normalizePathForMatch(dataroot).replace(/\/+$/, "") || "data"}/`;
+	const env = {
+		...process.env,
+		KITFLY_SITE_ROOT: siteRoot,
+		KITFLY_DATA_DIR: normalizedDataDir,
+		KITFLY_BUILD_MODE: buildMode,
+		...(profile ? { KITFLY_PROFILE: profile } : {}),
+	};
+
+	for (const hook of filteredHooks) {
+		if (!hook.command) continue;
+		const result = Bun.spawnSync(commandForPlatform(hook.command), {
+			cwd: siteRoot,
+			env,
+			stdout: "inherit",
+			stderr: "pipe",
+		});
+		if (result.exitCode !== 0) {
+			const stderr = new TextDecoder().decode(result.stderr).trim();
+			const detail = stderr ? `\n${stderr}` : "";
+			throw new Error(`prebuild hook failed (exit ${result.exitCode}): ${hook.command}${detail}`);
+		}
+	}
+
+	return filteredHooks.length;
 }
 
 export async function filterByProfile(
@@ -966,7 +1288,10 @@ export function segmentSlides(content: string, fallbackTitle: string): SlideSegm
  * Collect slide content objects from discovered content files.
  * Markdown files can produce multiple slides via explicit delimiters.
  */
-export async function collectSlides(files: ContentFile[]): Promise<SlideContent[]> {
+export async function collectSlides(
+	files: ContentFile[],
+	options: CollectSlidesOptions = {},
+): Promise<SlideContent[]> {
 	const slides: SlideContent[] = [];
 	let index = 0;
 
@@ -975,7 +1300,8 @@ export async function collectSlides(files: ContentFile[]): Promise<SlideContent[
 		const stem = basename(file.path, extname(file.path));
 
 		if (file.path.endsWith(".md")) {
-			const segments = segmentSlides(raw, stem);
+			const markdown = options.markdownTransform ? await options.markdownTransform(raw, file) : raw;
+			const segments = segmentSlides(markdown, stem);
 			for (const segment of segments) {
 				index += 1;
 				slides.push({
@@ -2056,6 +2382,22 @@ function normalizeProfiles(raw: unknown): Record<string, ProfileConfig> | undefi
 	return Object.keys(profiles).length > 0 ? profiles : undefined;
 }
 
+function normalizePrebuild(raw: unknown): PrebuildHook[] | undefined {
+	if (!Array.isArray(raw)) return undefined;
+	const hooks = raw
+		.map((entry) => {
+			if (!entry || typeof entry !== "object") return null;
+			const record = entry as Record<string, unknown>;
+			if (typeof record.command !== "string" || !record.command.trim()) return null;
+			const watch = Array.isArray(record.watch)
+				? record.watch.filter((item): item is string => typeof item === "string" && !!item.trim())
+				: undefined;
+			return { command: record.command.trim(), watch };
+		})
+		.filter((hook): hook is PrebuildHook => !!hook);
+	return hooks.length > 0 ? hooks : undefined;
+}
+
 /**
  * Load site configuration with fallback chain
  * @param root - The root directory
@@ -2079,6 +2421,7 @@ export async function loadSiteConfig(
 
 		return {
 			docroot: parsed.docroot || ".",
+			dataroot: typeof parsedRecord.dataroot === "string" ? parsedRecord.dataroot : "data",
 			title: parsed.title,
 			version: typeof parsedRecord.version === "string" ? parsedRecord.version : undefined,
 			mode: parsedRecord.mode === "slides" ? "slides" : "docs",
@@ -2101,6 +2444,7 @@ export async function loadSiteConfig(
 			footer: normalizeFooter(parsedRecord.footer),
 			server: parsed.server,
 			profiles: normalizeProfiles(parsedRecord.profiles),
+			prebuild: normalizePrebuild(parsedRecord.prebuild),
 		};
 	} catch (e) {
 		if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
@@ -2129,6 +2473,7 @@ export async function loadSiteConfig(
 		if (sections.length > 0) {
 			return {
 				docroot: "content",
+				dataroot: "data",
 				title: "Documentation",
 				mode: "docs",
 				aspect: "16/9",
@@ -2143,6 +2488,7 @@ export async function loadSiteConfig(
 	// Final fallback
 	return {
 		docroot: ".",
+		dataroot: "data",
 		title: defaultTitle,
 		mode: "docs",
 		aspect: "16/9",

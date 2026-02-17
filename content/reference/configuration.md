@@ -59,6 +59,18 @@ docroot: "content"
 
 See [Folder Structure](structure.html) for details.
 
+### dataroot (v0.2.3+)
+
+Data directory used for frontmatter `data:` bindings.
+
+```yaml
+dataroot: "data"
+```
+
+Default: `data`
+
+`dataroot` must resolve inside the site root (no `../`, no absolute paths). Data files are loaded at build time and are not copied into output pages.
+
 ### title
 
 Site title. Appears in browser tab and header.
@@ -152,6 +164,24 @@ sections:
     path: "."
     files: ["README.md", "CHANGELOG.md"]
 ```
+
+### prebuild (v0.2.3+)
+
+Run generator commands before `dev`, `build`, and `bundle`.
+
+```yaml
+prebuild:
+  - command: "bun run scripts/generate-pricing-data.ts"
+    watch: ["data/raw/pricing-input.json"]
+  - command: "bun run scripts/generate-team-data.ts"
+```
+
+Rules:
+
+- Hooks run sequentially in declared order.
+- Non-zero exit halts the command with hook stderr.
+- In dev mode, `watch:` patterns re-run matching hooks on file changes.
+- Kitfly sets `KITFLY_SITE_ROOT`, `KITFLY_DATA_DIR`, `KITFLY_BUILD_MODE`, and `KITFLY_PROFILE` (when active).
 
 ### footer
 
@@ -253,11 +283,21 @@ last_updated: "2026-02-03"
 # Content starts here
 ```
 
-| Field          | Purpose                         |
-| -------------- | ------------------------------- |
-| `title`        | Page title (overrides filename) |
-| `description`  | Meta description                |
-| `last_updated` | Shown in page footer            |
+| Field          | Purpose                                                             |
+| -------------- | ------------------------------------------------------------------- |
+| `title`        | Page title (overrides filename)                                     |
+| `description`  | Meta description                                                    |
+| `last_updated` | Shown in page footer                                                |
+| `data`         | Data file for `{{ key }}` / `{{ snippet:name }}` bindings (v0.2.3+) |
+
+Example:
+
+```yaml
+---
+title: "Pricing"
+data: "data/pricing.yaml"
+---
+```
 
 ## No Configuration
 

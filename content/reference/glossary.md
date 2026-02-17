@@ -90,3 +90,23 @@ A named value provided to commands and apps by your shell or host platform (ofte
 ## Secret
 
 A sensitive value (token/key/password) that should not be committed to git and should be stored in a secret manager or environment variable.
+
+## Kitsite
+
+The workspace Kitfly renders: typically contains `site.yaml`, content files, and optional `data/` + `scripts/`.
+
+## Generator
+
+A script that transforms external data into Kitfly’s file contract (usually writes `data/*.yaml` or `data/*.json`).
+
+## Data binding
+
+Build-time substitution from a bound data file into markdown (`{{ key }}` and `{{ snippet:name }}`).
+
+## Formatter
+
+A deterministic value transform in bindings (for example `dollar`, `number`, `percent`, `round(n)`, `upper`, `lower`).
+
+## Snippet
+
+A named markdown block in a data file that can be injected with `{{ snippet:name }}`.

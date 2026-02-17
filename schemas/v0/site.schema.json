@@ -22,6 +22,11 @@
       "description": "Root directory for content (relative to repo root)",
       "default": "."
     },
+    "dataroot": {
+      "type": "string",
+      "description": "Root directory for data binding files (relative to repo root)",
+      "default": "data"
+    },
     "title": {
       "type": "string",
       "description": "Site title shown in browser tab and header",
@@ -240,6 +245,30 @@
         }
       },
       "additionalProperties": false
+    },
+    "prebuild": {
+      "type": "array",
+      "description": "Commands to run before dev/build/bundle",
+      "items": {
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command to execute"
+          },
+          "watch": {
+            "type": "array",
+            "description": "File patterns that re-run this hook in dev mode",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

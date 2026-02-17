@@ -103,6 +103,22 @@ Kitfly will serve and bundle common “content-adjacent” assets referenced fro
 
 Rule of thumb: if it lives next to your docs, Kitfly tries to do the right thing.
 
+## Data bindings (v0.2.3+)
+
+A page can opt into build-time bindings by setting `data:` in frontmatter.
+
+- `{{ key }}` resolves scalar values from a data file.
+- `{{ snippet:name }}` injects a named markdown block.
+- Formatters like `dollar`, `number`, `percent`, `round(n)`, `upper`, `lower` apply with pipe syntax.
+
+No loops/conditionals are supported in bindings. If you need logic, use a generator script and write data files before render.
+
+## Pre-build hooks (v0.2.3+)
+
+`prebuild:` commands in `site.yaml` run before `dev`, `build`, and `bundle`.
+
+Use hooks for generators (CSV/API/etc. to `data/*.yaml` or `data/*.json`). In dev mode, hook `watch:` patterns can re-run hooks when source files change.
+
 ## Provenance
 
 Kitfly can emit provenance information (version/build date/git info) so you can answer “what did we ship?”.

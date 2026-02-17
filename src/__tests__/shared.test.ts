@@ -2,7 +2,7 @@
  * Basic tests for shared utilities
  */
 
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,12 +31,16 @@ import {
 	generateProvenance,
 	getGitInfo,
 	KITFLY_BRAND,
+	loadDataBindings,
 	loadSiteConfig,
+	mergeFrontmatterWithBody,
 	normalizeProfileTags,
 	type Provenance,
+	pagePathForData,
 	parseFrontmatter,
 	parseValue,
 	parseYaml,
+	resolveBindings,
 	resolveSiteVersion,
 	rewriteRelativeAssetUrls,
 	type SiteConfig,
@@ -180,6 +184,157 @@ describe("filterByProfile", () => {
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("data bindings", () => {
+	it("resolves values and snippets with formatter chains", () => {
+		const bound = resolveBindings(
+			[
+				"Rate: {{ baseline | dollar }}",
+				"Pct: {{ ratio | percent }}",
+				"Rounded: {{ pi | round(2) }}",
+				"Upper: {{ label | upper }}",
+				"Chain: {{ baseline | round(0) | dollar }}",
+				"{{ snippet:table }}",
+			].join("\n"),
+			{
+				globals: { baseline: "1500", ratio: "0.125", pi: "3.14159" },
+				inject: { label: "pricing" },
+				snippets: [{ slot: "table", content: "| A | B |\n|---|---|" }],
+			},
+			"product/pricing.md",
+		);
+		expect(bound).toContain("Rate: $1,500");
+		expect(bound).toContain("Pct: 12.5%");
+		expect(bound).toContain("Rounded: 3.14");
+		expect(bound).toContain("Upper: PRICING");
+		expect(bound).toContain("Chain: $1,500");
+		expect(bound).toContain("| A | B |");
+	});
+
+	it("throws on unresolved keys, unknown snippets, and unknown formatters", () => {
+		expect(() =>
+			resolveBindings("{{ missing }}", { globals: {}, inject: {}, snippets: [] }, "x.md"),
+		).toThrow(/unresolved binding/);
+		expect(() =>
+			resolveBindings("{{ snippet:nope }}", { globals: {}, inject: {}, snippets: [] }, "x.md"),
+		).toThrow(/unknown snippet/);
+		expect(() =>
+			resolveBindings(
+				"{{ n | custom }}",
+				{ globals: { n: "1" }, inject: {}, snippets: [] },
+				"x.md",
+			),
+		).toThrow(/unknown formatter/);
+	});
+});
+
+describe("loadDataBindings", () => {
+	it("loads page-level inject/snippets and validates optional schema", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-data-"));
+		try {
+			await mkdir(join(root, "content", "product"), { recursive: true });
+			await mkdir(join(root, "data"), { recursive: true });
+			await writeFile(
+				join(root, "data", "pricing.yaml"),
+				[
+					"globals:",
+					'  baseline: "200"',
+					"pages:",
+					"  - path: product/pricing.md",
+					"    inject:",
+					'      hero: "Implementation costs"',
+					"    snippets:",
+					"      - slot: pricing-table",
+					"        content: |",
+					"          | Tier | Price |",
+				].join("\n"),
+			);
+			await writeFile(
+				join(root, "data", "pricing.schema.json"),
+				JSON.stringify(
+					{
+						type: "object",
+						required: ["globals", "pages"],
+						properties: {
+							globals: {
+								type: "object",
+								required: ["baseline"],
+								properties: {
+									baseline: { type: "string", pattern: "^[0-9]+$" },
+								},
+							},
+							pages: { type: "array" },
+						},
+					},
+					null,
+					2,
+				),
+			);
+
+			const pagePath = pagePathForData(
+				root,
+				"content",
+				join(root, "content", "product", "pricing.md"),
+			);
+			const bindings = await loadDataBindings(
+				"data/pricing.yaml",
+				pagePath,
+				root,
+				"content",
+				"data",
+			);
+			expect(bindings.globals.baseline).toBe("200");
+			expect(bindings.inject.hero).toBe("Implementation costs");
+			expect(bindings.snippets[0].slot).toBe("pricing-table");
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects data paths that escape dataroot", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-data-"));
+		try {
+			await mkdir(join(root, "data"), { recursive: true });
+			await writeFile(join(root, "outside.yaml"), 'globals:\n  x: "1"\n');
+			await expect(loadDataBindings("../outside.yaml", "a.md", root, ".", "data")).rejects.toThrow(
+				/data path escapes/,
+			);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects symlinked dataroot that escapes site root", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-data-"));
+		const outside = await mkdtemp(join(tmpdir(), "kitfly-outside-"));
+		try {
+			await mkdir(join(root, "content"), { recursive: true });
+			await writeFile(join(outside, "pricing.yaml"), 'globals:\n  x: "1"\n');
+			await symlink(outside, join(root, "data"));
+			await expect(
+				loadDataBindings("data/pricing.yaml", "pricing.md", root, "content", "data"),
+			).rejects.toThrow(/data path escapes kitsite/);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+			await rm(outside, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("mergeFrontmatterWithBody", () => {
+	it("preserves original frontmatter text while replacing body", () => {
+		const original = `---
+title: "A # B"
+tags: [a, b]
+---
+
+# Old`;
+		const merged = mergeFrontmatterWithBody(original, "# New");
+		expect(merged).toContain('title: "A # B"');
+		expect(merged).toContain("tags: [a, b]");
+		expect(merged.endsWith("# New")).toBe(true);
 	});
 });
 
