@@ -82,17 +82,20 @@ Usage:
 Dev options:
   --port <n>    Server port [env: KITFLY_DEV_PORT] (default: 3333)
   --host <h>    Server host [env: KITFLY_DEV_HOST] (default: localhost)
+  --profile <p> Active content profile [env: KITFLY_PROFILE]
   --daemon, -d  Run in background, return immediately
   --json        Output JSON (implies --daemon)
   --no-open     Don't open browser
 
 Build options:
   --out <dir>   Output directory [env: KITFLY_BUILD_OUT] (default: dist)
+  --profile <p> Active content profile [env: KITFLY_PROFILE]
   --no-raw      Don't include raw markdown
 
 Bundle options:
   --out <dir>   Output directory [env: KITFLY_BUNDLE_OUT] (default: bundles)
   --name <file> Bundle filename (default: bundle.html)
+  --profile <p> Active content profile [env: KITFLY_PROFILE]
   --no-raw      Don't include raw markdown [env: KITFLY_BUNDLE_RAW]
 
 Stop options:
@@ -204,6 +207,7 @@ async function main() {
 			}
 
 			const host = (flags.host as string) || "localhost";
+			const profile = (flags.profile as string | undefined) ?? process.env.KITFLY_PROFILE;
 
 			// Warn if binding to all interfaces
 			if (host === "0.0.0.0" || host === "::") {
@@ -284,7 +288,8 @@ async function main() {
 				// Build command with shell redirection for logging
 				// Pass --log-format structured so dev.ts enables structured request logging
 				// Use nohup to prevent SIGHUP on terminal close
-				const shellCmd = `nohup bun run "${devScript}" "${folder}" --port ${port} --host "${host}" --no-open --log-format structured > "${logPath}" 2>&1 &`;
+				const profileArg = profile ? ` --profile "${profile}"` : "";
+				const shellCmd = `nohup bun run "${devScript}" "${folder}" --port ${port} --host "${host}"${profileArg} --no-open --log-format structured > "${logPath}" 2>&1 &`;
 
 				const proc = Bun.spawn(["sh", "-c", shellCmd], {
 					cwd: process.cwd(),
@@ -348,7 +353,7 @@ async function main() {
 			} else {
 				// Foreground mode: run directly
 				const { dev } = await import("../scripts/dev.ts");
-				await dev({ folder, port, host, open });
+				await dev({ folder, port, host, open, profile });
 			}
 			break;
 		}
@@ -357,8 +362,9 @@ async function main() {
 			const folder = positional[0] || ".";
 			const out = (flags.out as string) || "dist";
 			const raw = flags.raw !== false; // --no-raw disables raw markdown
+			const profile = (flags.profile as string | undefined) ?? process.env.KITFLY_PROFILE;
 			const { build } = await import("../scripts/build.ts");
-			await build({ folder, out, raw });
+			await build({ folder, out, raw, profile });
 			break;
 		}
 
@@ -367,8 +373,9 @@ async function main() {
 			const out = (flags.out as string) || "bundles";
 			const name = (flags.name as string) || "bundle.html";
 			const raw = flags.raw !== false; // --no-raw disables raw markdown
+			const profile = (flags.profile as string | undefined) ?? process.env.KITFLY_PROFILE;
 			const { bundleSite } = await import("../scripts/bundle.ts");
-			await bundleSite({ folder, out, name, raw });
+			await bundleSite({ folder, out, name, raw, profile });
 			break;
 		}
 

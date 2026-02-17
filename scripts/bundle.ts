@@ -6,6 +6,7 @@
  * Options:
  *   -o, --out <dir>    Output directory [env: KITFLY_BUNDLE_OUT] [default: bundles]
  *   -n, --name <file>  Bundle filename [env: KITFLY_BUNDLE_NAME] [default: bundle.html]
+ *   --profile <name>   Active content profile [env: KITFLY_PROFILE]
  *   --raw              Include raw markdown in bundle [env: KITFLY_BUNDLE_RAW] [default: true]
  *   --no-raw           Don't include raw markdown
  *   --help             Show help message
@@ -34,6 +35,7 @@ import {
 	envString,
 	// Formatting
 	escapeHtml,
+	filterByProfile,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// YAML/Config parsing
 	loadSiteConfig,
@@ -56,6 +58,7 @@ const DEFAULT_NAME = "bundle.html";
 let ROOT = process.cwd();
 let OUT_DIR = DEFAULT_OUT;
 let BUNDLE_NAME = DEFAULT_NAME;
+let ACTIVE_PROFILE: string | undefined;
 
 function normalizeMsysPath(p: string): string {
 	// Git Bash / MSYS-style paths: /c/Users/... -> C:\Users\...
@@ -74,6 +77,7 @@ interface ParsedArgs {
 	out?: string;
 	name?: string;
 	raw?: boolean;
+	profile?: string;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -87,6 +91,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 			i++;
 		} else if ((arg === "--name" || arg === "-n") && next && !next.startsWith("-")) {
 			result.name = next;
+			i++;
+		} else if (arg === "--profile" && next && !next.startsWith("-")) {
+			result.profile = next;
 			i++;
 		} else if (arg === "--raw") {
 			result.raw = true;
@@ -104,6 +111,7 @@ function getConfig(): {
 	out: string;
 	name: string;
 	raw: boolean;
+	profile?: string;
 } {
 	const args = parseArgs(process.argv.slice(2));
 	const legacyOut = envString("KITFLY_BUILD_OUT", DEFAULT_OUT);
@@ -115,6 +123,7 @@ function getConfig(): {
 		out,
 		name: args.name ?? envString("KITFLY_BUNDLE_NAME", DEFAULT_NAME),
 		raw,
+		profile: args.profile ?? process.env.KITFLY_PROFILE,
 	};
 }
 
@@ -500,7 +509,11 @@ async function bundle() {
 	console.log(`  ✓ Loaded theme: "${theme.name || "default"}"`);
 	const prismUrls = getPrismUrls(theme);
 
-	const files = await collectFiles(ROOT, config);
+	const files = await filterByProfile(
+		await collectFiles(ROOT, config),
+		ACTIVE_PROFILE,
+		config.profiles,
+	);
 	if (files.length === 0) {
 		console.error("No content files found. Cannot create bundle.");
 		process.exit(1);
@@ -925,6 +938,7 @@ export interface BundleOptions {
 	out?: string;
 	name?: string;
 	raw?: boolean; // Include raw markdown in bundle (default: true)
+	profile?: string;
 }
 
 let INCLUDE_RAW = true;
@@ -954,6 +968,7 @@ export async function bundleSite(options: BundleOptions = {}) {
 	if (options.raw === false) {
 		INCLUDE_RAW = false;
 	}
+	ACTIVE_PROFILE = options.profile;
 	await bundle();
 }
 
@@ -966,6 +981,7 @@ Usage: bun run bundle [folder] [options]
 Options:
   -o, --out <dir>       Output directory [env: KITFLY_BUNDLE_OUT] [default: ${DEFAULT_OUT}]
   -n, --name <file>     Bundle filename [env: KITFLY_BUNDLE_NAME] [default: ${DEFAULT_NAME}]
+  --profile <name>      Active content profile [env: KITFLY_PROFILE]
   --raw                 Include raw markdown in bundle [env: KITFLY_BUNDLE_RAW] [default: true]
   --no-raw              Don't include raw markdown
   --help                Show this help message
@@ -987,5 +1003,6 @@ Examples:
 		out: cfg.out,
 		name: cfg.name,
 		raw: cfg.raw,
+		profile: cfg.profile,
 	}).catch(console.error);
 }

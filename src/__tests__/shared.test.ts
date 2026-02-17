@@ -25,12 +25,14 @@ import {
 	envString,
 	escapeHtml,
 	exists,
+	filterByProfile,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	formatDate,
 	generateProvenance,
 	getGitInfo,
 	KITFLY_BRAND,
 	loadSiteConfig,
+	normalizeProfileTags,
 	type Provenance,
 	parseFrontmatter,
 	parseValue,
@@ -102,6 +104,82 @@ description: A test page
 		const { frontmatter, body } = parseFrontmatter(content);
 		expect(frontmatter.title).toBe("Slide Two");
 		expect(body.trim()).toBe("# Two");
+	});
+});
+
+describe("normalizeProfileTags", () => {
+	it("parses scalar and array-like profile tags", () => {
+		expect(normalizeProfileTags("alpha")).toEqual(["alpha"]);
+		expect(normalizeProfileTags("[alpha, beta]")).toEqual(["alpha", "beta"]);
+		expect(normalizeProfileTags(["alpha", "beta"])).toEqual(["alpha", "beta"]);
+	});
+
+	it("normalizes whitespace, quotes, and case", () => {
+		expect(normalizeProfileTags('["Alpha", \'beta\']')).toEqual(["alpha", "beta"]);
+	});
+});
+
+describe("filterByProfile", () => {
+	it("keeps all files when profiles are not configured", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-profile-"));
+		try {
+			const alwaysPath = join(root, "always.md");
+			const alphaPath = join(root, "alpha.md");
+			const bothPath = join(root, "both.md");
+			const betaPath = join(root, "beta.md");
+			await writeFile(alwaysPath, "# Always");
+			await writeFile(alphaPath, "---\nprofile: alpha\n---\n# Alpha");
+			await writeFile(bothPath, "---\nprofile: [alpha, beta]\n---\n# Both");
+			await writeFile(betaPath, "---\nprofile: beta\n---\n# Beta");
+
+			const files: ContentFile[] = [
+				{ path: alwaysPath, urlPath: "always", section: "Docs" },
+				{ path: alphaPath, urlPath: "alpha", section: "Docs" },
+				{ path: bothPath, urlPath: "both", section: "Docs" },
+				{ path: betaPath, urlPath: "beta", section: "Docs" },
+			];
+
+			const noProfile = await filterByProfile(files);
+			expect(noProfile.map((f) => f.urlPath)).toEqual(["always", "alpha", "both", "beta"]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("filters tagged files when profiles are configured", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-profile-"));
+		try {
+			const alwaysPath = join(root, "always.md");
+			const alphaPath = join(root, "alpha.md");
+			const bothPath = join(root, "both.md");
+			const betaPath = join(root, "beta.md");
+			await writeFile(alwaysPath, "# Always");
+			await writeFile(alphaPath, "---\nprofile: alpha\n---\n# Alpha");
+			await writeFile(bothPath, "---\nprofile: [alpha, beta]\n---\n# Both");
+			await writeFile(betaPath, "---\nprofile: beta\n---\n# Beta");
+
+			const files: ContentFile[] = [
+				{ path: alwaysPath, urlPath: "always", section: "Docs" },
+				{ path: alphaPath, urlPath: "alpha", section: "Docs" },
+				{ path: bothPath, urlPath: "both", section: "Docs" },
+				{ path: betaPath, urlPath: "beta", section: "Docs" },
+			];
+			const profiles = {
+				alpha: { include: { tags: ["alpha"] } },
+				beta: { include: { tags: ["beta"] } },
+			};
+
+			const noProfile = await filterByProfile(files, undefined, profiles);
+			expect(noProfile.map((f) => f.urlPath)).toEqual(["always"]);
+
+			const alphaProfile = await filterByProfile(files, "alpha", profiles);
+			expect(alphaProfile.map((f) => f.urlPath)).toEqual(["always", "alpha", "both"]);
+
+			const betaProfile = await filterByProfile(files, "beta", profiles);
+			expect(betaProfile.map((f) => f.urlPath)).toEqual(["always", "both", "beta"]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
 	});
 });
 

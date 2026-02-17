@@ -6,6 +6,7 @@
  * Options:
  *   -p, --port <number>   Port to serve on [env: KITFLY_DEV_PORT] [default: 3333]
  *   -H, --host <string>   Host to bind to [env: KITFLY_DEV_HOST] [default: localhost]
+ *   --profile <name>      Active content profile [env: KITFLY_PROFILE]
  *   -o, --open            Open browser on start [env: KITFLY_DEV_OPEN] [default: true]
  *   --no-open             Don't open browser
  *   --help                Show help message
@@ -33,6 +34,8 @@ import {
 	buildPageMeta,
 	buildSlideNavHierarchical,
 	buildToc,
+	// Types
+	type ContentFile,
 	// Network utilities
 	checkPortOrExit,
 	// Navigation/template building
@@ -44,6 +47,7 @@ import {
 	envString,
 	// Formatting
 	escapeHtml,
+	filterByProfile,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
@@ -56,10 +60,8 @@ import {
 	resolveStylesPath,
 	resolveTemplatePath,
 	rewriteRelativeAssetUrls,
-	// Types
 	type SiteConfig,
 	slugify,
-	toUrlPath,
 	validatePath,
 	validateSlidesVisualsFences,
 } from "../src/shared.ts";
@@ -74,6 +76,7 @@ let HOST = DEFAULT_HOST;
 let ROOT = process.cwd();
 let OPEN_BROWSER = true;
 let LOG_FORMAT = ""; // "structured" when invoked by CLI daemon
+let ACTIVE_PROFILE: string | undefined;
 
 // Structured logger for daemon mode — set during main() init.
 // When null, all output goes through console.log (standalone mode).
@@ -159,6 +162,7 @@ interface ParsedArgs {
 	open?: boolean;
 	folder?: string;
 	logFormat?: string;
+	profile?: string;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -175,6 +179,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 			i++;
 		} else if (arg === "--log-format") {
 			result.logFormat = next;
+			i++;
+		} else if (arg === "--profile" && next && !next.startsWith("-")) {
+			result.profile = next;
 			i++;
 		} else if (arg === "--open" || arg === "-o") {
 			result.open = true;
@@ -193,6 +200,7 @@ function getConfig(): {
 	open: boolean;
 	folder?: string;
 	logFormat?: string;
+	profile?: string;
 } {
 	const args = parseArgs(process.argv.slice(2));
 	return {
@@ -201,7 +209,13 @@ function getConfig(): {
 		open: args.open ?? envBool("KITFLY_DEV_OPEN", true),
 		folder: args.folder,
 		logFormat: args.logFormat,
+		profile: args.profile ?? process.env.KITFLY_PROFILE,
 	};
+}
+
+async function getFilteredFiles(config: SiteConfig): Promise<ContentFile[]> {
+	const files = await collectFiles(ROOT, config);
+	return filterByProfile(files, ACTIVE_PROFILE, config.profiles);
 }
 
 function getContentType(filePath: string): string {
@@ -358,7 +372,7 @@ async function renderPage(
 		htmlContent = marked.parse(body) as string;
 	}
 
-	const files = await collectFiles(ROOT, config);
+	const files = await getFilteredFiles(config);
 	const currentUrlPath = urlPath.slice(1).replace(/\.html$/, "");
 	const pathPrefix = "/";
 	const nav = buildNavSimple(files, config, currentUrlPath);
@@ -433,7 +447,7 @@ async function renderSlidesPage(
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const template = await readFile(await resolveTemplatePath(ROOT), "utf-8");
-	const files = await collectFiles(ROOT, config);
+	const files = await getFilteredFiles(config);
 	const slides = await collectSlides(files);
 
 	if (slides.length === 0) {
@@ -681,9 +695,11 @@ async function tryServeContentAsset(
 }
 
 // Find file for a URL path
-async function findFile(urlPath: string, config: SiteConfig): Promise<string | null> {
-	const { stat } = await import("node:fs/promises");
-
+async function findFile(
+	urlPath: string,
+	config: SiteConfig,
+	files: ContentFile[],
+): Promise<string | null> {
 	// Remove leading slash and .html extension (for compatibility with built links)
 	const path = urlPath.slice(1).replace(/\.html$/, "") || "";
 
@@ -691,84 +707,20 @@ async function findFile(urlPath: string, config: SiteConfig): Promise<string | n
 	if (!path) {
 		if (config.home) {
 			const homePath = validatePath(ROOT, config.docroot, config.home, true);
-			if (homePath) {
-				try {
-					await stat(homePath);
-					return homePath;
-				} catch {
-					// Home file not found, fall through
-				}
-			}
+			const homeFile = homePath ? files.find((file) => file.path === homePath) : undefined;
+			if (homeFile) return homeFile.path;
 		}
 		// Fallback to first file
-		const files = await collectFiles(ROOT, config);
 		return files.length > 0 ? files[0].path : null;
 	}
 
-	// Check configured sections
-	for (const section of config.sections) {
-		const sectionPath = validatePath(ROOT, config.docroot, section.path, true);
-		if (!sectionPath) continue;
+	const directMatch = files.find((file) => file.urlPath === path);
+	if (directMatch) return directMatch.path;
 
-		if (section.files) {
-			// Check explicit files
-			for (const file of section.files) {
-				const name = file.replace(/\.(md|yaml|json)$/, "").toLowerCase();
-				if (name === path) {
-					const filePath = join(sectionPath, file);
-					try {
-						await stat(filePath);
-						return filePath;
-					} catch {
-						// Continue
-					}
-				}
-			}
-		} else {
-			// Check directory for matching file (supports nested paths)
-			const urlBase = toUrlPath(ROOT, sectionPath);
-			if (path.startsWith(`${urlBase}/`) || path === urlBase) {
-				const relPath = path === urlBase ? "" : path.slice(urlBase.length + 1);
-				// Guard against path traversal
-				if (relPath.includes("..")) continue;
-				const extensions = [".md", ".yaml", ".json"];
-
-				if (relPath === "") {
-					// Section root URL — try index file
-					for (const ext of extensions) {
-						const filePath = join(sectionPath, `index${ext}`);
-						try {
-							await stat(filePath);
-							return filePath;
-						} catch {
-							// Continue
-						}
-					}
-				} else {
-					// Try direct file match at nested path
-					for (const ext of extensions) {
-						const filePath = join(sectionPath, relPath + ext);
-						try {
-							await stat(filePath);
-							return filePath;
-						} catch {
-							// Continue
-						}
-					}
-					// Try as directory with index file
-					for (const ext of extensions) {
-						const filePath = join(sectionPath, relPath, `index${ext}`);
-						try {
-							await stat(filePath);
-							return filePath;
-						} catch {
-							// Continue
-						}
-					}
-				}
-			}
-		}
-	}
+	const sectionIndex = files.find(
+		(file) => file.urlPath === `${path}/index` || file.urlPath === path,
+	);
+	if (sectionIndex) return sectionIndex.path;
 
 	return null;
 }
@@ -913,7 +865,7 @@ async function main() {
 		if (assetResponse) return assetResponse;
 
 		// Check for content
-		const files = await collectFiles(ROOT, config);
+		const files = await getFilteredFiles(config);
 		if (files.length === 0) {
 			// No content - render Getting Started page
 			const html = await renderGettingStarted(provenance, config, theme);
@@ -931,7 +883,7 @@ async function main() {
 		}
 
 		// Find and render markdown/yaml file
-		const filePath = await findFile(url.pathname, config);
+		const filePath = await findFile(url.pathname, config, files);
 		if (filePath) {
 			// If this is an index/readme file and the URL lacks a trailing slash,
 			// redirect so relative links resolve correctly (BUG-003)
@@ -1079,6 +1031,7 @@ export interface DevOptions {
 	host?: string;
 	open?: boolean;
 	logFormat?: string;
+	profile?: string;
 }
 
 export async function dev(options: DevOptions = {}) {
@@ -1097,6 +1050,7 @@ export async function dev(options: DevOptions = {}) {
 	if (options.logFormat) {
 		LOG_FORMAT = options.logFormat;
 	}
+	ACTIVE_PROFILE = options.profile;
 	await main();
 }
 
@@ -1110,6 +1064,7 @@ Usage: bun run dev [folder] [options]
 Options:
   -p, --port <number>   Port to serve on [env: KITFLY_DEV_PORT] [default: ${DEFAULT_PORT}]
   -H, --host <string>   Host to bind to [env: KITFLY_DEV_HOST] [default: ${DEFAULT_HOST}]
+  --profile <name>      Active content profile [env: KITFLY_PROFILE]
   -o, --open            Open browser on start [env: KITFLY_DEV_OPEN] [default: true]
   --no-open             Don't open browser
   --help                Show this help message
@@ -1131,5 +1086,6 @@ Examples:
 		host: cfg.host,
 		open: cfg.open,
 		logFormat: cfg.logFormat,
+		profile: cfg.profile,
 	}).catch(console.error);
 }

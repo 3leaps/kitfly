@@ -5,6 +5,7 @@
  *
  * Options:
  *   -o, --out <dir>   Output directory [env: KITFLY_BUILD_OUT] [default: dist]
+ *   --profile <name>  Active content profile [env: KITFLY_PROFILE]
  *   --raw             Include raw markdown files [env: KITFLY_BUILD_RAW] [default: true]
  *   --no-raw          Don't include raw markdown files
  *   --help            Show help message
@@ -36,6 +37,7 @@ import {
 	escapeHtml,
 	// File utilities
 	exists,
+	filterByProfile,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
@@ -61,6 +63,7 @@ const DEFAULT_OUT = "dist";
 
 let ROOT = process.cwd();
 let OUT_DIR = DEFAULT_OUT;
+let ACTIVE_PROFILE: string | undefined;
 
 function normalizeMsysPath(p: string): string {
 	// Git Bash / MSYS-style paths: /c/Users/... -> C:\Users\...
@@ -78,6 +81,7 @@ interface ParsedArgs {
 	folder?: string;
 	out?: string;
 	raw?: boolean;
+	profile?: string;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -88,6 +92,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 
 		if ((arg === "--out" || arg === "-o") && next && !next.startsWith("-")) {
 			result.out = next;
+			i++;
+		} else if (arg === "--profile" && next && !next.startsWith("-")) {
+			result.profile = next;
 			i++;
 		} else if (arg === "--raw") {
 			result.raw = true;
@@ -100,12 +107,13 @@ function parseArgs(argv: string[]): ParsedArgs {
 	return result;
 }
 
-function getConfig(): { folder?: string; out: string; raw: boolean } {
+function getConfig(): { folder?: string; out: string; raw: boolean; profile?: string } {
 	const args = parseArgs(process.argv.slice(2));
 	return {
 		folder: args.folder,
 		out: args.out ?? envString("KITFLY_BUILD_OUT", DEFAULT_OUT),
 		raw: args.raw ?? envBool("KITFLY_BUILD_RAW", true),
+		profile: args.profile ?? process.env.KITFLY_PROFILE,
 	};
 }
 
@@ -479,6 +487,7 @@ export interface BuildOptions {
 	folder?: string;
 	out?: string;
 	raw?: boolean; // Include raw markdown files (default: true)
+	profile?: string;
 }
 
 let INCLUDE_RAW = true;
@@ -493,6 +502,7 @@ export async function build(options: BuildOptions = {}) {
 	if (options.raw === false) {
 		INCLUDE_RAW = false;
 	}
+	ACTIVE_PROFILE = options.profile;
 	await buildSite();
 }
 
@@ -562,7 +572,11 @@ async function buildSite() {
 	}
 
 	// Collect and render all files
-	const files = await collectFiles(ROOT, config);
+	const files = await filterByProfile(
+		await collectFiles(ROOT, config),
+		ACTIVE_PROFILE,
+		config.profiles,
+	);
 
 	if (files.length === 0) {
 		// No content - render Getting Started page
@@ -796,6 +810,7 @@ Usage: bun run build [folder] [options]
 
 Options:
   -o, --out <dir>       Output directory [env: KITFLY_BUILD_OUT] [default: ${DEFAULT_OUT}]
+  --profile <name>      Active content profile [env: KITFLY_PROFILE]
   --raw                 Include raw markdown files [env: KITFLY_BUILD_RAW] [default: true]
   --no-raw              Don't include raw markdown files
   --help                Show this help message
@@ -815,5 +830,6 @@ Examples:
 		folder: cfg.folder,
 		out: cfg.out,
 		raw: cfg.raw,
+		profile: cfg.profile,
 	}).catch(console.error);
 }

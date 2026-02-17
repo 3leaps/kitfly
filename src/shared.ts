@@ -68,6 +68,13 @@ export interface SiteServer {
 	host?: string; // Default dev server host
 }
 
+export interface ProfileConfig {
+	description?: string;
+	include?: {
+		tags?: string[];
+	};
+}
+
 export type SiteMode = "docs" | "slides";
 export type SlideAspect = "16/9" | "4/3" | "3/2" | "16/10";
 
@@ -82,6 +89,7 @@ export interface SiteConfig {
 	sections: SiteSection[];
 	footer?: SiteFooter;
 	server?: SiteServer;
+	profiles?: Record<string, ProfileConfig>;
 }
 
 export interface Provenance {
@@ -451,6 +459,74 @@ export function parseFrontmatter(content: string): {
 	}
 
 	return { frontmatter, body };
+}
+
+export function normalizeProfileTags(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value
+			.filter((entry): entry is string => typeof entry === "string")
+			.map((entry) => entry.trim().toLowerCase())
+			.filter((entry) => entry.length > 0);
+	}
+
+	if (typeof value !== "string") return [];
+	const raw = value.trim();
+	if (!raw) return [];
+
+	if (raw.startsWith("[") && raw.endsWith("]")) {
+		const inner = raw.slice(1, -1).trim();
+		if (!inner) return [];
+		return inner
+			.split(",")
+			.map((entry) => stripQuotes(entry.trim()).toLowerCase())
+			.filter((entry) => entry.length > 0);
+	}
+
+	return [stripQuotes(raw).toLowerCase()].filter((entry) => entry.length > 0);
+}
+
+export async function filterByProfile(
+	files: ContentFile[],
+	activeProfile?: string,
+	profileConfig?: Record<string, ProfileConfig>,
+): Promise<ContentFile[]> {
+	const normalizedProfile = activeProfile?.trim().toLowerCase();
+	const hasProfilesConfig = !!profileConfig && Object.keys(profileConfig).length > 0;
+	if (!normalizedProfile && !hasProfilesConfig) {
+		// Backward compatibility: no profiles configured means no filtering at all.
+		return files;
+	}
+
+	let allowedTags = normalizedProfile ? [normalizedProfile] : [];
+	if (normalizedProfile && profileConfig?.[normalizedProfile]?.include?.tags) {
+		allowedTags = normalizeProfileTags(profileConfig[normalizedProfile].include?.tags ?? []);
+	}
+
+	const filtered: ContentFile[] = [];
+	for (const file of files) {
+		let content = "";
+		try {
+			content = await readFile(file.path, "utf-8");
+		} catch {
+			// If a file disappears during watch/build, skip it.
+			continue;
+		}
+		const { frontmatter } = parseFrontmatter(content);
+		const tags = normalizeProfileTags(frontmatter.profile);
+
+		// Untagged content is always included.
+		if (tags.length === 0) {
+			filtered.push(file);
+			continue;
+		}
+
+		// Tagged content is opt-in via active profile match.
+		if (normalizedProfile && tags.some((tag) => allowedTags.includes(tag))) {
+			filtered.push(file);
+		}
+	}
+
+	return filtered;
 }
 
 export function slugify(text: string): string {
@@ -1959,6 +2035,27 @@ function normalizeFooter(footer: unknown): SiteFooter | undefined {
 	};
 }
 
+function normalizeProfiles(raw: unknown): Record<string, ProfileConfig> | undefined {
+	if (!raw || typeof raw !== "object") return undefined;
+	const entries = Object.entries(raw as Record<string, unknown>);
+	if (entries.length === 0) return undefined;
+
+	const profiles: Record<string, ProfileConfig> = {};
+	for (const [name, value] of entries) {
+		if (!value || typeof value !== "object") continue;
+		const profileRaw = value as Record<string, unknown>;
+		const tags = normalizeProfileTags(
+			(profileRaw.include as Record<string, unknown> | undefined)?.tags,
+		);
+		profiles[name.trim().toLowerCase()] = {
+			description: typeof profileRaw.description === "string" ? profileRaw.description : undefined,
+			include: tags.length > 0 ? { tags } : undefined,
+		};
+	}
+
+	return Object.keys(profiles).length > 0 ? profiles : undefined;
+}
+
 /**
  * Load site configuration with fallback chain
  * @param root - The root directory
@@ -2003,6 +2100,7 @@ export async function loadSiteConfig(
 			sections: parsed.sections,
 			footer: normalizeFooter(parsedRecord.footer),
 			server: parsed.server,
+			profiles: normalizeProfiles(parsedRecord.profiles),
 		};
 	} catch (e) {
 		if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
