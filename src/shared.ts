@@ -2483,7 +2483,7 @@ function normalizePrebuild(raw: unknown): PrebuildHook[] | undefined {
 			const watch = Array.isArray(record.watch)
 				? record.watch.filter((item): item is string => typeof item === "string" && !!item.trim())
 				: undefined;
-			return { command: record.command.trim(), watch };
+			return { command: record.command.trim(), watch } as PrebuildHook;
 		})
 		.filter((hook): hook is PrebuildHook => !!hook);
 	return hooks.length > 0 ? hooks : undefined;
