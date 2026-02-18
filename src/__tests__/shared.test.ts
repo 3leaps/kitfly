@@ -998,6 +998,18 @@ description: 'A test site'`;
 		expect(globals.note).toBe("indented\nblock");
 	});
 
+	it("treats invalid block scalar headers as plain strings", () => {
+		const yaml = `globals:
+  bad: |abc
+snippets:
+  - >foo`;
+		const result = parseYaml(yaml);
+		const globals = result.globals as Record<string, unknown>;
+		const snippets = result.snippets as unknown[];
+		expect(globals.bad).toBe("|abc");
+		expect(snippets[0]).toBe(">foo");
+	});
+
 	it("returns empty object for empty input", () => {
 		const result = parseYaml("");
 		expect(result).toEqual({});

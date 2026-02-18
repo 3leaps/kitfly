@@ -281,11 +281,16 @@ export function parseYaml(content: string): Record<string, unknown> {
 		return output;
 	}
 
-	function parseBlockHeader(token: string): { style: "|" | ">"; chomp: "clip" | "strip" | "keep" } | null {
+	function parseBlockHeader(
+		token: string,
+	): { style: "|" | ">"; chomp: "clip" | "strip" | "keep" } | null {
 		if (!token) return null;
 		const style = token[0];
 		if (style !== "|" && style !== ">") return null;
 		const tail = token.slice(1);
+		if (tail && !/^([1-9][+-]?|[+-][1-9]?|[+-])$/.test(tail)) {
+			return null;
+		}
 		const chomp = tail.includes("+") ? "keep" : tail.includes("-") ? "strip" : "clip";
 		return { style, chomp };
 	}
@@ -357,19 +362,19 @@ export function parseYaml(content: string): Record<string, unknown> {
 				if (val.startsWith("[") && val.endsWith("]")) {
 					const arrContent = val.slice(1, -1);
 					obj[key] = arrContent.split(",").map((s) => stripQuotes(s.trim()));
-					} else {
-						const header = parseBlockHeader(val);
-						if (header) {
+				} else {
+					const header = parseBlockHeader(val);
+					if (header) {
 						const block = parseBlockScalar(i + 1, indent, header.style, header.chomp);
 						obj[key] = block.value;
 						i = block.endLine;
-						} else if (val === "") {
+					} else if (val === "") {
 						// Nested structure will follow
 						obj[key] = null; // Placeholder
-						} else {
+					} else {
 						obj[key] = parseValue(val);
-						}
 					}
+				}
 
 				// Find the array in parent
 				const parent = stack[stack.length - 1].obj;
@@ -381,24 +386,24 @@ export function parseYaml(content: string): Record<string, unknown> {
 
 				// Push this object onto stack for subsequent properties
 				stack.push({ obj, indent });
-				} else {
-					// Simple array item: "- value"
-					const parent = stack[stack.length - 1].obj;
-					const arrays = Object.entries(parent).filter(([, v]) => Array.isArray(v));
-					if (arrays.length > 0) {
-						const [, arr] = arrays[arrays.length - 1];
-						const itemValue = stripInlineComment(afterDash.trim());
-						const header = parseBlockHeader(itemValue);
-						if (header) {
-							const block = parseBlockScalar(i + 1, indent, header.style, header.chomp);
-							(arr as unknown[]).push(block.value);
-							i = block.endLine;
-						} else {
-							(arr as unknown[]).push(stripQuotes(itemValue));
-						}
+			} else {
+				// Simple array item: "- value"
+				const parent = stack[stack.length - 1].obj;
+				const arrays = Object.entries(parent).filter(([, v]) => Array.isArray(v));
+				if (arrays.length > 0) {
+					const [, arr] = arrays[arrays.length - 1];
+					const itemValue = stripInlineComment(afterDash.trim());
+					const header = parseBlockHeader(itemValue);
+					if (header) {
+						const block = parseBlockScalar(i + 1, indent, header.style, header.chomp);
+						(arr as unknown[]).push(block.value);
+						i = block.endLine;
+					} else {
+						(arr as unknown[]).push(stripQuotes(itemValue));
 					}
 				}
-				continue;
+			}
+			continue;
 		}
 
 		// Key: value pair
@@ -426,18 +431,18 @@ export function parseYaml(content: string): Record<string, unknown> {
 				// Inline array
 				const arrContent = value.slice(1, -1);
 				parent[key] = arrContent.split(",").map((s) => stripQuotes(s.trim()));
-				} else {
-					const header = parseBlockHeader(value);
-					if (header) {
+			} else {
+				const header = parseBlockHeader(value);
+				if (header) {
 					const block = parseBlockScalar(i + 1, indent, header.style, header.chomp);
 					parent[key] = block.value;
 					i = block.endLine;
-					} else {
+				} else {
 					parent[key] = parseValue(value);
-					}
 				}
 			}
 		}
+	}
 
 	return result;
 }
