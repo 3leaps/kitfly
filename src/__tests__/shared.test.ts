@@ -288,6 +288,7 @@ describe("loadDataBindings", () => {
 			expect(bindings.globals.baseline).toBe("200");
 			expect(bindings.inject.hero).toBe("Implementation costs");
 			expect(bindings.snippets[0].slot).toBe("pricing-table");
+			expect(bindings.snippets[0].content).toContain("| Tier | Price |");
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
@@ -319,6 +320,43 @@ describe("loadDataBindings", () => {
 		} finally {
 			await rm(root, { recursive: true, force: true });
 			await rm(outside, { recursive: true, force: true });
+		}
+	});
+
+	it("loads multiline YAML snippet blocks for binding resolution", async () => {
+		const root = await mkdtemp(join(tmpdir(), "kitfly-data-"));
+		try {
+			await mkdir(join(root, "content", "product"), { recursive: true });
+			await mkdir(join(root, "data"), { recursive: true });
+			await writeFile(
+				join(root, "data", "pricing.yaml"),
+				[
+					"pages:",
+					"  - path: product/pricing.md",
+					"    snippets:",
+					"      - slot: pricing-table",
+					"        content: |",
+					"          | Tier | Price |",
+					"          |------|-------|",
+					"          | Starter | $200 |",
+				].join("\n"),
+			);
+			const bindings = await loadDataBindings(
+				"data/pricing.yaml",
+				"product/pricing.md",
+				root,
+				"content",
+				"data",
+			);
+			const rendered = resolveBindings(
+				"Table:\n{{ snippet:pricing-table }}",
+				bindings,
+				"product/pricing.md",
+			);
+			expect(rendered).toContain("| Tier | Price |");
+			expect(rendered).toContain("| Starter | $200 |");
+		} finally {
+			await rm(root, { recursive: true, force: true });
 		}
 	});
 });
@@ -898,6 +936,44 @@ description: 'A test site'`;
   - typescript`;
 		const result = parseYaml(yaml);
 		expect(result.tags).toEqual(["javascript", "typescript"]);
+	});
+
+	it("parses literal block scalars", () => {
+		const yaml = `snippets:
+  - slot: pricing-table
+    content: |
+      | Tier | Price |
+      |------|-------|
+      | Starter | $200 |`;
+		const result = parseYaml(yaml);
+		const snippets = result.snippets as Array<Record<string, unknown>>;
+		expect(snippets[0].content).toBe("| Tier | Price |\n|------|-------|\n| Starter | $200 |");
+	});
+
+	it("parses folded block scalars", () => {
+		const yaml = `globals:
+  summary: >
+    Line one
+    line two
+
+    Paragraph two`;
+		const result = parseYaml(yaml);
+		const globals = result.globals as Record<string, unknown>;
+		expect(globals.summary).toBe("Line one line two\nParagraph two");
+	});
+
+	it("supports block scalar chomping indicators", () => {
+		const yaml = `globals:
+  keep: |+
+    One
+    Two
+  strip: >-
+    A
+    B`;
+		const result = parseYaml(yaml);
+		const globals = result.globals as Record<string, unknown>;
+		expect(globals.keep).toBe("One\nTwo");
+		expect(globals.strip).toBe("A B");
 	});
 
 	it("returns empty object for empty input", () => {

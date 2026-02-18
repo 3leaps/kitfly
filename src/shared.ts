@@ -263,6 +263,60 @@ export function parseYaml(content: string): Record<string, unknown> {
 	// Stack tracks current object context with its base indentation
 	const stack: { obj: Record<string, unknown>; indent: number }[] = [{ obj: result, indent: -2 }];
 
+	function foldBlockScalarLines(blockLines: string[]): string {
+		let output = "";
+		for (let idx = 0; idx < blockLines.length; idx++) {
+			const line = blockLines[idx];
+			if (idx === 0) {
+				output = line;
+				continue;
+			}
+			const prev = blockLines[idx - 1];
+			if (line === "") {
+				output += "\n";
+				continue;
+			}
+			output += prev === "" ? line : ` ${line}`;
+		}
+		return output;
+	}
+
+	function parseBlockScalar(
+		startLine: number,
+		baseIndent: number,
+		style: "|" | ">",
+	): { value: string; endLine: number } {
+		const rawBlock: string[] = [];
+		let cursor = startLine;
+
+		while (cursor < lines.length) {
+			const candidate = lines[cursor];
+			if (candidate.trim() === "") {
+				rawBlock.push("");
+				cursor += 1;
+				continue;
+			}
+			const candidateIndent = candidate.search(/\S/);
+			if (candidateIndent <= baseIndent) break;
+			rawBlock.push(candidate);
+			cursor += 1;
+		}
+
+		const indentLevels = rawBlock
+			.filter((line) => line.trim() !== "")
+			.map((line) => line.search(/\S/));
+		const blockIndent = indentLevels.length > 0 ? Math.min(...indentLevels) : 0;
+		const blockLines = rawBlock.map((line) => {
+			if (line === "") return "";
+			return line.slice(blockIndent);
+		});
+
+		return {
+			value: style === "|" ? blockLines.join("\n") : foldBlockScalarLines(blockLines),
+			endLine: cursor - 1,
+		};
+	}
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		// Skip comments and empty lines
@@ -293,6 +347,11 @@ export function parseYaml(content: string): Record<string, unknown> {
 				if (val.startsWith("[") && val.endsWith("]")) {
 					const arrContent = val.slice(1, -1);
 					obj[key] = arrContent.split(",").map((s) => stripQuotes(s.trim()));
+				} else if (/^[|>][+-]?\d*$/.test(val)) {
+					const style = val[0] as "|" | ">";
+					const block = parseBlockScalar(i + 1, indent, style);
+					obj[key] = block.value;
+					i = block.endLine;
 				} else if (val === "") {
 					// Nested structure will follow
 					obj[key] = null; // Placeholder
@@ -347,6 +406,11 @@ export function parseYaml(content: string): Record<string, unknown> {
 				// Inline array
 				const arrContent = value.slice(1, -1);
 				parent[key] = arrContent.split(",").map((s) => stripQuotes(s.trim()));
+			} else if (/^[|>][+-]?\d*$/.test(value)) {
+				const style = value[0] as "|" | ">";
+				const block = parseBlockScalar(i + 1, indent, style);
+				parent[key] = block.value;
+				i = block.endLine;
 			} else {
 				parent[key] = parseValue(value);
 			}
