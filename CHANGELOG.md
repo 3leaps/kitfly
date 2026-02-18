@@ -2,6 +2,40 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.3] - 2026-02-17
+
+### Added
+
+- Content profiles: `--profile` flag and `KITFLY_PROFILE` env var for single-source multi-audience filtering via frontmatter `profile:` tags
+- Data-driven bindings: `{{ key }}` value substitution and `{{ snippet:name }}` block injection from YAML/JSON data files bound via `data:` frontmatter
+- Pre-build hooks: `prebuild:` commands in site.yaml that run before dev/build/bundle with watch-mode reruns
+- Built-in formatters: `dollar`, `number`, `percent`, `round(n)`, `upper`, `lower` with pipe chaining (`{{ key | round(0) | dollar }}`)
+- Optional schema validation for data files (JSON Schema structural checks)
+- ADR-0006: Data-Driven Content architecture decision
+- "Kitsite" terminology and "What's a Kitsite?" section in README
+
+### Fixed
+
+- Windows cross-platform compatibility: launcher script install (no symlinks), browser open dispatch, MSYS `/c/...` path normalization
+- Profile filtering backward compatibility when no profiles configured and no active profile selected
+- `KITFLY_PROFILE` environment variable propagation through kitfly CLI entrypoints
+- YAML parser: block scalar (`|`/`>`) support for data file snippets
+- YAML parser: direct list-item block scalars, chomping/indent indicator handling
+- YAML parser: reject malformed block scalar headers (`|abc`, `>foo`) instead of silent empty strings
+
+### Docs
+
+- Windows contributor setup guide in docs/development.md
+- Development docs table alignment fix
+
+### Generator guidance (from dogfooding)
+
+- `pages[].path` in data files must be relative to site root including `content/` prefix (e.g. `content/product/pricing.md`, not `product/pricing.md`)
+- Generators must emit every snippet the template references, even if empty — the template is the contract
+- `percent` formatter expects a decimal ratio (0.0–1.0), not an already-computed percentage
+- Use JSON for generator-produced data files; reserve YAML for hand-authored data where readability matters
+- Recommended layout: raw input in `data/raw/`, kitfly data files in `data/`
+
 ## [0.2.2] - 2026-02-16
 
 ### Added

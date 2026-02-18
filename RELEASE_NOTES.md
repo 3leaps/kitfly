@@ -1,5 +1,169 @@
 <!-- Retention policy: latest 3 releases, reverse-chronological. Older notes archived in docs/releases/. -->
 
+# Kitfly v0.2.3
+
+**Release date:** 2026-02-17
+
+## What's new
+
+Kitfly v0.2.3 adds **content profiles** for single-source multi-audience workflows, **data-driven bindings** with `{{ key }}` substitution and snippet injection, **pre-build hooks** for generator pipelines, and **Windows cross-platform fixes** for contributors on Windows.
+
+### Content profiles
+
+Filter which files appear in a build based on frontmatter tags. A profile is activated via `--profile` flag or `KITFLY_PROFILE` env var:
+
+```bash
+kitfly dev ./mysite --profile alpha
+kitfly build ./mysite --profile beta
+KITFLY_PROFILE=alpha kitfly bundle ./mysite
+```
+
+Tag content in frontmatter:
+
+```yaml
+---
+title: Engagement Timeline
+profile: alpha
+---
+```
+
+Files without a `profile:` field are always included. Tagged files only appear when their profile is active. This enables one kitsite to produce multiple audience-specific outputs without maintaining separate branches or copies.
+
+Define profiles in `site.yaml`:
+
+```yaml
+profiles:
+  alpha:
+    description: "Includes alpha-tagged content"
+    include:
+      tags: ["alpha"]
+  beta:
+    description: "Includes beta-tagged content"
+    include:
+      tags: ["beta"]
+```
+
+Sites without `profiles:` in site.yaml are completely unaffected.
+
+### Data-driven bindings
+
+Pages can now bind to external YAML/JSON data files for value substitution and block injection. Declare the binding in frontmatter:
+
+```yaml
+---
+title: Pricing
+data: data/pricing.yaml
+---
+```
+
+Use `{{ key }}` for value substitution and `{{ snippet:name }}` for block injection:
+
+```markdown
+Implementation rate: **{{ baseline_rate | dollar }}/hour**
+
+## Pricing Tiers
+
+{{ snippet:pricing-table }}
+```
+
+Data files use a structured format with globals and per-page bindings:
+
+```yaml
+globals:
+  company: "Acme Corp"
+  baseline_rate: "200"
+
+pages:
+  - path: content/product/pricing.md
+    inject:
+      hero: "Implementation and operating costs"
+    snippets:
+      - slot: pricing-table
+        content: |
+          | Tier | Price |
+          |------|-------|
+          | Basic | $10/mo |
+          | Pro | $50/mo |
+```
+
+Note: `pages[].path` must be relative to site root including the `content/` prefix (e.g. `content/product/pricing.md`, not `product/pricing.md`).
+
+Six built-in formatters with pipe chaining: `dollar`, `number`, `percent`, `round(n)`, `upper`, `lower`. Example: `{{ rate | round(0) | dollar }}`. The `percent` formatter expects a decimal ratio (0.0–1.0) as input, not an already-computed percentage — `"0.15"` becomes `15%`, but `"15"` would become `1500%`.
+
+Unresolved bindings, unknown snippets, and formatter errors are build errors — never silent failures. Optional JSON Schema validation when a `.schema.json` file exists alongside the data file.
+
+Pages without `data:` frontmatter are completely unaffected.
+
+### Pre-build hooks
+
+Run shell commands before dev/build/bundle via `prebuild:` in site.yaml:
+
+```yaml
+prebuild:
+  - command: "bun run scripts/generate-pricing-data.ts"
+    watch: ["data/raw/pricing-input.json"]
+```
+
+Hooks run sequentially before each build. In dev mode, changes to `watch:` patterns re-run the matching hook. Environment variables `KITFLY_SITE_ROOT`, `KITFLY_DATA_DIR`, `KITFLY_BUILD_MODE`, and `KITFLY_PROFILE` are set for each hook.
+
+Non-zero exit codes halt the build with the hook's stderr as error context.
+
+### Windows cross-platform compatibility
+
+- Makefile `install` target uses a launcher script instead of symlinks (avoids Windows admin/Developer Mode requirement)
+- Dev server browser open dispatches correctly across Windows (`cmd /c start`), macOS (`open`), and Linux (`xdg-open`)
+- Build and bundle scripts normalize MSYS `/c/...` paths on Windows
+- Makefile lint skips `goneat assess` on Windows (upstream glob issue)
+- New Windows contributor setup guide in `docs/development.md`
+
+### Architecture
+
+- ADR-0006: Data-Driven Content — defines the boundary, contract, and constraints for build-time data binding
+- "Kitsite" terminology adopted in README with new "What's a Kitsite?" section
+
+## YAML parser hardening
+
+The built-in YAML parser (used for data files) gained block scalar support needed for snippet content:
+
+- Literal (`|`) and folded (`>`) block scalar parsing
+- Direct list-item block scalars (`- |` / `- >`)
+- Chomping indicators (`|+`, `|-`, `>+`, `>-`) and indentation indicators
+- Malformed block scalar headers (`|abc`, `>foo`) are now rejected instead of silently converting to empty strings
+
+## Guidance for generator authors
+
+These patterns emerged from dogfooding and apply to any non-trivial generator:
+
+- **The template is the contract.** Every `{{ snippet:X }}` in a markdown template means the generator must always emit a snippet named `X`, even if empty. If a section is conditionally relevant, emit it with empty string content rather than omitting it — kitfly treats missing snippets as build errors, by design.
+- **Use JSON for generator output.** Generators should write JSON data files (`JSON.stringify` is deterministic in every language, no quoting ambiguity, multiline strings are unambiguous `\n`). Reserve YAML for hand-authored data files where human readability matters.
+- **Separate raw input from kitfly data.** Keep generator source files in `data/raw/` and kitfly data files in `data/`. This prevents naming collisions and makes the data flow visible: `data/raw/pricing-input.json` → generator → `data/pricing.json`.
+- **`percent` expects a decimal ratio.** The `percent` formatter multiplies by 100: `"0.15"` → `15%`. If your generator already computes integer percentages, store them as pre-formatted strings (`"15%"`) and don't pipe through `percent` (which would yield `1500%`).
+
+## Breaking Changes
+
+None. All new features are opt-in. Existing sites are unaffected.
+
+## Notes for upgraders
+
+- To use content profiles: add `profiles:` to `site.yaml` and `profile:` tags to content frontmatter
+- To use data bindings: add `data:` to page frontmatter and create data files in `data/`
+- To use pre-build hooks: add `prebuild:` to `site.yaml`
+- Windows contributors: see updated `docs/development.md` for setup guide
+
+## Deferred
+
+- `kitfly build --check` — exit non-zero if built output differs from what's on disk (CI pipeline verification)
+- `kitflygen` scaffolding tool for data generators
+- Visual figures Phase 3, general connectors, `slides-embed`, `slides-refresh`
+- `kitfly update` command
+- Plugin repo split
+
+## Full changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete list.
+
+---
+
 # Kitfly v0.2.2
 
 **Release date:** 2026-02-16
@@ -178,77 +342,3 @@ None.
 - `latex` (KaTeX, same CDN pattern)
 - Build-time `:::` support via marked extension hook (decision memo in progress)
 - `slides-embed` (iframe/video)
-
----
-
-# Kitfly v0.2.0
-
-**Release date:** 2026-02-14
-
-## What's new
-
-Kitfly v0.2.0 adds **slides mode** and a minimal **plugin system** — so you can ship fixed-aspect decks, add optional visuals/widgets, and still keep the core small and auditable.
-
-### Slides mode (`mode: slides`)
-
-Slides mode renders your content as a single-page, hash-routed deck (`#slide-n`) with keyboard navigation and a fixed aspect ratio.
-
-```yaml
-# site.yaml
-mode: slides
-aspect: "16/9"
-```
-
-Authoring models:
-
-- **One file per slide**
-- **One file, many slides** using the explicit delimiter: `--- slide ---`
-
-If you're starting fresh, `kitfly init --template deck` gives you a ready-to-edit slide project.
-
-### Plugins (optional, pinned, integrity-checked)
-
-Plugins are small opt-in add-ons that inject CSS/JS. They are designed to stay minimal and predictable:
-
-- **Pinned** versions (`name@x.y.z`)
-- **Integrity checked** assets (sha256)
-- Optional **mode allowlists** (run only in `slides`, etc.)
-
-Enable plugins via `kitfly.plugins.yaml` in your site root.
-
-### `callouts` plugin
-
-The `callouts` plugin transforms blockquotes starting with NOTE:/TIP:/WARNING:/INFO:/DANGER: into styled callout boxes. Works in both docs and slides modes.
-
-### `slides-visuals` and the `:::` fence contract
-
-The first "live slides" plugin, `slides-visuals`, introduces a strict `:::` block syntax for widgets and deterministic figures.
-
-### Deterministic design primitives (shapes + figures)
-
-v0.2.0 introduces core CSS primitives for slide-friendly visuals (block flow/grid plus shape modifiers) and documents a design catalog to standardize terminology.
-
-### Server management
-
-New CLI commands for managing dev server instances:
-
-- `kitfly servers` — list running dev servers
-- `kitfly stop <port|all>` — stop dev server(s)
-- `kitfly logs <port>` — view daemon server logs (supports `--follow`)
-
-### Site versioning
-
-Set `version` in `site.yaml` to display your site's version in the sidebar and footer.
-
-### Bundle output separation
-
-Bundle output now writes to `bundles/` (separate from `dist/`) so static-deploy and single-file outputs don't interfere.
-
-## Breaking Changes
-
-None for docs-mode sites. If you enable `slides-visuals`, invalid `:::` blocks are now treated as build errors (by design).
-
-## Deferred to v0.2.1
-
-- `slides-charts-lite`, `slides-refresh`, `slides-embed`
-- Build-time `:::` support via a marked extension hook

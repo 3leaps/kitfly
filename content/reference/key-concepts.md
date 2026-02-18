@@ -1,7 +1,7 @@
 ---
 title: "Key Concepts"
 description: "Mental models for how Kitfly works"
-last_updated: "2026-02-12"
+last_updated: "2026-02-17"
 ---
 
 # Key Concepts
@@ -102,6 +102,16 @@ In both modes, organizing content into subfolders produces hierarchical sidebar 
 Kitfly will serve and bundle common “content-adjacent” assets referenced from Markdown, like images and PDFs.
 
 Rule of thumb: if it lives next to your docs, Kitfly tries to do the right thing.
+
+## Content profiles (v0.2.3+)
+
+Profiles let you produce multiple audience-specific outputs from a single kitsite. Tag files with `profile:` in frontmatter and activate a profile via `--profile` flag or `KITFLY_PROFILE` env var.
+
+- Files without `profile:` are always included (the common case).
+- Tagged files only appear when their profile is active.
+- No active profile = only untagged content.
+
+This is a startup parameter, not a runtime toggle — changing profiles requires restarting the dev server.
 
 ## Data bindings (v0.2.3+)
 

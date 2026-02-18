@@ -1,7 +1,7 @@
 ---
 title: "Configuration"
 description: "Customize your kitfly site"
-last_updated: "2026-02-03"
+last_updated: "2026-02-17"
 ---
 
 # Configuration
@@ -165,6 +165,33 @@ sections:
     files: ["README.md", "CHANGELOG.md"]
 ```
 
+### profiles (v0.2.3+)
+
+Named content profiles for single-source multi-audience filtering.
+
+```yaml
+profiles:
+  alpha:
+    description: "Includes alpha-tagged content"
+    include:
+      tags: ["alpha"]
+  beta:
+    description: "Includes beta-tagged content"
+    include:
+      tags: ["beta"]
+```
+
+Activate a profile via CLI flag or environment variable:
+
+```bash
+kitfly dev ./mysite --profile alpha
+KITFLY_PROFILE=beta kitfly build ./mysite
+```
+
+Files with a matching `profile:` frontmatter tag are included. Files without a `profile:` field are always included. Tagged files are excluded when no profile is active or when the active profile doesn't match.
+
+Sites without `profiles:` in site.yaml are completely unaffected — adding the field has no effect until a profile is explicitly activated.
+
 ### prebuild (v0.2.3+)
 
 Run generator commands before `dev`, `build`, and `bundle`.
@@ -289,8 +316,11 @@ last_updated: "2026-02-03"
 | `description`  | Meta description                                                    |
 | `last_updated` | Shown in page footer                                                |
 | `data`         | Data file for `{{ key }}` / `{{ snippet:name }}` bindings (v0.2.3+) |
+| `profile`      | Profile tag(s) for audience filtering (v0.2.3+)                     |
 
-Example:
+### `data` frontmatter (v0.2.3+)
+
+Bind a page to a data file for value substitution and snippet injection:
 
 ```yaml
 ---
@@ -298,6 +328,53 @@ title: "Pricing"
 data: "data/pricing.yaml"
 ---
 ```
+
+The `data:` path is relative to site root. The data file uses a structured format:
+
+```yaml
+globals:
+  company: "Acme Corp"
+  baseline_rate: "200"
+
+pages:
+  - path: content/product/pricing.md
+    inject:
+      hero: "Implementation and operating costs"
+    snippets:
+      - slot: pricing-table
+        content: |
+          | Tier | Price |
+          |------|-------|
+          | Basic | $10/mo |
+```
+
+**Path convention:** `pages[].path` must be relative to site root including the `content/` prefix — e.g. `content/product/pricing.md`, not `product/pricing.md`.
+
+In the markdown body, use `{{ key }}` for value substitution and `{{ snippet:name }}` for block injection. Formatters apply with pipe syntax: `{{ baseline_rate | dollar }}`. See the [Data-Driven Content](/content/guide/data-driven-content) guide for the full formatter reference and generator patterns.
+
+Pages without `data:` frontmatter are completely unaffected — literal `{{ }}` text passes through as-is.
+
+### `profile` frontmatter (v0.2.3+)
+
+Tag a file for profile-based filtering:
+
+```yaml
+---
+title: "Engagement Timeline"
+profile: alpha
+---
+```
+
+Multiple profiles:
+
+```yaml
+---
+title: "Shared Appendix"
+profile: [alpha, beta]
+---
+```
+
+Files without a `profile:` field are always included regardless of which profile is active. See `profiles` in Settings above.
 
 ## No Configuration
 

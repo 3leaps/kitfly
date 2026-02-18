@@ -1,7 +1,7 @@
 ---
 title: "Environment Variables"
 description: "A beginner-friendly primer (with copy-paste examples)"
-last_updated: "2026-02-12"
+last_updated: "2026-02-17"
 ---
 
 # Environment Variables
@@ -57,6 +57,31 @@ If you use one:
 - keep it local-only
 - make sure it is gitignored
 - consider adding a `.env.example` with placeholder values (safe to commit)
+
+## Kitfly environment variables (v0.2.3+)
+
+### `KITFLY_PROFILE`
+
+Activate a content profile without the `--profile` CLI flag:
+
+```bash
+KITFLY_PROFILE=alpha kitfly build ./mysite
+```
+
+Equivalent to `kitfly build ./mysite --profile alpha`.
+
+### Pre-build hook variables
+
+Kitfly sets these before running each `prebuild:` hook:
+
+| Variable            | Value                           | Example                     |
+| ------------------- | ------------------------------- | --------------------------- |
+| `KITFLY_SITE_ROOT`  | Absolute path to kitsite root   | `/Users/me/my-docs`         |
+| `KITFLY_DATA_DIR`   | Data directory relative to root | `data/`                     |
+| `KITFLY_BUILD_MODE` | Current build mode              | `dev`, `build`, or `bundle` |
+| `KITFLY_PROFILE`    | Active content profile (if any) | `alpha`                     |
+
+These allow generators to adapt behavior per build context — for example, a generator might skip expensive API calls in `dev` mode or produce different output per profile.
 
 ## Quick troubleshooting
 

@@ -1,7 +1,7 @@
 ---
 title: "Glossary"
 description: "Quick definitions for common Kitfly terms"
-last_updated: "2026-02-12"
+last_updated: "2026-02-17"
 ---
 
 # Glossary
@@ -90,6 +90,10 @@ A named value provided to commands and apps by your shell or host platform (ofte
 ## Secret
 
 A sensitive value (token/key/password) that should not be committed to git and should be stored in a secret manager or environment variable.
+
+## Profile
+
+A named content filter activated via `--profile` or `KITFLY_PROFILE`. Files tagged with `profile:` in frontmatter are only included when their profile is active. Enables single-source multi-audience workflows.
 
 ## Kitsite
 
