@@ -82,23 +82,63 @@ async function writeRegistry(registry: ServerRegistry): Promise<void> {
 import { listeningPorts, processList, procGet } from "@3leaps/sysprims";
 
 /**
+ * Windows fallback: parse `netstat -ano` to find PID listening on a port.
+ * Returns null if not found or on error.
+ */
+function findPidOnPortWindows(port: number): number | null {
+	try {
+		const result = Bun.spawnSync(["netstat", "-ano", "-p", "TCP"], {
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		if (result.exitCode !== 0) return null;
+		const output = new TextDecoder().decode(result.stdout);
+		// Each LISTENING line looks like:
+		//   TCP    0.0.0.0:3333     0.0.0.0:0     LISTENING     1234
+		//   TCP    [::]:3333        [::]:0        LISTENING     1234
+		const portStr = String(port);
+		for (const line of output.split(/\r?\n/)) {
+			if (!line.includes("LISTENING")) continue;
+			// Match the local address column containing :<port>
+			const m = line.match(/^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)/i);
+			if (m && m[1] === portStr) {
+				const pid = parseInt(m[2], 10);
+				return Number.isNaN(pid) ? null : pid;
+			}
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Find PID listening on a port.
  * When multiple processes bind the same port (e.g., nohup shell + bun child),
  * prefer the bun process over shell wrappers.
+ * Falls back to netstat on Windows when sysprims is unsupported.
  */
 export function findPidOnPort(port: number): number | null {
-	const result = listeningPorts({ local_port: port });
-	if (result.bindings.length === 0) return null;
-	if (result.bindings.length === 1) return result.bindings[0].pid ?? null;
+	try {
+		const result = listeningPorts({ local_port: port });
+		if (result.bindings.length === 0) return null;
+		if (result.bindings.length === 1) return result.bindings[0].pid ?? null;
 
-	// Multiple bindings — prefer the bun process over shell wrapper
-	for (const binding of result.bindings) {
-		if (binding.process?.name.includes("bun")) {
-			return binding.pid ?? null;
+		// Multiple bindings — prefer the bun process over shell wrapper
+		for (const binding of result.bindings) {
+			if (binding.process?.name.includes("bun")) {
+				return binding.pid ?? null;
+			}
 		}
+		// Fallback: last binding (child is usually listed after parent)
+		return result.bindings[result.bindings.length - 1].pid ?? null;
+	} catch {
+		// sysprims doesn't support port bindings on this platform (e.g. Windows)
+		if (process.platform === "win32") {
+			return findPidOnPortWindows(port);
+		}
+		return null;
 	}
-	// Fallback: last binding (child is usually listed after parent)
-	return result.bindings[result.bindings.length - 1].pid ?? null;
 }
 
 /**
