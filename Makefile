@@ -77,17 +77,19 @@ help: ## Show this help message
 	@echo "  make version        - Print current version"
 	@echo ""
 
-# Goneat resolution (finds goneat in BINDIR or PATH)
+# Goneat resolution (finds goneat in BINDIR or PATH, including .exe on Windows)
 GONEAT_RESOLVE = \
 	GONEAT=""; \
-	if [ -x "$(BINDIR)/goneat" ]; then GONEAT="$(BINDIR)/goneat"; fi; \
+	if [ -x "$(BINDIR)/goneat" ]; then GONEAT="$(BINDIR)/goneat"; \
+	elif [ -x "$(BINDIR)/goneat.exe" ]; then GONEAT="$(BINDIR)/goneat.exe"; fi; \
 	if [ -z "$$GONEAT" ]; then GONEAT="$$(command -v goneat 2>/dev/null || true)"; fi; \
 	if [ -z "$$GONEAT" ]; then echo "goneat not found. Run 'make bootstrap' first."; exit 1; fi
 
-# Sfetch resolution (finds sfetch in BINDIR or PATH)
+# Sfetch resolution (finds sfetch in BINDIR or PATH, including .exe on Windows)
 SFETCH_RESOLVE = \
 	SFETCH=""; \
-	if [ -x "$(BINDIR)/sfetch" ]; then SFETCH="$(BINDIR)/sfetch"; fi; \
+	if [ -x "$(BINDIR)/sfetch" ]; then SFETCH="$(BINDIR)/sfetch"; \
+	elif [ -x "$(BINDIR)/sfetch.exe" ]; then SFETCH="$(BINDIR)/sfetch.exe"; fi; \
 	if [ -z "$$SFETCH" ]; then SFETCH="$$(command -v sfetch 2>/dev/null || true)"; fi
 
 # -----------------------------------------------------------------------------
@@ -98,15 +100,19 @@ bootstrap: ## Install external tools (sfetch, goneat + foundation tools)
 	@mkdir -p "$(BINDIR)"
 	@echo ""
 	@echo "Step 1: Installing sfetch (trust anchor)..."
-	@if ! command -v sfetch >/dev/null 2>&1 && [ ! -x "$(BINDIR)/sfetch" ]; then \
+	@if ! command -v sfetch >/dev/null 2>&1 && [ ! -x "$(BINDIR)/sfetch" ] && [ ! -x "$(BINDIR)/sfetch.exe" ]; then \
 		echo "-> Installing sfetch into $(BINDIR)..."; \
 		if [ -n "$$GITHUB_TOKEN" ]; then \
 			echo "   (using GITHUB_TOKEN for authenticated request)"; \
-			curl -H "Authorization: token $$GITHUB_TOKEN" -sSfL "$(SFETCH_INSTALL_URL)" | bash -s -- --dir "$(BINDIR)" --yes; \
+			curl -H "Authorization: token $$GITHUB_TOKEN" -sSfL "$(SFETCH_INSTALL_URL)" -o /tmp/install-sfetch.sh && bash /tmp/install-sfetch.sh --dir "$(BINDIR)" --yes; \
 		elif command -v curl >/dev/null 2>&1; then \
-			curl -sSfL "$(SFETCH_INSTALL_URL)" | bash -s -- --dir "$(BINDIR)" --yes; \
+			curl -sSfL "$(SFETCH_INSTALL_URL)" -o /tmp/install-sfetch.sh && bash /tmp/install-sfetch.sh --dir "$(BINDIR)" --yes; \
 		else \
 			echo "curl required to bootstrap sfetch" >&2; \
+			exit 1; \
+		fi; \
+		if ! command -v sfetch >/dev/null 2>&1 && [ ! -x "$(BINDIR)/sfetch" ] && [ ! -x "$(BINDIR)/sfetch.exe" ]; then \
+			echo "error: sfetch installation failed (binary not found in $(BINDIR))" >&2; \
 			exit 1; \
 		fi; \
 	else \
@@ -116,12 +122,13 @@ bootstrap: ## Install external tools (sfetch, goneat + foundation tools)
 	@echo "Step 2: Installing goneat via sfetch..."
 	@SFETCH_BIN="$$(command -v sfetch 2>/dev/null || true)"; \
 	if [ -z "$$SFETCH_BIN" ] && [ -x "$(BINDIR)/sfetch" ]; then SFETCH_BIN="$(BINDIR)/sfetch"; fi; \
+	if [ -z "$$SFETCH_BIN" ] && [ -x "$(BINDIR)/sfetch.exe" ]; then SFETCH_BIN="$(BINDIR)/sfetch.exe"; fi; \
 	if [ -z "$$SFETCH_BIN" ]; then echo "sfetch not found after bootstrap" >&2; exit 1; fi; \
 	if [ "$(FORCE)" = "1" ] || [ "$(FORCE)" = "true" ]; then \
 		echo "-> Force installing goneat $(GONEAT_VERSION) into $(BINDIR)..."; \
 		"$$SFETCH_BIN" -repo fulmenhq/goneat -tag "$(GONEAT_VERSION)" -dest-dir "$(BINDIR)"; \
 	else \
-		if ! command -v goneat >/dev/null 2>&1 && [ ! -x "$(BINDIR)/goneat" ]; then \
+		if ! command -v goneat >/dev/null 2>&1 && [ ! -x "$(BINDIR)/goneat" ] && [ ! -x "$(BINDIR)/goneat.exe" ]; then \
 			echo "-> Installing goneat $(GONEAT_VERSION) into $(BINDIR)..."; \
 			"$$SFETCH_BIN" -repo fulmenhq/goneat -tag "$(GONEAT_VERSION)" -dest-dir "$(BINDIR)"; \
 		else \
@@ -132,6 +139,7 @@ bootstrap: ## Install external tools (sfetch, goneat + foundation tools)
 	@echo "Step 3: Installing foundation tools via goneat..."
 	@GONEAT_BIN="$$(command -v goneat 2>/dev/null || true)"; \
 	if [ -z "$$GONEAT_BIN" ] && [ -x "$(BINDIR)/goneat" ]; then GONEAT_BIN="$(BINDIR)/goneat"; fi; \
+	if [ -z "$$GONEAT_BIN" ] && [ -x "$(BINDIR)/goneat.exe" ]; then GONEAT_BIN="$(BINDIR)/goneat.exe"; fi; \
 	if [ -n "$$GONEAT_BIN" ]; then \
 		"$$GONEAT_BIN" doctor tools --scope foundation --install --yes --no-cooling 2>/dev/null || \
 		echo "-> Some foundation tools may need manual installation"; \
