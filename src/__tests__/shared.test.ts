@@ -972,8 +972,30 @@ description: 'A test site'`;
     B`;
 		const result = parseYaml(yaml);
 		const globals = result.globals as Record<string, unknown>;
-		expect(globals.keep).toBe("One\nTwo");
+		expect(globals.keep).toBe("One\nTwo\n");
 		expect(globals.strip).toBe("A B");
+	});
+
+	it("parses direct array block scalar items", () => {
+		const yaml = `snippets:
+  - |
+    line 1
+    line 2
+  - >-
+    folded
+    line`;
+		const result = parseYaml(yaml);
+		expect(result.snippets).toEqual(["line 1\nline 2", "folded line"]);
+	});
+
+	it("accepts block scalar indentation indicators", () => {
+		const yaml = `globals:
+  note: |2-
+      indented
+      block`;
+		const result = parseYaml(yaml);
+		const globals = result.globals as Record<string, unknown>;
+		expect(globals.note).toBe("indented\nblock");
 	});
 
 	it("returns empty object for empty input", () => {
