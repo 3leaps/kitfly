@@ -864,6 +864,67 @@ describe("bundleSite plugin integration", () => {
 		expect(html).toContain("kitfly-chart-wrapper");
 	});
 
+	it("enforces planning-visuals fence contract in docs mode", async () => {
+		const siteDir = await makeTempDir();
+		await mkdir(join(siteDir, "docs"), { recursive: true });
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+
+		const js = "console.log('planning visuals');";
+		const css = ".kitfly-planning-gantt{border:1px solid red;}";
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.js"), js, "utf-8");
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.css"), css, "utf-8");
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-03-03"
+baseUrl: ""
+plugins:
+  planning-visuals:
+    name: "Planning Visuals"
+    description: "Test planning visuals"
+    version: "0.2.4"
+    contract: "1"
+    kitfly: ">=0.2.4 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/planning-visuals.js"
+      css: "plugins-dist/planning-visuals.css"
+      assetSha256:
+        js: "sha256:4932eca4b9f9735541953e9be72a916d7e8a08213a28cc6e0a34899dab98b880"
+        css: "sha256:e73d687d58def8a6608ae51d1a1a09af6eaf2ec4c0b5d0849ebf260679e80e21"
+`,
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "site.yaml"),
+			'title: "Bundle Plan Test"\nbrand:\n  name: "Test"\n  url: "/"\nsections:\n  - name: Docs\n    path: docs\n',
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "docs", "index.md"),
+			`# Plan
+
+:::gantt
+time-unit: week
+time-start: 2026-W10
+time-end: 2026-W12
+:::
+`,
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - planning-visuals@0.2.4\n",
+			"utf-8",
+		);
+
+		await expect(
+			bundleSite({ folder: siteDir, out: "bundles", name: "bundle.html" }),
+		).rejects.toThrow(/planning-visuals fence contract violations/i);
+	});
+
 	it("inlines footer logo image when configured", async () => {
 		const siteDir = await makeTempDir();
 		await mkdir(join(siteDir, "docs"), { recursive: true });

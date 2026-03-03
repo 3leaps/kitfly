@@ -38,6 +38,7 @@ import {
 	// File utilities
 	exists,
 	filterByProfile,
+	filterUnknownPlanningVisualsTypeDiagnostics,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
@@ -59,6 +60,7 @@ import {
 	type SiteConfig,
 	slugify,
 	validatePath,
+	validatePlanningVisualsFences,
 	validateSlidesVisualsFences,
 } from "../src/shared.ts";
 import { generateThemeCSS, getPrismUrls, loadTheme, type Theme } from "../src/theme.ts";
@@ -154,6 +156,27 @@ async function resolveSiteAssetsDir(siteRoot: string): Promise<string | null> {
 	return null;
 }
 
+type FenceValidationFlags = {
+	slidesVisuals: boolean;
+	planningVisuals: boolean;
+};
+
+async function getFenceValidationFlags(root: string): Promise<FenceValidationFlags> {
+	try {
+		const raw = await readFile(join(root, "kitfly.plugins.yaml"), "utf-8");
+		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
+		const enabled = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
+		return {
+			slidesVisuals: enabled.some((p) => typeof p === "string" && p.startsWith("slides-visuals@")),
+			planningVisuals: enabled.some(
+				(p) => typeof p === "string" && p.startsWith("planning-visuals@"),
+			),
+		};
+	} catch {
+		return { slidesVisuals: false, planningVisuals: false };
+	}
+}
+
 function computePathPrefix(urlKey: string): string {
 	const clean = urlKey.replace(/^\/+/, "").replace(/\.html$/, "");
 	if (!clean) return "./";
@@ -217,6 +240,7 @@ async function renderFile(
 	config: SiteConfig,
 	theme: Theme,
 	plugins: PluginInjections,
+	fenceValidation: FenceValidationFlags,
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const content = await readFile(filePath, "utf-8");
@@ -242,6 +266,18 @@ async function renderFile(
 			title = frontmatter.title as string;
 		}
 		pageMeta = buildPageMeta(frontmatter);
+		if (fenceValidation.planningVisuals) {
+			const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+				validatePlanningVisualsFences(body),
+			);
+			if (diagnostics.length) {
+				const msg = diagnostics
+					.slice(0, 12)
+					.map((d) => `  - ${filePath}:${d.line} ${d.message}`)
+					.join("\n");
+				throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+			}
+		}
 		htmlContent = marked.parse(body) as string;
 	}
 
@@ -394,26 +430,18 @@ async function renderSlidesIndex(
 	config: SiteConfig,
 	theme: Theme,
 	plugins: PluginInjections,
+	fenceValidation: FenceValidationFlags,
 ): Promise<string> {
 	const uiVersion = provenance.version ? `v${provenance.version}` : "unversioned";
 	const pathPrefix = "./";
 	const slides = await collectSlides(files, {
 		markdownTransform: (raw, file) => applyDataBindingsForSlides(raw, file.path, config),
 	});
-	let validateFences = false;
-	try {
-		const raw = await readFile(join(ROOT, "kitfly.plugins.yaml"), "utf-8");
-		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
-		const enabled = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
-		validateFences = enabled.some((p) => typeof p === "string" && p.startsWith("slides-visuals@"));
-	} catch {
-		// no config, skip
-	}
 	const renderedSlides = await Promise.all(
 		slides.map(async (slide, i) => {
 			let inner = "";
 			if (slide.kind === "markdown") {
-				if (validateFences) {
+				if (fenceValidation.slidesVisuals) {
 					const diagnostics = filterUnknownSlidesVisualsTypeDiagnostics(
 						validateSlidesVisualsFences(slide.body),
 					);
@@ -423,6 +451,18 @@ async function renderSlidesIndex(
 							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`slides-visuals fence contract violations:\n${msg}`);
+					}
+				}
+				if (fenceValidation.planningVisuals) {
+					const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+						validatePlanningVisualsFences(slide.body),
+					);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 					}
 				}
 				inner = marked.parse(slide.body) as string;
@@ -581,6 +621,7 @@ async function buildSite() {
 		root: ROOT,
 		mode: config.mode === "slides" ? "slides" : "docs",
 	});
+	const fenceValidation = await getFenceValidationFlags(ROOT);
 
 	// Copy CSS
 	const css = await readFile(await resolveStylesPath(ROOT), "utf-8");
@@ -631,7 +672,15 @@ async function buildSite() {
 	}
 
 	if (config.mode === "slides") {
-		const html = await renderSlidesIndex(template, files, provenance, config, theme, plugins);
+		const html = await renderSlidesIndex(
+			template,
+			files,
+			provenance,
+			config,
+			theme,
+			plugins,
+			fenceValidation,
+		);
 		await writeFile(join(DIST, "index.html"), html);
 		console.log(`  ✓ index.html (slides mode, ${files.length} source files)`);
 		await generateAIAccessibility(DIST, files, config, provenance);
@@ -650,6 +699,7 @@ async function buildSite() {
 			config,
 			theme,
 			plugins,
+			fenceValidation,
 		);
 
 		// Create output path
@@ -676,6 +726,7 @@ async function buildSite() {
 					config,
 					theme,
 					plugins,
+					fenceValidation,
 				);
 				await writeFile(join(DIST, "index.html"), homeHtml);
 				console.log(`  ✓ index.html (from ${config.home})`);
@@ -691,6 +742,7 @@ async function buildSite() {
 					config,
 					theme,
 					plugins,
+					fenceValidation,
 				);
 				await writeFile(join(DIST, "index.html"), indexHtml);
 				console.log("  ✓ index.html");
@@ -708,6 +760,7 @@ async function buildSite() {
 			config,
 			theme,
 			plugins,
+			fenceValidation,
 		);
 		await writeFile(join(DIST, "index.html"), indexHtml);
 		console.log("  ✓ index.html");

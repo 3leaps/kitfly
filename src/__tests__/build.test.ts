@@ -624,4 +624,128 @@ plugins:
 		expect(html).toContain('data-kitfly-plugin="slides-visuals@0.2.1"');
 		expect(html).toContain("future-thing");
 	});
+
+	it("enforces planning-visuals fence contract in docs mode", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { mode: "docs" });
+		await writeMd(
+			siteDir,
+			"docs/plan.md",
+			`# Plan
+
+:::gantt
+time-unit: week
+time-start: 2026-W10
+time-end: 2026-W12
+:::
+`,
+		);
+
+		const js = "console.log('planning visuals');";
+		const css = ".kitfly-planning-gantt{border:1px solid red;}";
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.js"), js, "utf-8");
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.css"), css, "utf-8");
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-03-03"
+baseUrl: ""
+plugins:
+  planning-visuals:
+    name: "Planning Visuals"
+    description: "Test planning visuals"
+    version: "0.2.4"
+    contract: "1"
+    kitfly: ">=0.2.4 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/planning-visuals.js"
+      css: "plugins-dist/planning-visuals.css"
+      assetSha256:
+        js: "sha256:${sha256Hex(js)}"
+        css: "sha256:${sha256Hex(css)}"
+`,
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - planning-visuals@0.2.4\n",
+			"utf-8",
+		);
+
+		await expect(build({ folder: siteDir, out: outDir })).rejects.toThrow(
+			/planning-visuals fence contract violations/i,
+		);
+	});
+
+	it("ignores unknown planning-visuals block types while enforcing known contracts", async () => {
+		const siteDir = await makeTempDir();
+		const outDir = "out";
+		await writeSiteYaml(siteDir, { mode: "docs" });
+		await writeMd(
+			siteDir,
+			"docs/plan.md",
+			`# Plan
+
+:::future-plan
+note: pass-through
+:::
+
+:::gantt
+time-unit: month
+time-start: 2026-04
+time-end: 2026-08
+tracks:
+  - label: Wave 1
+    depth: 1
+    start: 2026-04
+    end: 2026-06
+:::
+`,
+		);
+
+		const js = "console.log('planning visuals');";
+		const css = ".kitfly-planning-gantt{border:1px solid red;}";
+		await mkdir(join(siteDir, "plugins-dist"), { recursive: true });
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.js"), js, "utf-8");
+		await writeFile(join(siteDir, "plugins-dist", "planning-visuals.css"), css, "utf-8");
+		await mkdir(join(siteDir, "registry"), { recursive: true });
+		await writeFile(
+			join(siteDir, "registry", "plugins.yaml"),
+			`version: 1
+updated: "2026-03-03"
+baseUrl: ""
+plugins:
+  planning-visuals:
+    name: "Planning Visuals"
+    description: "Test planning visuals"
+    version: "0.2.4"
+    contract: "1"
+    kitfly: ">=0.2.4 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/planning-visuals.js"
+      css: "plugins-dist/planning-visuals.css"
+      assetSha256:
+        js: "sha256:${sha256Hex(js)}"
+        css: "sha256:${sha256Hex(css)}"
+`,
+			"utf-8",
+		);
+		await writeFile(
+			join(siteDir, "kitfly.plugins.yaml"),
+			"plugins:\n  - planning-visuals@0.2.4\n",
+			"utf-8",
+		);
+
+		await expect(build({ folder: siteDir, out: outDir })).resolves.toBeUndefined();
+		const html = await readFile(join(siteDir, outDir, "index.html"), "utf-8");
+		expect(html).toContain('data-kitfly-plugin="planning-visuals@0.2.4"');
+		expect(html).toContain("future-plan");
+	});
 });

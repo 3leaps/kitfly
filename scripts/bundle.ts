@@ -36,6 +36,7 @@ import {
 	// Formatting
 	escapeHtml,
 	filterByProfile,
+	filterUnknownPlanningVisualsTypeDiagnostics,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// YAML/Config parsing
 	loadDataBindings,
@@ -52,6 +53,7 @@ import {
 	type SiteConfig,
 	slugify,
 	validatePath,
+	validatePlanningVisualsFences,
 	validateSlidesVisualsFences,
 } from "../src/shared.ts";
 import { generateThemeCSS, getPrismUrls, loadTheme } from "../src/theme.ts";
@@ -354,24 +356,35 @@ function buildBundleNav(files: ContentFile[], config: SiteConfig): string {
 	return html;
 }
 
+async function getFenceValidationFlags(root: string): Promise<{
+	slidesVisuals: boolean;
+	planningVisuals: boolean;
+}> {
+	try {
+		const raw = await readFile(join(root, "kitfly.plugins.yaml"), "utf-8");
+		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
+		const enabled = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
+		return {
+			slidesVisuals: enabled.some((p) => typeof p === "string" && p.startsWith("slides-visuals@")),
+			planningVisuals: enabled.some(
+				(p) => typeof p === "string" && p.startsWith("planning-visuals@"),
+			),
+		};
+	} catch {
+		return { slidesVisuals: false, planningVisuals: false };
+	}
+}
+
 async function buildSlidesBundleContent(files: ContentFile[], config: SiteConfig): Promise<string> {
 	const slides = await collectSlides(files, {
 		markdownTransform: (raw, file) => applyDataBindingsForSlides(raw, file.path, config),
 	});
-	let validateFences = false;
-	try {
-		const raw = await readFile(join(ROOT, "kitfly.plugins.yaml"), "utf-8");
-		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
-		const enabled = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
-		validateFences = enabled.some((p) => typeof p === "string" && p.startsWith("slides-visuals@"));
-	} catch {
-		// no config, skip
-	}
+	const fenceValidation = await getFenceValidationFlags(ROOT);
 	const renderedSlides = await Promise.all(
 		slides.map(async (slide, i) => {
 			let inner = "";
 			if (slide.kind === "markdown") {
-				if (validateFences) {
+				if (fenceValidation.slidesVisuals) {
 					const diagnostics = filterUnknownSlidesVisualsTypeDiagnostics(
 						validateSlidesVisualsFences(slide.body),
 					);
@@ -381,6 +394,18 @@ async function buildSlidesBundleContent(files: ContentFile[], config: SiteConfig
 							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`slides-visuals fence contract violations:\n${msg}`);
+					}
+				}
+				if (fenceValidation.planningVisuals) {
+					const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+						validatePlanningVisualsFences(slide.body),
+					);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 					}
 				}
 				inner = marked.parse(slide.body) as string;
@@ -602,6 +627,7 @@ async function bundle() {
 		navHtml = buildSlideNavHierarchical(slides, config, "slide-1");
 		contentHtml = await buildSlidesBundleContent(files, config);
 	} else {
+		const fenceValidation = await getFenceValidationFlags(ROOT);
 		// Build navigation and content sections
 		const sections: Map<string, { id: string; title: string; html: string }[]> = new Map();
 
@@ -617,6 +643,18 @@ async function bundle() {
 						homePath,
 						config,
 					);
+					if (fenceValidation.planningVisuals) {
+						const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+							validatePlanningVisualsFences(body),
+						);
+						if (diagnostics.length) {
+							const msg = diagnostics
+								.slice(0, 12)
+								.map((d) => `  - ${homePath}:${d.line} ${d.message}`)
+								.join("\n");
+							throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+						}
+					}
 					const title = (frontmatter.title as string) || "Home";
 					let htmlContent = marked.parse(body) as string;
 					htmlContent = await inlineLocalImages(htmlContent, config);
@@ -653,6 +691,18 @@ async function bundle() {
 				}
 				if (frontmatter.description) {
 					description = frontmatter.description as string;
+				}
+				if (fenceValidation.planningVisuals) {
+					const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+						validatePlanningVisualsFences(body),
+					);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${file.path}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+					}
 				}
 				htmlContent = marked.parse(body) as string;
 

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=../schemas/v0/plugin-registry.schema.json
 version: 1
-updated: "2026-02-15"
+updated: "2026-03-03"
 baseUrl: "https://github.com/3leaps/kitfly/releases/download"
 # Canonical plugin registry (v0.2.1)
 plugins:
@@ -58,3 +58,17 @@ plugins:
       js: "plugins-dist/slides-charts-lite.js"
       assetSha256:
         js: "sha256:ea1afbe48bc94c617af1ee2d53febcaa8d48e83253094a1cbef598f77ec15013"
+  planning-visuals:
+    name: "Planning Visuals"
+    description: "Planning and timeline widgets for Kitfly (gantt charts, roadmaps)"
+    version: "0.2.4"
+    contract: "1"
+    kitfly: ">=0.2.4 <1.0.0"
+    license: MIT
+    verified: true
+    assets:
+      js: "plugins-dist/planning-visuals.js"
+      css: "plugins-dist/planning-visuals.css"
+      assetSha256:
+        js: "sha256:a2e4db1490f4788689be551218598486aa2be26522e45a553ed79bfb62833af6"
+        css: "sha256:377e688a781eb3e23f6b39e8761232d96d28378f3f1020d10378f9da2671b1fd"

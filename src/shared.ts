@@ -1008,17 +1008,16 @@ const SLIDES_VISUALS_TYPES = new Set([
 	"staircase",
 ]);
 
-const SLIDES_VISUALS_RULES: Record<
-	string,
-	{
-		required: string[];
-		scalars: string[];
-		lists: Record<
-			string,
-			{ kind: "strings" } | { kind: "objects"; fields: string[]; optional?: string[] }
-		>;
-	}
-> = {
+type VisualListRule =
+	| { kind: "strings" }
+	| { kind: "objects"; fields: string[]; optional?: string[] };
+type VisualRules = {
+	required: string[];
+	scalars: string[];
+	lists: Record<string, VisualListRule>;
+};
+
+const SLIDES_VISUALS_RULES: Record<string, VisualRules> = {
 	kpi: {
 		required: ["label", "value"],
 		scalars: ["label", "value", "trend"],
@@ -1091,11 +1090,39 @@ const SLIDES_VISUALS_RULES: Record<
 	},
 };
 
-/**
- * Validate slides-visuals `:::` blocks in a single markdown slide body.
- * This contract is intentionally strict so writers/devs don’t guess at edge cases.
- */
-export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenceDiagnostic[] {
+const PLANNING_VISUALS_TYPES = new Set(["gantt"]);
+
+const PLANNING_VISUALS_RULES: Record<string, VisualRules> = {
+	gantt: {
+		required: ["time-unit", "time-start", "time-end", "tracks"],
+		scalars: ["label", "time-unit", "time-start", "time-end", "max-depth", "max-tracks", "today"],
+		lists: {
+			tracks: {
+				kind: "objects",
+				fields: ["label", "depth", "start", "end"],
+				optional: ["status"],
+			},
+			milestones: {
+				kind: "objects",
+				fields: ["label", "date"],
+				optional: ["depth"],
+			},
+		},
+	},
+};
+
+function parseQuotedScalar(raw: string): string {
+	const trimmed = raw.trim();
+	const match = trimmed.match(/^"(.*)"$/) || trimmed.match(/^'(.*)'$/);
+	return match ? match[1] : trimmed;
+}
+
+function validateVisualFences(
+	markdown: string,
+	visualTypes: Set<string>,
+	visualRules: Record<string, VisualRules>,
+	unknownTypePrefix: string,
+): SlidesVisualsFenceDiagnostic[] {
 	const diagnostics: SlidesVisualsFenceDiagnostic[] = [];
 	const lines = markdown.replaceAll("\r\n", "\n").split("\n");
 
@@ -1113,7 +1140,7 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 	}
 
 	function finishFence(closeLine: number) {
-		const rules = SLIDES_VISUALS_RULES[visualType];
+		const rules = visualRules[visualType];
 		if (!rules) return;
 
 		for (const key of rules.required) {
@@ -1159,10 +1186,10 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 			const m = raw.match(/^:::\s*([a-z0-9-]+)\s*$/i);
 			if (!m) continue;
 			const type = m[1].toLowerCase();
-			if (!SLIDES_VISUALS_TYPES.has(type)) {
+			if (!visualTypes.has(type)) {
 				diagnostics.push({
 					line: i + 1,
-					message: `Unknown slides-visuals block type: ${type}`,
+					message: `${unknownTypePrefix}${type}`,
 					type,
 				});
 				continue;
@@ -1177,7 +1204,6 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 			continue;
 		}
 
-		// inside visual fence
 		if (trimmed === ":::" && !raw.startsWith(":::")) {
 			err(i + 1, "Closing ::: fence must start at column 0");
 			continue;
@@ -1197,13 +1223,12 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 		}
 
 		if (/^\s/.test(raw)) {
-			// list item or list continuation
 			if (!currentListKey) {
 				err(i + 1, "Indented content is only allowed inside a list");
 				continue;
 			}
 
-			const listRule = SLIDES_VISUALS_RULES[visualType]?.lists[currentListKey];
+			const listRule = visualRules[visualType]?.lists[currentListKey];
 			const item = raw.match(/^ {2}-\s+(.+)$/);
 			if (item) {
 				listItems += 1;
@@ -1234,7 +1259,7 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 			continue;
 		}
 
-		const rules = SLIDES_VISUALS_RULES[visualType];
+		const rules = visualRules[visualType];
 		if (!rules) continue;
 
 		const kv = raw.match(/^([a-z][a-z0-9-]*)\s*:\s*(.*)$/i);
@@ -1247,7 +1272,6 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 		const value = kv[2];
 
 		if (value === "") {
-			// list key
 			const listRule = rules.lists[key];
 			if (!listRule) {
 				err(i + 1, `Key '${key}' is not a supported list for ${visualType}`);
@@ -1259,7 +1283,6 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 			continue;
 		}
 
-		// scalar key
 		if (!rules.scalars.includes(key)) {
 			err(i + 1, `Key '${key}' is not a supported scalar for ${visualType}`);
 			continue;
@@ -1279,10 +1302,280 @@ export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenc
 	return diagnostics;
 }
 
+/**
+ * Validate slides-visuals `:::` blocks in a single markdown slide body.
+ * This contract is intentionally strict so writers/devs don’t guess at edge cases.
+ */
+export function validateSlidesVisualsFences(markdown: string): SlidesVisualsFenceDiagnostic[] {
+	return validateVisualFences(
+		markdown,
+		SLIDES_VISUALS_TYPES,
+		SLIDES_VISUALS_RULES,
+		"Unknown slides-visuals block type: ",
+	);
+}
+
+type ParsedPlanningBlock = {
+	startLine: number;
+	data: Record<string, unknown>;
+	scalarLines: Record<string, number>;
+	listLines: Record<string, number>;
+};
+
+function parsePlanningGanttBlocks(markdown: string): ParsedPlanningBlock[] {
+	const blocks: ParsedPlanningBlock[] = [];
+	const lines = markdown.replaceAll("\r\n", "\n").split("\n");
+	let mdFence: FenceState | null = null;
+	let current: ParsedPlanningBlock | null = null;
+	let currentList: string | null = null;
+	let currentObject: Record<string, unknown> | null = null;
+
+	for (let i = 0; i < lines.length; i++) {
+		const raw = lines[i];
+		const trimmed = raw.trim();
+		const lineNo = i + 1;
+
+		mdFence = updateFenceState(trimmed, mdFence);
+		if (mdFence) continue;
+
+		if (!current) {
+			const open = raw.match(/^:::\s*([a-z0-9-]+)\s*$/i);
+			if (!open || open[1].toLowerCase() !== "gantt") continue;
+			current = {
+				startLine: lineNo,
+				data: {},
+				scalarLines: {},
+				listLines: {},
+			};
+			currentList = null;
+			currentObject = null;
+			continue;
+		}
+
+		if (raw.match(/^:::\s*$/)) {
+			blocks.push(current);
+			current = null;
+			currentList = null;
+			currentObject = null;
+			continue;
+		}
+
+		const kv = raw.match(/^([a-z][a-z0-9-]*)\s*:\s*(.*)$/i);
+		if (kv) {
+			const key = kv[1].toLowerCase();
+			const value = kv[2];
+			if (value === "") {
+				currentList = key;
+				currentObject = null;
+				current.listLines[key] = lineNo;
+				if (!Array.isArray(current.data[key])) current.data[key] = [];
+			} else {
+				current.data[key] = parseQuotedScalar(value);
+				current.scalarLines[key] = lineNo;
+				currentList = null;
+				currentObject = null;
+			}
+			continue;
+		}
+
+		const item = raw.match(/^ {2}-\s+(.+)$/);
+		if (item && currentList) {
+			const list = Array.isArray(current.data[currentList]) ? current.data[currentList] : [];
+			current.data[currentList] = list;
+			const objKV = item[1].match(/^([a-z][a-z0-9-]*)\s*:\s*(.+)$/i);
+			if (objKV) {
+				currentObject = { [objKV[1].toLowerCase()]: parseQuotedScalar(objKV[2]) };
+				list.push(currentObject);
+			} else {
+				currentObject = null;
+				list.push(parseQuotedScalar(item[1]));
+			}
+			continue;
+		}
+
+		const cont = raw.match(/^ {4}([a-z][a-z0-9-]*)\s*:\s*(.+)$/i);
+		if (cont && currentObject) {
+			currentObject[cont[1].toLowerCase()] = parseQuotedScalar(cont[2]);
+		}
+	}
+
+	return blocks;
+}
+
+function isoWeeksInYear(year: number): number {
+	const dec28 = new Date(Date.UTC(year, 11, 28));
+	return getIsoWeekInfo(Math.floor(dec28.getTime() / (24 * 60 * 60 * 1000))).week;
+}
+
+function isoWeekMondayUtcMs(year: number, week: number): number {
+	const jan4 = new Date(Date.UTC(year, 0, 4));
+	const jan4Weekday = (jan4.getUTCDay() + 6) % 7; // Monday=0
+	const weekOneMondayMs = jan4.getTime() - jan4Weekday * 24 * 60 * 60 * 1000;
+	return weekOneMondayMs + (week - 1) * 7 * 24 * 60 * 60 * 1000;
+}
+
+function parseWeekOrdinal(value: string): number | null {
+	const match = value.match(/^(\d{4})-W(\d{2})$/i);
+	if (!match) return null;
+	const year = Number.parseInt(match[1], 10);
+	const week = Number.parseInt(match[2], 10);
+	if (week < 1 || week > isoWeeksInYear(year)) return null;
+	const mondayMs = isoWeekMondayUtcMs(year, week);
+	return Math.floor(mondayMs / (7 * 24 * 60 * 60 * 1000));
+}
+
+function parseMonthOrdinal(value: string): number | null {
+	const match = value.match(/^(\d{4})-(\d{2})$/);
+	if (!match) return null;
+	const year = Number.parseInt(match[1], 10);
+	const month = Number.parseInt(match[2], 10);
+	if (month < 1 || month > 12) return null;
+	return year * 12 + (month - 1);
+}
+
+function parsePlanningUnitOrdinal(value: unknown, unit: string): number | null {
+	if (typeof value !== "string" || !value.trim()) return null;
+	if (unit === "week") return parseWeekOrdinal(value.trim());
+	if (unit === "month") return parseMonthOrdinal(value.trim());
+	return null;
+}
+
+function getIsoWeekInfo(dayOrdinal: number): { year: number; week: number } {
+	const dayMs = 24 * 60 * 60 * 1000;
+	const date = new Date(dayOrdinal * dayMs);
+	const day = (date.getUTCDay() + 6) % 7; // Monday=0
+	const thursday = new Date(date.getTime() + (3 - day) * dayMs);
+	const year = thursday.getUTCFullYear();
+	const firstThursday = new Date(Date.UTC(year, 0, 4));
+	const firstThursdayDay = (firstThursday.getUTCDay() + 6) % 7;
+	const firstThursdayOrdinal = Math.floor(firstThursday.getTime() / dayMs) + (3 - firstThursdayDay);
+	const week = Math.floor((Math.floor(thursday.getTime() / dayMs) - firstThursdayOrdinal) / 7) + 1;
+	return { year, week };
+}
+
+export function validatePlanningVisualsFences(markdown: string): SlidesVisualsFenceDiagnostic[] {
+	const diagnostics = validateVisualFences(
+		markdown,
+		PLANNING_VISUALS_TYPES,
+		PLANNING_VISUALS_RULES,
+		"Unknown planning-visuals block type: ",
+	);
+	const ganttBlocks = parsePlanningGanttBlocks(markdown);
+
+	for (const block of ganttBlocks) {
+		const unitRaw = block.data["time-unit"];
+		const unit = typeof unitRaw === "string" ? unitRaw.trim().toLowerCase() : "";
+		const unitLine = block.scalarLines["time-unit"] ?? block.startLine;
+		const startLine = block.scalarLines["time-start"] ?? block.startLine;
+		const endLine = block.scalarLines["time-end"] ?? block.startLine;
+		const tracksLine = block.listLines.tracks ?? block.startLine;
+		const milestonesLine = block.listLines.milestones ?? block.startLine;
+
+		if (unit !== "week" && unit !== "month") {
+			diagnostics.push({
+				line: unitLine,
+				message: "Invalid time-unit (expected 'week' or 'month')",
+				type: "gantt",
+			});
+			continue;
+		}
+
+		const axisStart = parsePlanningUnitOrdinal(block.data["time-start"], unit);
+		const axisEnd = parsePlanningUnitOrdinal(block.data["time-end"], unit);
+		if (axisStart == null) {
+			diagnostics.push({
+				line: startLine,
+				message: `Invalid time-start format for ${unit}`,
+				type: "gantt",
+			});
+		}
+		if (axisEnd == null) {
+			diagnostics.push({
+				line: endLine,
+				message: `Invalid time-end format for ${unit}`,
+				type: "gantt",
+			});
+		}
+		if (axisStart != null && axisEnd != null && axisStart >= axisEnd) {
+			diagnostics.push({
+				line: endLine,
+				message: "time-start must be before time-end",
+				type: "gantt",
+			});
+		}
+
+		const todayRaw = block.data.today;
+		if (todayRaw != null && parsePlanningUnitOrdinal(todayRaw, unit) == null) {
+			diagnostics.push({
+				line: block.scalarLines.today ?? block.startLine,
+				message: `Invalid today format for ${unit}`,
+				type: "gantt",
+			});
+		}
+
+		const tracks = Array.isArray(block.data.tracks) ? block.data.tracks : [];
+		for (const track of tracks) {
+			if (!track || typeof track !== "object") {
+				diagnostics.push({
+					line: tracksLine,
+					message: "Track items must be objects",
+					type: "gantt",
+				});
+				continue;
+			}
+			const start = parsePlanningUnitOrdinal((track as Record<string, unknown>).start, unit);
+			const end = parsePlanningUnitOrdinal((track as Record<string, unknown>).end, unit);
+			if (start == null || end == null) {
+				diagnostics.push({
+					line: tracksLine,
+					message: `Track start/end must match ${unit} format`,
+					type: "gantt",
+				});
+				continue;
+			}
+			if (start > end) {
+				diagnostics.push({
+					line: tracksLine,
+					message: "Track start must be before or equal to end",
+					type: "gantt",
+				});
+			}
+		}
+
+		const milestones = Array.isArray(block.data.milestones) ? block.data.milestones : [];
+		for (const milestone of milestones) {
+			if (!milestone || typeof milestone !== "object") {
+				diagnostics.push({
+					line: milestonesLine,
+					message: "Milestone items must be objects",
+					type: "gantt",
+				});
+				continue;
+			}
+			const date = parsePlanningUnitOrdinal((milestone as Record<string, unknown>).date, unit);
+			if (date == null) {
+				diagnostics.push({
+					line: milestonesLine,
+					message: `Milestone date must match ${unit} format`,
+					type: "gantt",
+				});
+			}
+		}
+	}
+
+	return diagnostics;
+}
+
 export function filterUnknownSlidesVisualsTypeDiagnostics(
 	diagnostics: SlidesVisualsFenceDiagnostic[],
 ): SlidesVisualsFenceDiagnostic[] {
 	return diagnostics.filter((d) => !d.message.startsWith("Unknown slides-visuals block type:"));
+}
+
+export function filterUnknownPlanningVisualsTypeDiagnostics(
+	diagnostics: SlidesVisualsFenceDiagnostic[],
+): SlidesVisualsFenceDiagnostic[] {
+	return diagnostics.filter((d) => !d.message.startsWith("Unknown planning-visuals block type:"));
 }
 
 /**

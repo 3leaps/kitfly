@@ -1,0 +1,163 @@
+:root {
+  --kitfly-visual-border: var(--color-border);
+  --kitfly-visual-bg: color-mix(in srgb, var(--color-bg-sidebar) 88%, var(--color-bg));
+  --kitfly-visual-muted: var(--color-text-muted);
+  --kitfly-visual-accent: var(--color-link);
+  --kitfly-visual-success: #16a34a;
+  --kitfly-visual-warning: #d97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kitfly-visual-success: #4ade80;
+    --kitfly-visual-warning: #fbbf24;
+  }
+}
+
+.kitfly-visual {
+  border: 1px solid var(--kitfly-visual-border);
+  background: var(--kitfly-visual-bg);
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.kitfly-planning-gantt {
+  display: grid;
+  gap: 0.45rem;
+  overflow-x: auto;
+}
+
+.kitfly-gantt-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.kitfly-gantt-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 30%) 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  min-width: 38rem;
+}
+
+.kitfly-gantt-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  padding-left: calc((var(--kitfly-gantt-depth, 1) - 1) * 0.9rem);
+}
+
+.kitfly-gantt-label.depth-1 {
+  font-weight: 800;
+}
+
+.kitfly-gantt-axis {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--kitfly-gantt-units), minmax(0, 1fr));
+  border: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--kitfly-visual-bg) 75%, var(--color-bg));
+  overflow: hidden;
+}
+
+.kitfly-gantt-axis-cell {
+  min-width: 0;
+  padding: 0.26rem 0.18rem;
+  font-size: 0.72rem;
+  color: var(--kitfly-visual-muted);
+  border-right: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 45%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kitfly-gantt-axis-cell:last-child {
+  border-right: 0;
+}
+
+.kitfly-gantt-chart {
+  position: relative;
+  min-height: 1.6rem;
+  border: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 70%, transparent);
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--kitfly-visual-bg) 78%, var(--color-bg));
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--kitfly-visual-border) 45%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: calc(100% / var(--kitfly-gantt-units)) 100%;
+  overflow: hidden;
+}
+
+.kitfly-gantt-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  min-width: 0.35rem;
+}
+
+.kitfly-gantt-bar.depth-1 {
+  height: 0.56rem;
+}
+
+.kitfly-gantt-bar.depth-2 {
+  height: 0.46rem;
+}
+
+.kitfly-gantt-bar.depth-3 {
+  height: 0.4rem;
+}
+
+.kitfly-gantt-bar.is-planned {
+  background: color-mix(in srgb, var(--kitfly-visual-muted) 50%, transparent);
+}
+
+.kitfly-gantt-bar.is-active {
+  background: color-mix(in srgb, var(--kitfly-visual-accent) 78%, var(--color-text));
+}
+
+.kitfly-gantt-bar.is-complete {
+  background: var(--kitfly-visual-success);
+}
+
+.kitfly-gantt-bar.is-blocked {
+  background: var(--kitfly-visual-warning);
+}
+
+.kitfly-gantt-milestone {
+  position: absolute;
+  top: 50%;
+  width: 0.62rem;
+  height: 0.62rem;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: color-mix(in srgb, var(--kitfly-visual-accent) 70%, var(--color-text));
+  border: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 80%, transparent);
+}
+
+.kitfly-gantt-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--kitfly-visual-muted) 80%, transparent);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.kitfly-gantt-overflow-row .kitfly-gantt-label {
+  color: var(--kitfly-visual-muted);
+  font-style: italic;
+}
+
+@media (max-width: 700px) {
+  .kitfly-gantt-row {
+    min-width: 32rem;
+    grid-template-columns: minmax(8rem, 36%) 1fr;
+  }
+}

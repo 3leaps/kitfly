@@ -48,6 +48,7 @@ import {
 	// Formatting
 	escapeHtml,
 	filterByProfile,
+	filterUnknownPlanningVisualsTypeDiagnostics,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	// Provenance
 	generateProvenance,
@@ -68,6 +69,7 @@ import {
 	type SiteConfig,
 	slugify,
 	validatePath,
+	validatePlanningVisualsFences,
 	validateSlidesVisualsFences,
 } from "../src/shared.ts";
 import { generateThemeCSS, getPrismUrls, loadTheme, type Theme } from "../src/theme.ts";
@@ -302,15 +304,23 @@ const clients: Set<ReadableStreamDefaultController> = new Set();
 
 let pluginCache: { key: string; head: string; bodyEnd: string } | null = null;
 
-async function isSlidesVisualsEnabled(): Promise<boolean> {
+async function getFenceValidationFlags(): Promise<{
+	slidesVisuals: boolean;
+	planningVisuals: boolean;
+}> {
 	const configPath = join(ROOT, "kitfly.plugins.yaml");
 	try {
 		const raw = await readFile(configPath, "utf-8");
 		const parsed = parseYaml(raw) as unknown as Record<string, unknown>;
 		const plugins = Array.isArray(parsed?.plugins) ? (parsed.plugins as unknown[]) : [];
-		return plugins.some((p) => typeof p === "string" && p.startsWith("slides-visuals@"));
+		return {
+			slidesVisuals: plugins.some((p) => typeof p === "string" && p.startsWith("slides-visuals@")),
+			planningVisuals: plugins.some(
+				(p) => typeof p === "string" && p.startsWith("planning-visuals@"),
+			),
+		};
 	} catch {
-		return false;
+		return { slidesVisuals: false, planningVisuals: false };
 	}
 }
 
@@ -400,6 +410,19 @@ async function renderPage(
 			title = frontmatter.title as string;
 		}
 		pageMeta = buildPageMeta(frontmatter);
+		const fenceValidation = await getFenceValidationFlags();
+		if (fenceValidation.planningVisuals) {
+			const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+				validatePlanningVisualsFences(body),
+			);
+			if (diagnostics.length) {
+				const msg = diagnostics
+					.slice(0, 12)
+					.map((d) => `  - ${filePath}:${d.line} ${d.message}`)
+					.join("\n");
+				throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+			}
+		}
 		htmlContent = marked.parse(body) as string;
 	}
 
@@ -487,13 +510,13 @@ async function renderSlidesPage(
 		return renderGettingStarted(provenance, config, theme);
 	}
 	const pathPrefix = "/";
-	const validateFences = await isSlidesVisualsEnabled();
+	const fenceValidation = await getFenceValidationFlags();
 
 	const sections = await Promise.all(
 		slides.map(async (slide, i) => {
 			let inner = "";
 			if (slide.kind === "markdown") {
-				if (validateFences) {
+				if (fenceValidation.slidesVisuals) {
 					const diagnostics = filterUnknownSlidesVisualsTypeDiagnostics(
 						validateSlidesVisualsFences(slide.body),
 					);
@@ -503,6 +526,18 @@ async function renderSlidesPage(
 							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`slides-visuals fence contract violations:\n${msg}`);
+					}
+				}
+				if (fenceValidation.planningVisuals) {
+					const diagnostics = filterUnknownPlanningVisualsTypeDiagnostics(
+						validatePlanningVisualsFences(slide.body),
+					);
+					if (diagnostics.length) {
+						const msg = diagnostics
+							.slice(0, 12)
+							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
+							.join("\n");
+						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 					}
 				}
 				inner = marked.parse(slide.body) as string;

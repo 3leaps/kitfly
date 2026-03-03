@@ -1,7 +1,7 @@
 ---
 title: "Plugins"
 description: "Enable small add-ons (CSS/JS) for docs and slides"
-last_updated: "2026-02-12"
+last_updated: "2026-03-03"
 ---
 
 # Plugins
@@ -26,12 +26,13 @@ plugins:
 
 Canonical plugins are referenced as pinned strings: `name@x.y.z`.
 
-### Canonical plugins (v0.2.2)
+### Canonical plugins (v0.2.4)
 
 - `callouts@0.2.0` - styled NOTE/TIP/INFO/WARNING/DANGER blockquotes
 - `slides-visuals@0.2.1` - slide widgets + figures via `:::` blocks (`slides` mode only)
 - `latex@0.2.2` - KaTeX math rendering for `$...$`, `$$...$$`, and fenced `math` blocks
 - `slides-charts-lite@0.2.2` - bar/line/pie charts from fenced `chart` blocks (`slides` mode only)
+- `planning-visuals@0.2.4` - gantt planning widget via `:::gantt` blocks (`docs` and `slides`)
 
 Example:
 

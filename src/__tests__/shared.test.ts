@@ -26,6 +26,7 @@ import {
 	escapeHtml,
 	exists,
 	filterByProfile,
+	filterUnknownPlanningVisualsTypeDiagnostics,
 	filterUnknownSlidesVisualsTypeDiagnostics,
 	formatDate,
 	generateProvenance,
@@ -50,6 +51,7 @@ import {
 	stripQuotes,
 	toUrlPath,
 	validatePath,
+	validatePlanningVisualsFences,
 	validateSlidesVisualsFences,
 } from "../shared.ts";
 
@@ -447,6 +449,29 @@ label: Missing value
 			false,
 		);
 		expect(filtered.some((d) => d.message.includes("Missing required key: value"))).toBe(true);
+	});
+});
+
+describe("planning-visuals diagnostics filtering", () => {
+	it("drops unknown-type diagnostics while preserving schema violations", () => {
+		const markdown = `:::future-planning
+foo: bar
+:::
+
+:::gantt
+time-unit: week
+time-start: 2026-W10
+time-end: 2026-W12
+:::`;
+		const diagnostics = validatePlanningVisualsFences(markdown);
+		const filtered = filterUnknownPlanningVisualsTypeDiagnostics(diagnostics);
+		expect(
+			diagnostics.some((d) => d.message.startsWith("Unknown planning-visuals block type:")),
+		).toBe(true);
+		expect(filtered.some((d) => d.message.startsWith("Unknown planning-visuals block type:"))).toBe(
+			false,
+		);
+		expect(filtered.some((d) => d.message.includes("Missing required key: tracks"))).toBe(true);
 	});
 });
 
