@@ -3,6 +3,7 @@
   const CLOSE_RE = /^:::\s*$/;
   const DAY_MS = 24 * 60 * 60 * 1000;
   const WEEK_MS = 7 * DAY_MS;
+  const ISO_WEEK_ANCHOR_DAY = -3; // 1969-12-29 (Monday of 1970-W01)
   const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   function parseScalar(raw) {
@@ -43,12 +44,18 @@
         const list = Array.isArray(out[pendingKey]) ? out[pendingKey] : [];
         out[pendingKey] = list;
         const objectKV = item[1].match(/^([a-z0-9_-]+)\s*:\s*(.+)$/i);
+        let pushed = null;
         if (objectKV) {
           pendingObj = { [objectKV[1].toLowerCase()]: parseScalar(objectKV[2]) };
-          list.push(pendingObj);
+          pushed = pendingObj;
         } else {
           pendingObj = null;
-          list.push(parseScalar(item[1]));
+          pushed = parseScalar(item[1]);
+        }
+        list.push(pushed);
+        if (pendingKey === "tracks" || pendingKey === "milestones") {
+          out.__rowOrder = Array.isArray(out.__rowOrder) ? out.__rowOrder : [];
+          out.__rowOrder.push({ kind: pendingKey.slice(0, -1), index: list.length - 1 });
         }
         continue;
       }
@@ -133,8 +140,21 @@
         const items = [];
         for (const li of node.querySelectorAll(":scope > li")) {
           items.push(parseListItemObject(li));
+          if (pendingKey === "tracks" || pendingKey === "milestones") {
+            out.__rowOrder = Array.isArray(out.__rowOrder) ? out.__rowOrder : [];
+            out.__rowOrder.push({ kind: pendingKey.slice(0, -1), index: items.length - 1 });
+          }
         }
-        out[pendingKey] = items;
+        const existing = Array.isArray(out[pendingKey]) ? out[pendingKey] : [];
+        const base = existing.length;
+        out[pendingKey] = existing.concat(items);
+        if (base > 0 && Array.isArray(out.__rowOrder)) {
+          for (let i = out.__rowOrder.length - items.length; i < out.__rowOrder.length; i++) {
+            if (out.__rowOrder[i] && typeof out.__rowOrder[i].index === "number") {
+              out.__rowOrder[i].index += base;
+            }
+          }
+        }
         pendingKey = null;
       }
     }
@@ -173,7 +193,8 @@
     const year = Number.parseInt(match[1], 10);
     const week = Number.parseInt(match[2], 10);
     if (week < 1 || week > isoWeeksInYear(year)) return null;
-    return Math.floor(isoWeekMondayUtcMs(year, week) / WEEK_MS);
+    const mondayDayOrdinal = Math.floor(isoWeekMondayUtcMs(year, week) / DAY_MS);
+    return Math.floor((mondayDayOrdinal - ISO_WEEK_ANCHOR_DAY) / 7);
   }
 
   function parseMonthOrdinal(value) {
@@ -192,8 +213,7 @@
   }
 
   function weekLabelFromOrdinal(ordinal) {
-    const mondayMs = ordinal * WEEK_MS;
-    const mondayDayOrdinal = Math.floor(mondayMs / DAY_MS);
+    const mondayDayOrdinal = ISO_WEEK_ANCHOR_DAY + ordinal * 7;
     const info = isoWeekFromDayOrdinal(mondayDayOrdinal);
     return { year: info.year, week: info.week, label: `W${String(info.week).padStart(2, "0")}` };
   }
@@ -242,11 +262,12 @@
     const maxTracks = toPositiveInt(data["max-tracks"], Number.MAX_SAFE_INTEGER);
     const todayOrdinal = parseUnitOrdinal(data.today, unit);
 
-    const rows = [];
     const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+    const milestones = Array.isArray(data.milestones) ? data.milestones : [];
+    const trackRows = [];
     for (const track of tracks) {
       const item = track && typeof track === "object" ? track : {};
-      rows.push({
+      trackRows.push({
         kind: "track",
         label: String(item.label || "").trim(),
         depth: toDepth(item.depth, 1),
@@ -255,16 +276,35 @@
         status: String(item.status || "planned").trim().toLowerCase(),
       });
     }
-
-    const milestones = Array.isArray(data.milestones) ? data.milestones : [];
+    const milestoneRows = [];
     for (const milestone of milestones) {
       const item = milestone && typeof milestone === "object" ? milestone : {};
-      rows.push({
+      milestoneRows.push({
         kind: "milestone",
         label: String(item.label || "").trim(),
         depth: toDepth(item.depth, 1),
         date: parseUnitOrdinal(item.date, unit),
       });
+    }
+    const rows = [];
+    const rowOrder = Array.isArray(data.__rowOrder) ? data.__rowOrder : [];
+    if (rowOrder.length > 0) {
+      for (const entry of rowOrder) {
+        if (!entry || typeof entry !== "object") continue;
+        if (entry.kind === "track" && Number.isInteger(entry.index) && trackRows[entry.index]) {
+          rows.push(trackRows[entry.index]);
+          continue;
+        }
+        if (
+          entry.kind === "milestone" &&
+          Number.isInteger(entry.index) &&
+          milestoneRows[entry.index]
+        ) {
+          rows.push(milestoneRows[entry.index]);
+        }
+      }
+    } else {
+      rows.push(...trackRows, ...milestoneRows);
     }
 
     const visibleRows = rows.filter((row) => row.depth <= maxDepth);

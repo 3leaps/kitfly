@@ -29,6 +29,7 @@ import {
 	type ContentFile,
 	collectFiles,
 	// Navigation/template building
+	collectPlanningVisualsContainmentWarnings,
 	collectSlides,
 	envBool,
 	// Config helpers
@@ -277,6 +278,10 @@ async function renderFile(
 					.join("\n");
 				throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 			}
+			const warnings = collectPlanningVisualsContainmentWarnings(body);
+			for (const warning of warnings.slice(0, 12)) {
+				console.warn(`  ⚠ ${filePath}:${warning.line} ${warning.message}`);
+			}
 		}
 		htmlContent = marked.parse(body) as string;
 	}
@@ -463,6 +468,10 @@ async function renderSlidesIndex(
 							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+					}
+					const warnings = collectPlanningVisualsContainmentWarnings(slide.body);
+					for (const warning of warnings.slice(0, 12)) {
+						console.warn(`  ⚠ ${slide.sourcePath}:${warning.line} ${warning.message}`);
 					}
 				}
 				inner = marked.parse(slide.body) as string;

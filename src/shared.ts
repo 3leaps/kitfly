@@ -1415,13 +1415,15 @@ function isoWeekMondayUtcMs(year: number, week: number): number {
 }
 
 function parseWeekOrdinal(value: string): number | null {
+	const isoWeekAnchorDay = -3; // 1969-12-29 (Monday of 1970-W01)
 	const match = value.match(/^(\d{4})-W(\d{2})$/i);
 	if (!match) return null;
 	const year = Number.parseInt(match[1], 10);
 	const week = Number.parseInt(match[2], 10);
 	if (week < 1 || week > isoWeeksInYear(year)) return null;
-	const mondayMs = isoWeekMondayUtcMs(year, week);
-	return Math.floor(mondayMs / (7 * 24 * 60 * 60 * 1000));
+	const dayMs = 24 * 60 * 60 * 1000;
+	const mondayDayOrdinal = Math.floor(isoWeekMondayUtcMs(year, week) / dayMs);
+	return Math.floor((mondayDayOrdinal - isoWeekAnchorDay) / 7);
 }
 
 function parseMonthOrdinal(value: string): number | null {
@@ -1564,6 +1566,57 @@ export function validatePlanningVisualsFences(markdown: string): SlidesVisualsFe
 	}
 
 	return diagnostics;
+}
+
+export function collectPlanningVisualsContainmentWarnings(
+	markdown: string,
+): SlidesVisualsFenceDiagnostic[] {
+	const warnings: SlidesVisualsFenceDiagnostic[] = [];
+	const ganttBlocks = parsePlanningGanttBlocks(markdown);
+
+	for (const block of ganttBlocks) {
+		const unitRaw = block.data["time-unit"];
+		const unit = typeof unitRaw === "string" ? unitRaw.trim().toLowerCase() : "";
+		if (unit !== "week" && unit !== "month") continue;
+
+		const axisStart = parsePlanningUnitOrdinal(block.data["time-start"], unit);
+		const axisEnd = parsePlanningUnitOrdinal(block.data["time-end"], unit);
+		if (axisStart == null || axisEnd == null || axisStart >= axisEnd) continue;
+
+		const tracksLine = block.listLines.tracks ?? block.startLine;
+		const milestonesLine = block.listLines.milestones ?? block.startLine;
+
+		const tracks = Array.isArray(block.data.tracks) ? block.data.tracks : [];
+		for (const track of tracks) {
+			if (!track || typeof track !== "object") continue;
+			const start = parsePlanningUnitOrdinal((track as Record<string, unknown>).start, unit);
+			const end = parsePlanningUnitOrdinal((track as Record<string, unknown>).end, unit);
+			if (start == null || end == null) continue;
+			if (start < axisStart || end > axisEnd) {
+				warnings.push({
+					line: tracksLine,
+					message: "Track range is outside axis and will be clipped",
+					type: "gantt",
+				});
+			}
+		}
+
+		const milestones = Array.isArray(block.data.milestones) ? block.data.milestones : [];
+		for (const milestone of milestones) {
+			if (!milestone || typeof milestone !== "object") continue;
+			const date = parsePlanningUnitOrdinal((milestone as Record<string, unknown>).date, unit);
+			if (date == null) continue;
+			if (date < axisStart || date > axisEnd) {
+				warnings.push({
+					line: milestonesLine,
+					message: "Milestone date is outside axis and will not be rendered",
+					type: "gantt",
+				});
+			}
+		}
+	}
+
+	return warnings;
 }
 
 export function filterUnknownSlidesVisualsTypeDiagnostics(

@@ -19,6 +19,7 @@ import {
 	buildToc,
 	type ContentFile,
 	collectFiles,
+	collectPlanningVisualsContainmentWarnings,
 	collectSlides,
 	envBool,
 	envInt,
@@ -472,6 +473,27 @@ time-end: 2026-W12
 			false,
 		);
 		expect(filtered.some((d) => d.message.includes("Missing required key: tracks"))).toBe(true);
+	});
+});
+
+describe("planning-visuals containment warnings", () => {
+	it("returns non-fatal containment warnings when rows exceed axis", () => {
+		const markdown = `:::gantt
+time-unit: month
+time-start: 2026-04
+time-end: 2026-06
+tracks:
+  - label: Wave 1
+    depth: 1
+    start: 2026-03
+    end: 2026-07
+milestones:
+  - label: Late marker
+    date: 2026-08
+:::`;
+		const warnings = collectPlanningVisualsContainmentWarnings(markdown);
+		expect(warnings.some((w) => w.message.includes("Track range is outside axis"))).toBe(true);
+		expect(warnings.some((w) => w.message.includes("Milestone date is outside axis"))).toBe(true);
 	});
 });
 

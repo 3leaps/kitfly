@@ -40,6 +40,7 @@ import {
 	checkPortOrExit,
 	// Navigation/template building
 	collectFiles,
+	collectPlanningVisualsContainmentWarnings,
 	collectSlides,
 	envBool,
 	envInt,
@@ -422,6 +423,10 @@ async function renderPage(
 					.join("\n");
 				throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 			}
+			const warnings = collectPlanningVisualsContainmentWarnings(body);
+			for (const warning of warnings.slice(0, 12)) {
+				logWarn(`${filePath}:${warning.line} ${warning.message}`);
+			}
 		}
 		htmlContent = marked.parse(body) as string;
 	}
@@ -538,6 +543,10 @@ async function renderSlidesPage(
 							.map((d) => `  - ${slide.sourcePath}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+					}
+					const warnings = collectPlanningVisualsContainmentWarnings(slide.body);
+					for (const warning of warnings.slice(0, 12)) {
+						logWarn(`${slide.sourcePath}:${warning.line} ${warning.message}`);
 					}
 				}
 				inner = marked.parse(slide.body) as string;

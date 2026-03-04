@@ -26,9 +26,10 @@ import {
 	buildSectionNav,
 	// Navigation/template building
 	buildSlideNavHierarchical,
-	// Types
 	type ContentFile,
 	collectFiles,
+	// Types
+	collectPlanningVisualsContainmentWarnings,
 	collectSlides,
 	envBool,
 	// Config helpers
@@ -407,6 +408,10 @@ async function buildSlidesBundleContent(files: ContentFile[], config: SiteConfig
 							.join("\n");
 						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 					}
+					const warnings = collectPlanningVisualsContainmentWarnings(slide.body);
+					for (const warning of warnings.slice(0, 12)) {
+						console.warn(`  ⚠ ${slide.sourcePath}:${warning.line} ${warning.message}`);
+					}
 				}
 				inner = marked.parse(slide.body) as string;
 			} else if (slide.kind === "yaml") {
@@ -654,6 +659,10 @@ async function bundle() {
 								.join("\n");
 							throw new Error(`planning-visuals fence contract violations:\n${msg}`);
 						}
+						const warnings = collectPlanningVisualsContainmentWarnings(body);
+						for (const warning of warnings.slice(0, 12)) {
+							console.warn(`  ⚠ ${homePath}:${warning.line} ${warning.message}`);
+						}
 					}
 					const title = (frontmatter.title as string) || "Home";
 					let htmlContent = marked.parse(body) as string;
@@ -702,6 +711,10 @@ async function bundle() {
 							.map((d) => `  - ${file.path}:${d.line} ${d.message}`)
 							.join("\n");
 						throw new Error(`planning-visuals fence contract violations:\n${msg}`);
+					}
+					const warnings = collectPlanningVisualsContainmentWarnings(body);
+					for (const warning of warnings.slice(0, 12)) {
+						console.warn(`  ⚠ ${file.path}:${warning.line} ${warning.message}`);
 					}
 				}
 				htmlContent = marked.parse(body) as string;
