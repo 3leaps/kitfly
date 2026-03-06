@@ -233,3 +233,145 @@ label: Users
 value: 1,234
 :::
 ```
+
+## Triple-colon fence contract (`planning-visuals`)
+
+The `planning-visuals` plugin adds a `:::gantt` block for planning and timeline visualization. Unlike `slides-visuals`, it works in both `docs` and `slides` mode.
+
+Enable it in `kitfly.plugins.yaml`:
+
+```yaml
+plugins:
+  - planning-visuals@0.2.4
+```
+
+### Supported type
+
+- `gantt` — horizontal bar chart on a shared time axis with hierarchical depth control
+
+### Chart-level parameters
+
+| Parameter    | Required | Description                                         |
+| ------------ | -------- | --------------------------------------------------- |
+| `time-unit`  | yes      | Axis granularity: `week` or `month`                 |
+| `time-start` | yes      | Left edge. `YYYY-Www` for week, `YYYY-MM` for month |
+| `time-end`   | yes      | Right edge. Same format as `time-start`             |
+| `label`      | no       | Chart title, rendered above the time axis           |
+| `max-depth`  | no       | Maximum depth to render. `1` = top-level only       |
+| `max-tracks` | no       | Maximum rendered rows. Excess shows "+N more"       |
+| `today`      | no       | Renders a vertical dashed marker at this date       |
+
+### Track fields
+
+Tracks are horizontal bars spanning a start-to-end range.
+
+| Field    | Required | Default   | Description                                   |
+| -------- | -------- | --------- | --------------------------------------------- |
+| `label`  | yes      | —         | Track label in the left column                |
+| `depth`  | yes      | —         | Hierarchy level: 1, 2, or 3                   |
+| `start`  | yes      | —         | Bar start (format must match `time-unit`)     |
+| `end`    | yes      | —         | Bar end (format must match `time-unit`)       |
+| `status` | no       | `planned` | `planned`, `active`, `complete`, or `blocked` |
+
+### Milestone fields
+
+Milestones are point-in-time markers (diamond icon, not a bar). Listed separately from tracks.
+
+| Field   | Required | Default | Description                                       |
+| ------- | -------- | ------- | ------------------------------------------------- |
+| `label` | yes      | —       | Milestone label in the left column                |
+| `date`  | yes      | —       | Single date (format must match `time-unit`)       |
+| `depth` | no       | 1       | Hierarchy level, subject to `max-depth` filtering |
+
+### Row ordering
+
+Tracks and milestones render in **source order** — the order you write them in the fence controls the visual sequence. You can interleave tracks and milestones freely.
+
+### Example (week mode)
+
+```markdown
+:::gantt
+label: "Platform Migration — 2026"
+time-unit: week
+time-start: "2026-W14"
+time-end: "2026-W30"
+max-depth: 2
+today: "2026-W20"
+tracks:
+
+- label: "Phase 1 — Foundation"
+  depth: 1
+  start: "2026-W14"
+  end: "2026-W22"
+  status: active
+- label: "Auth Service"
+  depth: 2
+  start: "2026-W14"
+  end: "2026-W18"
+  status: complete
+- label: "Data Layer"
+  depth: 2
+  start: "2026-W17"
+  end: "2026-W22"
+  status: active
+  milestones:
+- label: "Architecture Review"
+  date: "2026-W16"
+- label: "Phase 1 Sign-Off"
+  date: "2026-W23"
+  depth: 2
+  tracks:
+- label: "Phase 2 — Integration"
+  depth: 1
+  start: "2026-W24"
+  end: "2026-W30"
+  status: planned
+  :::
+```
+
+### Example (month mode)
+
+```markdown
+:::gantt
+label: "Product Roadmap — H2 2026"
+time-unit: month
+time-start: "2026-07"
+time-end: "2027-01"
+tracks:
+
+- label: "Beta Program"
+  depth: 1
+  start: "2026-07"
+  end: "2026-09"
+  status: active
+- label: "GA Release"
+  depth: 1
+  start: "2026-10"
+  end: "2026-12"
+  status: planned
+  milestones:
+- label: "Launch Event"
+  date: "2026-10"
+  :::
+```
+
+### Depth filtering
+
+The same data can drive a summary view and a detail view using `max-depth`:
+
+- `max-depth: 1` renders only depth-1 bars and milestones (wave/phase level)
+- `max-depth: 2` adds depth-2 items (individual workstreams)
+- Omitting `max-depth` shows everything
+
+### Validation
+
+When `planning-visuals` is enabled, Kitfly validates `:::gantt` blocks at build time:
+
+- Missing `time-unit`, `time-start`, `time-end`, or `tracks` is a build error
+- Tracks missing `label`, `depth`, `start`, or `end` is a build error
+- Milestones missing `label` or `date` is a build error
+- Date format must match `time-unit` (`YYYY-Www` for week, `YYYY-MM` for month)
+- `time-start` must be before `time-end`; track `start` must be before or equal to `end`
+- Milestones are optional — a gantt with no `milestones:` list is valid
+
+See [Gantt Widget Examples](gantt-widget.md) for more patterns.
