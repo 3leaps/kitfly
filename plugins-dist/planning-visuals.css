@@ -101,7 +101,7 @@
   padding-inline: 0.04rem;
 }
 
-.kitfly-planning-gantt.is-week .kitfly-gantt-axis-cell.is-edge {
+.kitfly-planning-gantt.is-week .kitfly-gantt-axis-cell.is-labeled {
   overflow: visible;
   text-overflow: clip;
   position: relative;

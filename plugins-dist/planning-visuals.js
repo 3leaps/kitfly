@@ -385,7 +385,10 @@
       const info = unit === "week" ? weekLabelFromOrdinal(ordinal) : monthLabelFromOrdinal(ordinal);
       const prev = i > 0 ? (unit === "week" ? weekLabelFromOrdinal(ordinal - 1) : monthLabelFromOrdinal(ordinal - 1)) : null;
       const text = buildAxisCellLabel(unit, info, prev, i, totalUnits);
-      if (text) cell.textContent = text;
+      if (text) {
+        cell.textContent = text;
+        cell.classList.add("is-labeled");
+      }
       axis.appendChild(cell);
     }
     if (todayOrdinal != null && todayOrdinal >= axisStart && todayOrdinal <= axisEnd) {
