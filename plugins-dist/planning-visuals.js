@@ -224,6 +224,32 @@
     return { year, month, label: MONTH_NAMES[month - 1] || `M${month}` };
   }
 
+  function weekLabelStepForUnits(totalUnits) {
+    if (totalUnits > 24) return 4;
+    if (totalUnits > 16) return 2;
+    return 1;
+  }
+
+  function buildAxisCellLabel(unit, info, prev, index, totalUnits) {
+    const isEdge = index === 0 || index === totalUnits - 1;
+    if (unit === "week") {
+      const step = weekLabelStepForUnits(totalUnits);
+      const show = index % step === 0 || isEdge;
+      if (!show) return "";
+      const yearChanged = !prev || prev.year !== info.year;
+      const weekCompact = step > 1;
+      const weekNumber = String(info.week).padStart(2, "0");
+      const base = weekCompact && !isEdge ? weekNumber : `W${weekNumber}`;
+      const suffix = isEdge || yearChanged ? ` '${String(info.year).slice(-2)}` : "";
+      return `${base}${suffix}`;
+    }
+
+    const yearChanged = !prev || prev.year !== info.year;
+    const showYear = info.month === 1 || yearChanged;
+    const suffix = showYear ? ` '${String(info.year).slice(-2)}` : "";
+    return `${info.label}${suffix}`;
+  }
+
   function toPositiveInt(value, fallback) {
     const parsed = Number.parseInt(String(value ?? ""), 10);
     if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -314,6 +340,12 @@
     const root = el("div", "kitfly-visual kitfly-planning-gantt");
     root.setAttribute("data-kitfly-visual", "gantt");
     root.style.setProperty("--kitfly-gantt-units", String(totalUnits));
+    root.classList.add(unit === "week" ? "is-week" : "is-month");
+
+    const weekLabelStep = unit === "week" ? weekLabelStepForUnits(totalUnits) : 1;
+    const weekCompact = unit === "week" && weekLabelStep > 1;
+    if (weekCompact) root.classList.add("is-week-compact");
+    if (unit === "week" && weekLabelStep > 2) root.classList.add("is-week-ultra-compact");
 
     const label = String(data.label || "").trim();
     if (label) {
@@ -326,23 +358,10 @@
     for (let i = 0; i < totalUnits; i++) {
       const ordinal = axisStart + i;
       const cell = el("div", "kitfly-gantt-axis-cell");
-      let info;
-      if (unit === "week") info = weekLabelFromOrdinal(ordinal);
-      else info = monthLabelFromOrdinal(ordinal);
-
-      let show = true;
-      if (unit === "week") {
-        const step = totalUnits > 40 ? 4 : totalUnits > 20 ? 2 : 1;
-        show = i % step === 0;
-      }
-
-      if (show || i === 0 || i === totalUnits - 1) {
-        const prev = i > 0 ? (unit === "week" ? weekLabelFromOrdinal(ordinal - 1) : monthLabelFromOrdinal(ordinal - 1)) : null;
-        const yearChanged = !prev || prev.year !== info.year;
-        const showYear = unit === "month" ? info.month === 1 || yearChanged : yearChanged;
-        const suffix = showYear ? ` '${String(info.year).slice(-2)}` : "";
-        cell.textContent = `${info.label}${suffix}`;
-      }
+      const info = unit === "week" ? weekLabelFromOrdinal(ordinal) : monthLabelFromOrdinal(ordinal);
+      const prev = i > 0 ? (unit === "week" ? weekLabelFromOrdinal(ordinal - 1) : monthLabelFromOrdinal(ordinal - 1)) : null;
+      const text = buildAxisCellLabel(unit, info, prev, i, totalUnits);
+      if (text) cell.textContent = text;
       axis.appendChild(cell);
     }
     if (todayOrdinal != null && todayOrdinal >= axisStart && todayOrdinal <= axisEnd) {
@@ -481,6 +500,8 @@
   if (typeof document === "undefined") {
     globalThis.__kitflyPlanningVisualsTest = {
       parseFence,
+      buildAxisCellLabel,
+      weekLabelStepForUnits,
       parseUnitOrdinal,
       weekLabelFromOrdinal,
       monthLabelFromOrdinal,
