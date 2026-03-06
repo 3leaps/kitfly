@@ -10,6 +10,10 @@ type PlanningVisualsHooks = {
 		totalUnits: number,
 	) => string;
 	weekLabelStepForUnits: (totalUnits: number) => number;
+	weekAxisContextLabel: (
+		startInfo: { year: number; week: number; label: string },
+		endInfo: { year: number; week: number; label: string },
+	) => string;
 	parseUnitOrdinal: (value: string, unit: string) => number | null;
 	weekLabelFromOrdinal: (ordinal: number) => { year: number; week: number; label: string };
 	monthLabelFromOrdinal: (ordinal: number) => { year: number; month: number; label: string };
@@ -41,7 +45,7 @@ test("planning-visuals: week boundary label resolves correct year", async () => 
 	expect(label.year).toBe(2027);
 });
 
-test("planning-visuals: compact week axis uses sparse abbreviated interior labels", async () => {
+test("planning-visuals: compact week axis uses sparse full week labels", async () => {
 	const hooks = await loadHooks();
 	expect(hooks.weekLabelStepForUnits(28)).toBe(4);
 	const first = hooks.weekLabelFromOrdinal(hooks.parseUnitOrdinal("2026-W10", "week") as number);
@@ -51,7 +55,15 @@ test("planning-visuals: compact week axis uses sparse abbreviated interior label
 	const firstText = hooks.buildAxisCellLabel("week", first, null, 0, 28);
 	const interiorText = hooks.buildAxisCellLabel("week", interior, first, 4, 28);
 	expect(firstText.startsWith("W10")).toBe(true);
-	expect(interiorText).toBe("14");
+	expect(interiorText).toBe("W14");
+});
+
+test("planning-visuals: week axis context label is explicit for audience clarity", async () => {
+	const hooks = await loadHooks();
+	const start = hooks.weekLabelFromOrdinal(hooks.parseUnitOrdinal("2026-W10", "week") as number);
+	const end = hooks.weekLabelFromOrdinal(hooks.parseUnitOrdinal("2026-W36", "week") as number);
+	const context = hooks.weekAxisContextLabel(start, end);
+	expect(context).toBe("ISO Weeks W10-W36 (2026)");
 });
 
 test("planning-visuals: parseFence preserves interleaved row order from repeated lists", async () => {

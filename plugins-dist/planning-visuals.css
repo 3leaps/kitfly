@@ -80,6 +80,17 @@
   border-right: 0;
 }
 
+.kitfly-gantt-axis-context-row {
+  margin-bottom: -0.2rem;
+}
+
+.kitfly-gantt-axis-context {
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  color: var(--kitfly-visual-muted);
+  text-transform: uppercase;
+}
+
 .kitfly-planning-gantt.is-week-compact .kitfly-gantt-axis-cell {
   font-size: 0.66rem;
   padding-inline: 0.06rem;
@@ -88,6 +99,21 @@
 .kitfly-planning-gantt.is-week-ultra-compact .kitfly-gantt-axis-cell {
   font-size: 0.62rem;
   padding-inline: 0.04rem;
+}
+
+.kitfly-planning-gantt.is-week .kitfly-gantt-axis-cell.is-edge {
+  overflow: visible;
+  text-overflow: clip;
+  position: relative;
+  z-index: 1;
+}
+
+.kitfly-planning-gantt.is-week .kitfly-gantt-axis-cell.is-edge:first-child {
+  text-align: left;
+}
+
+.kitfly-planning-gantt.is-week .kitfly-gantt-axis-cell.is-edge:last-child {
+  text-align: right;
 }
 
 .kitfly-gantt-chart {
