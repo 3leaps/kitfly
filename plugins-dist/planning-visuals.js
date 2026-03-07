@@ -84,6 +84,31 @@
     return { type, data: parseLinesToObject(lines.slice(1, -1)) };
   }
 
+  function parseListItemText(rawText) {
+    const raw = String(rawText || "").trim();
+    const lines = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && line !== ":::");
+    const obj = {};
+    let switchListKey = null;
+    for (const line of lines) {
+      const kv = line.match(/^([a-z0-9_-]+)\s*:\s*(.+)$/i);
+      if (kv) {
+        obj[kv[1].toLowerCase()] = parseScalar(kv[2]);
+        continue;
+      }
+      const keyOnly = line.match(/^([a-z0-9_-]+)\s*:\s*$/i);
+      if (!keyOnly) continue;
+      const key = keyOnly[1].toLowerCase();
+      if (key === "tracks" || key === "milestones" || key === "markers") {
+        switchListKey = key;
+      }
+    }
+    const item = Object.keys(obj).length > 0 ? obj : { label: parseScalar(raw) };
+    return { item, switchListKey };
+  }
+
   function parseListItemObject(li) {
     const parts = [];
     for (const child of li.querySelectorAll(":scope > p")) {
@@ -91,18 +116,7 @@
       if (text) parts.push(text);
     }
     const raw = parts.length ? parts.join("\n") : (li.textContent || "").trim();
-    const lines = raw
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && line !== ":::");
-    const obj = {};
-    for (const line of lines) {
-      const kv = line.match(/^([a-z0-9_-]+)\s*:\s*(.+)$/i);
-      if (!kv) continue;
-      obj[kv[1].toLowerCase()] = parseScalar(kv[2]);
-    }
-    if (Object.keys(obj).length > 0) return obj;
-    return { label: parseScalar(raw) };
+    return parseListItemText(raw);
   }
 
   function parseGanttNodes(firstLines, between, endNode) {
@@ -137,22 +151,18 @@
       }
 
       if ((tag === "UL" || tag === "OL") && pendingKey) {
-        const items = [];
+        let activeListKey = pendingKey;
         for (const li of node.querySelectorAll(":scope > li")) {
-          items.push(parseListItemObject(li));
-          if (pendingKey === "tracks" || pendingKey === "milestones") {
+          const parsed = parseListItemObject(li);
+          const list = Array.isArray(out[activeListKey]) ? out[activeListKey] : [];
+          out[activeListKey] = list;
+          list.push(parsed.item);
+          if (activeListKey === "tracks" || activeListKey === "milestones") {
             out.__rowOrder = Array.isArray(out.__rowOrder) ? out.__rowOrder : [];
-            out.__rowOrder.push({ kind: pendingKey.slice(0, -1), index: items.length - 1 });
+            out.__rowOrder.push({ kind: activeListKey.slice(0, -1), index: list.length - 1 });
           }
-        }
-        const existing = Array.isArray(out[pendingKey]) ? out[pendingKey] : [];
-        const base = existing.length;
-        out[pendingKey] = existing.concat(items);
-        if (base > 0 && Array.isArray(out.__rowOrder)) {
-          for (let i = out.__rowOrder.length - items.length; i < out.__rowOrder.length; i++) {
-            if (out.__rowOrder[i] && typeof out.__rowOrder[i].index === "number") {
-              out.__rowOrder[i].index += base;
-            }
+          if (parsed.switchListKey) {
+            activeListKey = parsed.switchListKey;
           }
         }
         pendingKey = null;
@@ -595,6 +605,7 @@
       buildAxisCellLabel,
       weekAxisContextLabel,
       weekLabelStepForUnits,
+      parseListItemText,
       parseMarkerPosition,
       parseUnitOrdinal,
       weekLabelFromOrdinal,

@@ -14,6 +14,10 @@ type PlanningVisualsHooks = {
 		startInfo: { year: number; week: number; label: string },
 		endInfo: { year: number; week: number; label: string },
 	) => string;
+	parseListItemText: (rawText: string) => {
+		item: Record<string, string>;
+		switchListKey: string | null;
+	};
 	parseMarkerPosition: (value: string, unit: string) => number | null;
 	parseUnitOrdinal: (value: string, unit: string) => number | null;
 	weekLabelFromOrdinal: (ordinal: number) => { year: number; week: number; label: string };
@@ -136,4 +140,16 @@ test("planning-visuals: marker parser supports day precision in month mode", asy
 	expect(monthDay).not.toBeNull();
 	expect(monthDay as number).toBeGreaterThan(monthCenter as number);
 	expect(hooks.parseMarkerPosition("2026-02-30", "month")).toBeNull();
+});
+
+test("planning-visuals: list item parser detects in-item list key switch", async () => {
+	const hooks = await loadHooks();
+	const parsed = hooks.parseListItemText(
+		`label: "P66 Conf (May 26)"
+date: "2026-05"
+tracks:`,
+	);
+	expect(parsed.item.label).toBe("P66 Conf (May 26)");
+	expect(parsed.item.date).toBe("2026-05");
+	expect(parsed.switchListKey).toBe("tracks");
 });
