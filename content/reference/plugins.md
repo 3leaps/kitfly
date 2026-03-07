@@ -283,6 +283,17 @@ Milestones are point-in-time markers (diamond icon, not a bar). Listed separatel
 | `date`  | yes      | —       | Single date (format must match `time-unit`)       |
 | `depth` | no       | 1       | Hierarchy level, subject to `max-depth` filtering |
 
+### Marker fields
+
+Markers are chart-level vertical annotation lines spanning the full chart height, with a label at the top. Use them for gates, deadlines, and phase boundaries. Not subject to `max-depth` or `max-tracks` filtering.
+
+| Field   | Required | Description                                                   |
+| ------- | -------- | ------------------------------------------------------------- |
+| `label` | yes      | Annotation text (~20 chars recommended). Truncated if longer. |
+| `date`  | yes      | Position on axis (format must match `time-unit`)              |
+
+Markers with dates outside the axis range produce a build-time warning and are not rendered.
+
 ### Row ordering
 
 Tracks and milestones render in **source order** — the order you write them in the fence controls the visual sequence. You can interleave tracks and milestones freely.

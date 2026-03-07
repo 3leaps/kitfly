@@ -1,7 +1,7 @@
 ---
 title: "Gantt Widget Examples"
 description: "Usage patterns for the :::gantt planning widget"
-last_updated: "2026-03-04"
+last_updated: "2026-03-06"
 ---
 
 # Gantt Widget Examples
@@ -249,6 +249,40 @@ milestones:
 
 Milestones respect `max-depth` filtering. A milestone with `depth: 2` is hidden when `max-depth: 1`.
 
+## Chart-level markers
+
+Markers are vertical annotation lines that span the full chart height — use them for gates, deadlines, and phase boundaries. Unlike row-level milestones (diamonds), markers are chart-level annotations with a label at the top:
+
+```markdown
+:::gantt
+label: "Platform Migration"
+time-unit: week
+time-start: "2026-W14"
+time-end: "2026-W30"
+markers:
+
+- label: "Go/No-Go"
+  date: "2026-W18"
+- label: "Phase 1 Sign-Off"
+  date: "2026-W26"
+  tracks:
+- label: "Phase 1 — Foundation"
+  depth: 1
+  start: "2026-W14"
+  end: "2026-W24"
+  status: active
+- label: "Phase 2 — Integration"
+  depth: 1
+  start: "2026-W25"
+  end: "2026-W30"
+  status: planned
+  :::
+```
+
+Markers are **not** subject to `max-depth` or `max-tracks` — they always render if their date is within the axis range. A marker whose date falls outside the axis produces a build-time warning and is silently omitted.
+
+Labels default to the right of the line. Near the right edge of the chart (~85%+), labels automatically flip to the left. Keep labels short (~20 chars) — longer text is truncated with ellipsis.
+
 ## Truncation with `max-tracks`
 
 For slides, cap the visible rows to avoid overflow:
@@ -356,19 +390,74 @@ snippets:
 {{ snippet:rollout-summary }}
 ```
 
+## Milestones vs markers
+
+Both are point-in-time features — here's when to use which:
+
+|                              | Milestones (`milestones:`)                      | Markers (`markers:`)                             |
+| ---------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| **What it draws**            | Diamond icon in a single row                    | Vertical line spanning the full chart            |
+| **Where the label goes**     | Left column (same as tracks)                    | Above the axis, next to the line                 |
+| **Has depth?**               | Yes — subject to `max-depth`                    | No — always visible                              |
+| **Counted by `max-tracks`?** | Yes                                             | No                                               |
+| **Use for**                  | Per-track events: "Acme go-live", "QA sign-off" | Chart-wide gates: "Go/No-Go", "Funding deadline" |
+
+Rule of thumb: if it belongs to a specific track or wave, use a milestone. If it's a date the whole chart cares about, use a marker.
+
+## Edge cases and errors
+
+Kitfly validates `:::gantt` blocks at build time. If something is wrong, `bun run build` (or `bun run dev`) fails fast with an error pointing to the file and line.
+
+**Build errors** (block will not render):
+
+| What you wrote                                             | Error                     | Fix                                        |
+| ---------------------------------------------------------- | ------------------------- | ------------------------------------------ |
+| Missing `time-unit`, `time-start`, `time-end`, or `tracks` | Required field missing    | Add the field                              |
+| `time-unit: weeks` (plural)                                | Invalid time-unit         | Use `week` or `month`                      |
+| `2026-14` with `time-unit: week`                           | Invalid time-start format | Use `2026-W14` (capital W, two-digit week) |
+| `2026-4` with `time-unit: month`                           | Invalid time-start format | Use `2026-04` (two-digit month)            |
+| Week date with `time-unit: month` (or vice versa)          | Format mismatch           | All dates must match the `time-unit`       |
+| `time-start` after `time-end`                              | Range error               | Swap them                                  |
+| Track with `start` after `end`                             | Range error               | Swap them                                  |
+| Track missing `label`, `depth`, `start`, or `end`          | Required field missing    | Add the field                              |
+| Milestone missing `label` or `date`                        | Required field missing    | Add the field                              |
+| Marker missing `label` or `date`                           | Required field missing    | Add the field                              |
+
+**Build warnings** (block renders, but something may look wrong):
+
+| What you wrote                        | Warning                                           | What happens                  |
+| ------------------------------------- | ------------------------------------------------- | ----------------------------- |
+| Track extends outside the axis range  | "Track range is outside axis and will be clipped" | Bar clips to the visible axis |
+| Milestone date outside the axis range | "Milestone date is outside axis"                  | Diamond not rendered          |
+| Marker date outside the axis range    | "Marker date is outside axis"                     | Line and label not rendered   |
+
+**Silent defaults** (no error, no warning):
+
+| What you wrote                                    | What happens                 |
+| ------------------------------------------------- | ---------------------------- |
+| Omit `status` on a track                          | Defaults to `planned` (gray) |
+| Omit `depth` on a milestone                       | Defaults to 1                |
+| Omit `max-depth`                                  | All depths rendered          |
+| Omit `max-tracks`                                 | All rows rendered            |
+| Omit `milestones`, `markers`, `today`, or `label` | Feature simply absent        |
+| Unknown `status` value (e.g., `status: done`)     | Treated as `planned`         |
+
+For the full fence contract (indentation rules, block shape, supported types), see [Plugins — planning-visuals](plugins.md#triple-colon-fence-contract-planning-visuals).
+
 ## Quick reference
 
-| What you want          | How                                    |
-| ---------------------- | -------------------------------------- |
-| Week axis              | `time-unit: week`, dates as `YYYY-Www` |
-| Month axis             | `time-unit: month`, dates as `YYYY-MM` |
-| Title above chart      | `label: "My Title"`                    |
-| Executive summary      | `max-depth: 1`                         |
-| Detail view            | `max-depth: 2` (or omit for all)       |
-| Cap rows for slides    | `max-tracks: 6`                        |
-| Progress marker        | `today: "2026-W26"`                    |
-| Done bar (green)       | `status: complete`                     |
-| In-progress bar (blue) | `status: active`                       |
-| At-risk bar (amber)    | `status: blocked`                      |
-| Not started (gray)     | `status: planned` (or omit)            |
-| Point-in-time marker   | Use `milestones:` list with `date:`    |
+| What you want          | How                                         |
+| ---------------------- | ------------------------------------------- |
+| Week axis              | `time-unit: week`, dates as `YYYY-Www`      |
+| Month axis             | `time-unit: month`, dates as `YYYY-MM`      |
+| Title above chart      | `label: "My Title"`                         |
+| Executive summary      | `max-depth: 1`                              |
+| Detail view            | `max-depth: 2` (or omit for all)            |
+| Cap rows for slides    | `max-tracks: 6`                             |
+| Progress marker        | `today: "2026-W26"`                         |
+| Done bar (green)       | `status: complete`                          |
+| In-progress bar (blue) | `status: active`                            |
+| At-risk bar (amber)    | `status: blocked`                           |
+| Not started (gray)     | `status: planned` (or omit)                 |
+| Point-in-time marker   | Use `milestones:` list with `date:`         |
+| Chart-level gate line  | Use `markers:` list with `label:` + `date:` |
