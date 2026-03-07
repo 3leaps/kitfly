@@ -495,6 +495,80 @@ milestones:
 		expect(warnings.some((w) => w.message.includes("Track range is outside axis"))).toBe(true);
 		expect(warnings.some((w) => w.message.includes("Milestone date is outside axis"))).toBe(true);
 	});
+
+	it("warns when marker date is outside axis range", () => {
+		const markdown = `:::gantt
+time-unit: week
+time-start: 2026-W14
+time-end: 2026-W20
+markers:
+  - label: Late gate
+    date: 2026-W22
+tracks:
+  - label: Phase 1
+    depth: 1
+    start: 2026-W14
+    end: 2026-W18
+:::`;
+		const warnings = collectPlanningVisualsContainmentWarnings(markdown);
+		expect(warnings.some((w) => w.message.includes("Marker date is outside axis"))).toBe(true);
+	});
+});
+
+describe("planning-visuals marker validation", () => {
+	it("accepts valid markers", () => {
+		const markdown = `:::gantt
+time-unit: week
+time-start: 2026-W14
+time-end: 2026-W30
+markers:
+  - label: Go/No-Go
+    date: 2026-W20
+tracks:
+  - label: Phase 1
+    depth: 1
+    start: 2026-W14
+    end: 2026-W24
+:::`;
+		const diags = validatePlanningVisualsFences(markdown);
+		expect(diags).toHaveLength(0);
+	});
+
+	it("rejects marker with mismatched date format", () => {
+		const markdown = `:::gantt
+time-unit: month
+time-start: 2026-04
+time-end: 2026-10
+markers:
+  - label: Gate
+    date: 2026-W20
+tracks:
+  - label: Build
+    depth: 1
+    start: 2026-04
+    end: 2026-07
+:::`;
+		const diags = validatePlanningVisualsFences(markdown);
+		expect(diags.some((d) => d.message.includes("Marker date must match month format"))).toBe(true);
+	});
+
+	it("accepts month markers with day precision", () => {
+		const markdown = `:::gantt
+time-unit: month
+time-start: 2026-04
+time-end: 2026-10
+markers:
+  - label: Conference
+    date: 2026-05-26
+tracks:
+  - label: Build
+    depth: 1
+    start: 2026-04
+    end: 2026-07
+:::`;
+		const diags = validatePlanningVisualsFences(markdown);
+		expect(diags).toHaveLength(0);
+	});
 });
 
 describe("segmentSlides", () => {

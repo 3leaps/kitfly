@@ -182,9 +182,68 @@
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 1px dashed color-mix(in srgb, var(--kitfly-visual-muted) 80%, transparent);
+  border-left: 1px dashed color-mix(in srgb, var(--kitfly-visual-muted) 70%, transparent);
   transform: translateX(-50%);
   pointer-events: none;
+  z-index: 2;
+}
+
+.kitfly-gantt-marker-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid color-mix(in srgb, var(--kitfly-visual-accent) 88%, var(--color-text));
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.kitfly-gantt-marker-line::before {
+  content: "";
+  position: absolute;
+  top: 0.14rem;
+  left: -0.22rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  transform: rotate(45deg);
+  background: color-mix(in srgb, var(--kitfly-visual-accent) 90%, var(--color-text));
+  border: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 75%, transparent);
+  border-radius: 0.1rem;
+}
+
+.kitfly-gantt-marker-row {
+  margin-bottom: -0.15rem;
+}
+
+.kitfly-gantt-marker-area {
+  position: relative;
+  min-height: 1.25rem;
+}
+
+.kitfly-gantt-marker-label {
+  position: absolute;
+  top: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+  white-space: nowrap;
+  max-width: 10rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--kitfly-visual-border) 65%, transparent);
+  background: color-mix(in srgb, var(--kitfly-visual-bg) 72%, var(--color-bg));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--kitfly-visual-border) 55%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(0.35rem);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.kitfly-gantt-marker-label.is-flipped {
+  transform: translateX(calc(-100% - 0.3rem));
 }
 
 .kitfly-gantt-overflow-row .kitfly-gantt-label {

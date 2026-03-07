@@ -14,6 +14,7 @@ type PlanningVisualsHooks = {
 		startInfo: { year: number; week: number; label: string },
 		endInfo: { year: number; week: number; label: string },
 	) => string;
+	parseMarkerPosition: (value: string, unit: string) => number | null;
 	parseUnitOrdinal: (value: string, unit: string) => number | null;
 	weekLabelFromOrdinal: (ordinal: number) => { year: number; week: number; label: string };
 	monthLabelFromOrdinal: (ordinal: number) => { year: number; month: number; label: string };
@@ -96,4 +97,43 @@ test("planning-visuals: parseFence preserves interleaved row order from repeated
 		{ kind: "milestone", index: 0 },
 		{ kind: "track", index: 1 },
 	]);
+});
+
+test("planning-visuals: parseFence parses markers list", async () => {
+	const hooks = await loadHooks();
+	const parsed = hooks.parseFence(
+		`:::gantt
++time-unit: week
++time-start: 2026-W14
++time-end: 2026-W30
++markers:
++  - label: Go/No-Go
++    date: 2026-W20
++  - label: Phase Gate
++    date: 2026-W28
++tracks:
++  - label: Phase 1
++    depth: 1
++    start: 2026-W14
++    end: 2026-W24
++:::`.replace(/^\+/gm, ""),
+	);
+
+	expect(parsed?.type).toBe("gantt");
+	const markers = parsed?.data.markers as Array<Record<string, string>>;
+	expect(markers).toHaveLength(2);
+	expect(markers[0].label).toBe("Go/No-Go");
+	expect(markers[0].date).toBe("2026-W20");
+	expect(markers[1].label).toBe("Phase Gate");
+	expect(markers[1].date).toBe("2026-W28");
+});
+
+test("planning-visuals: marker parser supports day precision in month mode", async () => {
+	const hooks = await loadHooks();
+	const monthCenter = hooks.parseMarkerPosition("2026-05", "month");
+	const monthDay = hooks.parseMarkerPosition("2026-05-26", "month");
+	expect(monthCenter).not.toBeNull();
+	expect(monthDay).not.toBeNull();
+	expect(monthDay as number).toBeGreaterThan(monthCenter as number);
+	expect(hooks.parseMarkerPosition("2026-02-30", "month")).toBeNull();
 });

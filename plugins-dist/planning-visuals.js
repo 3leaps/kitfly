@@ -206,9 +206,38 @@
     return year * 12 + (month - 1);
   }
 
+  function daysInMonthUtc(year, month) {
+    return new Date(Date.UTC(year, month, 0)).getUTCDate();
+  }
+
+  function parseMonthMarkerPosition(value) {
+    const monthOrdinal = parseMonthOrdinal(value);
+    if (monthOrdinal != null) return monthOrdinal + 0.5;
+
+    const match = String(value || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const year = Number.parseInt(match[1], 10);
+    const month = Number.parseInt(match[2], 10);
+    const day = Number.parseInt(match[3], 10);
+    if (month < 1 || month > 12) return null;
+    const dim = daysInMonthUtc(year, month);
+    if (day < 1 || day > dim) return null;
+    const ordinal = year * 12 + (month - 1);
+    return ordinal + (day - 0.5) / dim;
+  }
+
   function parseUnitOrdinal(value, unit) {
     if (unit === "week") return parseWeekOrdinal(value);
     if (unit === "month") return parseMonthOrdinal(value);
+    return null;
+  }
+
+  function parseMarkerPosition(value, unit) {
+    if (unit === "week") {
+      const ordinal = parseWeekOrdinal(value);
+      return ordinal == null ? null : ordinal + 0.5;
+    }
+    if (unit === "month") return parseMonthMarkerPosition(value);
     return null;
   }
 
@@ -301,6 +330,18 @@
 
     const tracks = Array.isArray(data.tracks) ? data.tracks : [];
     const milestones = Array.isArray(data.milestones) ? data.milestones : [];
+    const rawMarkers = Array.isArray(data.markers) ? data.markers : [];
+    const chartMarkers = [];
+    for (const m of rawMarkers) {
+      const item = m && typeof m === "object" ? m : {};
+      const markerPosition = parseMarkerPosition(item.date, unit);
+      if (markerPosition == null || markerPosition < axisStart || markerPosition > axisEnd + 1)
+        continue;
+      chartMarkers.push({
+        label: String(item.label || "").trim(),
+        left: ((markerPosition - axisStart) / totalUnits) * 100,
+      });
+    }
     const trackRows = [];
     for (const track of tracks) {
       const item = track && typeof track === "object" ? track : {};
@@ -375,6 +416,20 @@
       root.appendChild(axisContextRow);
     }
 
+    if (chartMarkers.length > 0) {
+      const annoRow = el("div", "kitfly-gantt-row kitfly-gantt-marker-row");
+      annoRow.appendChild(el("div", "kitfly-gantt-label", ""));
+      const annoArea = el("div", "kitfly-gantt-marker-area");
+      for (const cm of chartMarkers) {
+        const lbl = el("div", "kitfly-gantt-marker-label", cm.label);
+        lbl.style.left = `${cm.left}%`;
+        if (cm.left > 85) lbl.classList.add("is-flipped");
+        annoArea.appendChild(lbl);
+      }
+      annoRow.appendChild(annoArea);
+      root.appendChild(annoRow);
+    }
+
     const axisRow = el("div", "kitfly-gantt-row kitfly-gantt-axis-row");
     axisRow.appendChild(el("div", "kitfly-gantt-label kitfly-gantt-axis-label", ""));
     const axis = el("div", "kitfly-gantt-axis");
@@ -397,6 +452,11 @@
       today.style.left = `${left}%`;
       axis.appendChild(today);
     }
+    for (const cm of chartMarkers) {
+      const line = el("div", "kitfly-gantt-marker-line");
+      line.style.left = `${cm.left}%`;
+      axis.appendChild(line);
+    }
     axisRow.appendChild(axis);
     root.appendChild(axisRow);
 
@@ -415,6 +475,11 @@
         const left = ((todayOrdinal - axisStart + 0.5) / totalUnits) * 100;
         today.style.left = `${left}%`;
         chartEl.appendChild(today);
+      }
+      for (const cm of chartMarkers) {
+        const line = el("div", "kitfly-gantt-marker-line");
+        line.style.left = `${cm.left}%`;
+        chartEl.appendChild(line);
       }
 
       if (row.kind === "track" && row.start != null && row.end != null) {
@@ -530,6 +595,7 @@
       buildAxisCellLabel,
       weekAxisContextLabel,
       weekLabelStepForUnits,
+      parseMarkerPosition,
       parseUnitOrdinal,
       weekLabelFromOrdinal,
       monthLabelFromOrdinal,

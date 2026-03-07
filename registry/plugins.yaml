@@ -70,5 +70,5 @@ plugins:
       js: "plugins-dist/planning-visuals.js"
       css: "plugins-dist/planning-visuals.css"
       assetSha256:
-        js: "sha256:08899c8e799adaeebd1e86ab092f1357e09c82ee50d640c90a2b949f7db342ed"
-        css: "sha256:52b25eb60cb06cc7c4259b78cb2d624b9d1993e5b22fe83c5349a19aa8d5552d"
+        js: "sha256:966019be626c469d5d08f2e4af3ddb35d07540d22bff69b6e7b18f51d80dbee7"
+        css: "sha256:a5a596b9b620fe4a43b21a60374c71129a23f8c25249602fd72070b01e998edd"

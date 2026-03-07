@@ -1107,6 +1107,10 @@ const PLANNING_VISUALS_RULES: Record<string, VisualRules> = {
 				fields: ["label", "date"],
 				optional: ["depth"],
 			},
+			markers: {
+				kind: "objects",
+				fields: ["label", "date"],
+			},
 		},
 	},
 };
@@ -1435,10 +1439,43 @@ function parseMonthOrdinal(value: string): number | null {
 	return year * 12 + (month - 1);
 }
 
+function daysInMonthUtc(year: number, month: number): number {
+	return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function parsePlanningMonthMarkerPosition(value: string): number | null {
+	const monthOrdinal = parseMonthOrdinal(value);
+	if (monthOrdinal != null) return monthOrdinal + 0.5;
+
+	const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+	if (!match) return null;
+	const year = Number.parseInt(match[1], 10);
+	const month = Number.parseInt(match[2], 10);
+	const day = Number.parseInt(match[3], 10);
+	if (month < 1 || month > 12) return null;
+	const dim = daysInMonthUtc(year, month);
+	if (day < 1 || day > dim) return null;
+	const ordinal = year * 12 + (month - 1);
+	return ordinal + (day - 0.5) / dim;
+}
+
 function parsePlanningUnitOrdinal(value: unknown, unit: string): number | null {
 	if (typeof value !== "string" || !value.trim()) return null;
 	if (unit === "week") return parseWeekOrdinal(value.trim());
 	if (unit === "month") return parseMonthOrdinal(value.trim());
+	return null;
+}
+
+function parsePlanningMarkerPosition(value: unknown, unit: string): number | null {
+	if (typeof value !== "string" || !value.trim()) return null;
+	const raw = value.trim();
+	if (unit === "week") {
+		const ordinal = parseWeekOrdinal(raw);
+		return ordinal == null ? null : ordinal + 0.5;
+	}
+	if (unit === "month") {
+		return parsePlanningMonthMarkerPosition(raw);
+	}
 	return null;
 }
 
@@ -1563,6 +1600,29 @@ export function validatePlanningVisualsFences(markdown: string): SlidesVisualsFe
 				});
 			}
 		}
+
+		const markersLine = block.listLines.markers ?? block.startLine;
+		const markers = Array.isArray(block.data.markers) ? block.data.markers : [];
+		for (const marker of markers) {
+			if (!marker || typeof marker !== "object") {
+				diagnostics.push({
+					line: markersLine,
+					message: "Marker items must be objects",
+					type: "gantt",
+				});
+				continue;
+			}
+			const date = parsePlanningMarkerPosition((marker as Record<string, unknown>).date, unit);
+			if (date == null) {
+				const expected =
+					unit === "month" ? "month format (YYYY-MM or YYYY-MM-DD)" : "week format (YYYY-Www)";
+				diagnostics.push({
+					line: markersLine,
+					message: `Marker date must match ${expected}`,
+					type: "gantt",
+				});
+			}
+		}
 	}
 
 	return diagnostics;
@@ -1610,6 +1670,21 @@ export function collectPlanningVisualsContainmentWarnings(
 				warnings.push({
 					line: milestonesLine,
 					message: "Milestone date is outside axis and will not be rendered",
+					type: "gantt",
+				});
+			}
+		}
+
+		const markersLine = block.listLines.markers ?? block.startLine;
+		const markers = Array.isArray(block.data.markers) ? block.data.markers : [];
+		for (const marker of markers) {
+			if (!marker || typeof marker !== "object") continue;
+			const position = parsePlanningMarkerPosition((marker as Record<string, unknown>).date, unit);
+			if (position == null) continue;
+			if (position < axisStart || position > axisEnd + 1) {
+				warnings.push({
+					line: markersLine,
+					message: "Marker date is outside axis and will not be rendered",
 					type: "gantt",
 				});
 			}
