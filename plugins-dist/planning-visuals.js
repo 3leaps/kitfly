@@ -602,6 +602,8 @@
   if (typeof document === "undefined") {
     globalThis.__kitflyPlanningVisualsTest = {
       parseFence,
+      parseGanttNodesWithFirstLines: (firstLines, between, endNode) =>
+        parseGanttNodes(firstLines, between, endNode),
       buildAxisCellLabel,
       weekAxisContextLabel,
       weekLabelStepForUnits,
