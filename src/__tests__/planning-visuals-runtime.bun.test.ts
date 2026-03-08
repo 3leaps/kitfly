@@ -132,6 +132,29 @@ test("planning-visuals: parseFence parses markers list", async () => {
 	expect(markers[1].date).toBe("2026-W28");
 });
 
+test("planning-visuals: parseFence keeps optional marker color", async () => {
+	const hooks = await loadHooks();
+	const parsed = hooks.parseFence(
+		`:::gantt
+time-unit: month
+time-start: 2026-03
+time-end: 2026-10
+markers:
+  - label: Go/No-Go
+    date: 2026-05-26
+    color: #38bdf8
+tracks:
+  - label: Phase 1
+    depth: 1
+    start: 2026-03
+    end: 2026-06
+:::`.replace(/^\+/gm, ""),
+	);
+	const markers = parsed?.data.markers as Array<Record<string, string>>;
+	expect(markers).toHaveLength(1);
+	expect(markers[0].color).toBe("#38bdf8");
+});
+
 test("planning-visuals: marker parser supports day precision in month mode", async () => {
 	const hooks = await loadHooks();
 	const monthCenter = hooks.parseMarkerPosition("2026-05", "month");

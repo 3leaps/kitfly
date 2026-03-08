@@ -350,6 +350,7 @@
       chartMarkers.push({
         label: String(item.label || "").trim(),
         left: ((markerPosition - axisStart) / totalUnits) * 100,
+        color: String(item.color || "").trim(),
       });
     }
     const trackRows = [];
@@ -433,6 +434,7 @@
       for (const cm of chartMarkers) {
         const lbl = el("div", "kitfly-gantt-marker-label", cm.label);
         lbl.style.left = `${cm.left}%`;
+        if (cm.color) lbl.style.setProperty("--kitfly-marker-color", cm.color);
         if (cm.left > 85) lbl.classList.add("is-flipped");
         annoArea.appendChild(lbl);
       }
@@ -465,6 +467,7 @@
     for (const cm of chartMarkers) {
       const line = el("div", "kitfly-gantt-marker-line");
       line.style.left = `${cm.left}%`;
+      if (cm.color) line.style.setProperty("--kitfly-marker-color", cm.color);
       axis.appendChild(line);
     }
     axisRow.appendChild(axis);
@@ -489,6 +492,7 @@
       for (const cm of chartMarkers) {
         const line = el("div", "kitfly-gantt-marker-line");
         line.style.left = `${cm.left}%`;
+        if (cm.color) line.style.setProperty("--kitfly-marker-color", cm.color);
         chartEl.appendChild(line);
       }
 

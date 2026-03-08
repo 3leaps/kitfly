@@ -1110,6 +1110,7 @@ const PLANNING_VISUALS_RULES: Record<string, VisualRules> = {
 			markers: {
 				kind: "objects",
 				fields: ["label", "date"],
+				optional: ["color"],
 			},
 		},
 	},

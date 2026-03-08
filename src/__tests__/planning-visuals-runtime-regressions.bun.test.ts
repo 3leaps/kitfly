@@ -29,8 +29,9 @@ class FakeElement {
 async function loadHooks(): Promise<PlanningVisualsRegressionHooks> {
 	// @ts-expect-error JS plugin registers test hooks on globalThis in non-DOM environments.
 	await import("../../plugins-dist/planning-visuals.js");
-	const hooks = (globalThis as any)
-		.__kitflyPlanningVisualsTest as PlanningVisualsRegressionHooks | undefined;
+	const hooks = (globalThis as any).__kitflyPlanningVisualsTest as
+		| PlanningVisualsRegressionHooks
+		| undefined;
 	if (!hooks) throw new Error("planning-visuals test hooks not found on globalThis");
 	return hooks;
 }
@@ -38,12 +39,7 @@ async function loadHooks(): Promise<PlanningVisualsRegressionHooks> {
 test("planning-visuals: fragmented list-key switch preserves markers and milestones", async () => {
 	const { parseGanttNodesWithFirstLines } = await loadHooks();
 	const data = parseGanttNodesWithFirstLines(
-		[
-			'time-unit: "month"',
-			'time-start: "2026-03"',
-			'time-end: "2026-09"',
-			"markers:",
-		],
+		['time-unit: "month"', 'time-start: "2026-03"', 'time-end: "2026-09"', "markers:"],
 		[],
 		new FakeElement("UL", "", [
 			new FakeElement("LI", 'label: "P66 Conf (May 26)"\ndate: "2026-05"\ntracks:'),
