@@ -291,6 +291,7 @@ Markers are chart-level vertical annotation lines spanning the full chart height
 | ------- | -------- | ------------------------------------------------------------- |
 | `label` | yes      | Annotation text (~20 chars recommended). Truncated if longer. |
 | `date`  | yes      | Position on axis (format must match `time-unit`)              |
+| `color` | no       | Marker color (`#hex`, `rgb`, named color, or CSS variable)    |
 
 Markers with dates outside the axis range produce a build-time warning and are not rendered.
 

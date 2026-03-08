@@ -18,6 +18,10 @@ type PlanningVisualsHooks = {
 		item: Record<string, string>;
 		switchListKey: string | null;
 	};
+	assignMarkerLabelLanes: (markers: Array<Record<string, any>>) => {
+		markers: Array<Record<string, any>>;
+		laneCount: number;
+	};
 	parseMarkerPosition: (value: string, unit: string) => number | null;
 	parseUnitOrdinal: (value: string, unit: string) => number | null;
 	weekLabelFromOrdinal: (ordinal: number) => { year: number; week: number; label: string };
@@ -175,4 +179,14 @@ tracks:`,
 	expect(parsed.item.label).toBe("P66 Conf (May 26)");
 	expect(parsed.item.date).toBe("2026-05");
 	expect(parsed.switchListKey).toBe("tracks");
+});
+
+test("planning-visuals: marker layout assigns separate lanes for nearby labels", async () => {
+	const hooks = await loadHooks();
+	const layout = hooks.assignMarkerLabelLanes([
+		{ label: "Conference", left: 40, color: "" },
+		{ label: "Go-Live", left: 42, color: "" },
+	]);
+	expect(layout.laneCount).toBeGreaterThan(1);
+	expect(layout.markers[0].__lane).not.toBe(layout.markers[1].__lane);
 });

@@ -312,6 +312,40 @@
     return parsed;
   }
 
+  function estimateMarkerLabelRem(label) {
+    const length = String(label || "").trim().length;
+    const estimated = length * 0.38 + 1.9;
+    return Math.max(4.2, Math.min(10, estimated));
+  }
+
+  function assignMarkerLabelLanes(markers) {
+    const sorted = markers
+      .map((marker, index) => ({ marker, index }))
+      .sort((a, b) => a.marker.left - b.marker.left);
+
+    const laneEndPct = [];
+    let maxLanes = 1;
+    for (const entry of sorted) {
+      const marker = entry.marker;
+      const widthPct = (estimateMarkerLabelRem(marker.label) / 26) * 100;
+      const flipped = marker.left > 85;
+      const start = flipped ? marker.left - widthPct : marker.left;
+      const end = flipped ? marker.left : marker.left + widthPct;
+
+      let lane = 0;
+      while (lane < laneEndPct.length && start <= laneEndPct[lane] + 1.2) {
+        lane += 1;
+      }
+      if (lane === laneEndPct.length) laneEndPct.push(-Infinity);
+      laneEndPct[lane] = end;
+      marker.__flipped = flipped;
+      marker.__lane = lane;
+      maxLanes = Math.max(maxLanes, lane + 1);
+    }
+
+    return { markers, laneCount: maxLanes };
+  }
+
   function clampRange(start, end, axisStart, axisEnd) {
     const clampedStart = Math.max(start, axisStart);
     const clampedEnd = Math.min(end, axisEnd);
@@ -353,6 +387,7 @@
         color: String(item.color || "").trim(),
       });
     }
+    const markerLayout = assignMarkerLabelLanes(chartMarkers);
     const trackRows = [];
     for (const track of tracks) {
       const item = track && typeof track === "object" ? track : {};
@@ -404,6 +439,7 @@
     root.setAttribute("data-kitfly-visual", "gantt");
     root.style.setProperty("--kitfly-gantt-units", String(totalUnits));
     root.classList.add(unit === "week" ? "is-week" : "is-month");
+    root.style.setProperty("--kitfly-marker-lanes", String(markerLayout.laneCount));
 
     const weekLabelStep = unit === "week" ? weekLabelStepForUnits(totalUnits) : 1;
     const weekCompact = unit === "week" && weekLabelStep > 1;
@@ -434,8 +470,9 @@
       for (const cm of chartMarkers) {
         const lbl = el("div", "kitfly-gantt-marker-label", cm.label);
         lbl.style.left = `${cm.left}%`;
+        lbl.style.setProperty("--kitfly-marker-lane", String(cm.__lane || 0));
         if (cm.color) lbl.style.setProperty("--kitfly-marker-color", cm.color);
-        if (cm.left > 85) lbl.classList.add("is-flipped");
+        if (cm.__flipped) lbl.classList.add("is-flipped");
         annoArea.appendChild(lbl);
       }
       annoRow.appendChild(annoArea);
@@ -612,6 +649,7 @@
       weekAxisContextLabel,
       weekLabelStepForUnits,
       parseListItemText,
+      assignMarkerLabelLanes,
       parseMarkerPosition,
       parseUnitOrdinal,
       weekLabelFromOrdinal,

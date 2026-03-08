@@ -263,8 +263,10 @@ markers:
 
 - label: "Go/No-Go"
   date: "2026-W18"
+  color: "#f59e0b"
 - label: "Phase 1 Sign-Off"
   date: "2026-W26"
+  color: "var(--color-link)"
   tracks:
 - label: "Phase 1 — Foundation"
   depth: 1
@@ -282,6 +284,8 @@ markers:
 Markers are **not** subject to `max-depth` or `max-tracks` — they always render if their date is within the axis range. A marker whose date falls outside the axis produces a build-time warning and is silently omitted.
 
 Labels default to the right of the line. Near the right edge of the chart (~85%+), labels automatically flip to the left. Keep labels short (~20 chars) — longer text is truncated with ellipsis.
+
+`color` is optional on each marker. If provided, it tints the marker line and label. Supported values are any valid CSS color (`#hex`, `rgb(...)`, `hsl(...)`, named color, or CSS variable like `var(--color-link)`).
 
 ## Truncation with `max-tracks`
 
@@ -461,3 +465,4 @@ For the full fence contract (indentation rules, block shape, supported types), s
 | Not started (gray)     | `status: planned` (or omit)                 |
 | Point-in-time marker   | Use `milestones:` list with `date:`         |
 | Chart-level gate line  | Use `markers:` list with `label:` + `date:` |
+| Marker-specific color  | Add optional `color:` per marker            |

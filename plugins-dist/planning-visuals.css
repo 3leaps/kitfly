@@ -219,13 +219,13 @@
 
 .kitfly-gantt-marker-area {
   position: relative;
-  min-height: 1.38rem;
+  min-height: calc(1.38rem + (var(--kitfly-marker-lanes, 1) - 1) * 0.98rem);
 }
 
 .kitfly-gantt-marker-label {
   --kitfly-marker-color: color-mix(in srgb, var(--kitfly-visual-accent) 95%, var(--color-text));
   position: absolute;
-  top: 0.08rem;
+  top: calc(0.08rem + var(--kitfly-marker-lane, 0) * 0.96rem);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.25;
