@@ -17,14 +17,16 @@ const MANIFEST_PATH = "docs/embed-manifest.yaml";
 const OUTPUT_PATH = "src/generated/embedded-docs.ts";
 
 function toSlug(filePath: string): string {
+	// Normalize path separators first (Windows compat: Bun.Glob returns backslashes)
+	const normalized = filePath.replace(/\\/g, "/");
 	// Strip first segment (docs/ or content/) and .md extension
-	const withoutPrefix = filePath.replace(/^[^/]+\//, "");
+	const withoutPrefix = normalized.replace(/^[^/]+\//, "");
 	const withoutExt = withoutPrefix.replace(/\.md$/, "");
 	const base = basename(withoutExt).toLowerCase();
 	if (base === "readme" || base === "index") {
 		return dirname(withoutPrefix).replace(/\\/g, "/");
 	}
-	return withoutExt.replace(/\\/g, "/");
+	return withoutExt;
 }
 
 function extractTitle(body: string): string {
