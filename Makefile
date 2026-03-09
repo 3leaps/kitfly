@@ -249,12 +249,12 @@ lint: ## Run linting checks
 	fi
 	@echo "All linting passed"
 
-typecheck: ## Run TypeScript type checking
+typecheck: embed-assets ## Run TypeScript type checking
 	@echo "Type checking with tsc..."
 	@bunx tsc --noEmit
 	@echo "Type checking passed"
 
-test: ## Run tests
+test: embed-assets ## Run tests
 	@echo "Running test suite..."
 	@bunx vitest run
 
