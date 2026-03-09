@@ -279,7 +279,7 @@ async function main() {
 
 			if (daemon) {
 				// Daemon mode: spawn detached process using shell redirection
-				const { mkdir, writeFile } = await import("node:fs/promises");
+				const { mkdir, writeFile, open: fsOpen } = await import("node:fs/promises");
 				const logsDir = join(getKitflyHome(), "logs");
 				await mkdir(logsDir, { recursive: true });
 
@@ -291,19 +291,54 @@ async function main() {
 
 				// Build command with shell redirection for logging
 				// Pass --log-format structured so dev.ts enables structured request logging
-				// Use nohup to prevent SIGHUP on terminal close
 				const profileArg = profile ? ` --profile "${profile}"` : "";
-				const shellCmd = `nohup bun run "${devScript}" "${folder}" --port ${port} --host "${host}"${profileArg} --no-open --log-format structured > "${logPath}" 2>&1 &`;
 
-				const proc = Bun.spawn(["sh", "-c", shellCmd], {
-					cwd: process.cwd(),
-					stdout: "ignore",
-					stderr: "ignore",
-					stdin: "ignore",
-				});
+				// Open log file as a write handle to pass as stdout/stderr for the child
+				const logFd = await fsOpen(logPath, "a");
 
-				// Wait for shell to spawn the background process
-				await proc.exited;
+				let proc: ReturnType<typeof Bun.spawn>;
+				if (process.platform === "win32") {
+					// On Windows, use Bun.spawn with detached:true and stdio redirected to log file.
+					// nohup and sh -c are not available; Bun's detached mode achieves the same.
+					const args = [
+						"bun",
+						"run",
+						devScript,
+						folder,
+						"--port",
+						String(port),
+						"--host",
+						host,
+						...(profile ? ["--profile", profile] : []),
+						"--no-open",
+						"--log-format",
+						"structured",
+					];
+					proc = Bun.spawn(args, {
+						cwd: process.cwd(),
+						stdout: logFd.fd,
+						stderr: logFd.fd,
+						stdin: "ignore",
+						// @ts-ignore — detached is a valid Bun.spawn option
+						detached: true,
+					});
+					proc.unref();
+					await logFd.close();
+					// Give Windows a moment to spawn the child before proc.exited resolves
+					await new Promise((resolve) => setTimeout(resolve, 200));
+				} else {
+					// Unix: nohup via sh -c keeps the process alive after terminal close
+					await logFd.close();
+					const shellCmd = `nohup bun run "${devScript}" "${folder}" --port ${port} --host "${host}"${profileArg} --no-open --log-format structured > "${logPath}" 2>&1 &`;
+					proc = Bun.spawn(["sh", "-c", shellCmd], {
+						cwd: process.cwd(),
+						stdout: "ignore",
+						stderr: "ignore",
+						stdin: "ignore",
+					});
+					// Wait for shell to spawn the background process
+					await proc.exited;
+				}
 
 				// Give server a moment to start
 				await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -542,12 +577,47 @@ async function main() {
 			const follow = flags.follow === true || flags.f === true;
 
 			if (follow) {
-				// tail -f equivalent using Bun.spawn
-				const proc = Bun.spawn(["tail", "-f", logFile], {
-					stdout: "inherit",
-					stderr: "inherit",
-				});
-				await proc.exited;
+				if (process.platform !== "win32") {
+					// Unix: tail -f is available and efficient
+					const proc = Bun.spawn(["tail", "-f", logFile], {
+						stdout: "inherit",
+						stderr: "inherit",
+					});
+					await proc.exited;
+				} else {
+					// Windows: tail -f is not available; poll the file for new content
+					const { watch } = await import("node:fs");
+					const { open: fsOpen } = await import("node:fs/promises");
+					let fd: import("node:fs/promises").FileHandle;
+					try {
+						fd = await fsOpen(logFile, "r");
+					} catch {
+						console.error(`No log file found for port ${logPort}`);
+						console.error(`  Expected: ${logFile}`);
+						process.exit(1);
+					}
+					// Print existing content first
+					const existing = await fd.readFile("utf-8");
+					if (existing.length > 0) process.stdout.write(existing);
+					let offset = Buffer.byteLength(existing, "utf-8");
+					// Watch for changes and stream new bytes
+					const watcher = watch(logFile, async () => {
+						const buf = Buffer.alloc(65536);
+						const { bytesRead } = await fd.read(buf, 0, buf.length, offset);
+						if (bytesRead > 0) {
+							offset += bytesRead;
+							process.stdout.write(buf.subarray(0, bytesRead));
+						}
+					});
+					// Keep running until Ctrl+C
+					await new Promise<void>((resolve) => {
+						process.on("SIGINT", () => {
+							watcher.close();
+							void fd.close();
+							resolve();
+						});
+					});
+				}
 			} else {
 				const { readFile } = await import("node:fs/promises");
 				try {
