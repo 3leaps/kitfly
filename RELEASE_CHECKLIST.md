@@ -9,6 +9,7 @@ This checklist covers the full release process for kitfly, from preparation thro
 - [ ] Signing keys configured (see 3leaps-kitfly-cicd.sh)
 - [ ] `gh` CLI authenticated with appropriate permissions
 - [ ] npm OIDC trusted publishing configured (one-time setup)
+- [ ] `../homebrew-tap` sibling repo cloned (`git clone https://github.com/3leaps/homebrew-tap.git`)
 
 ## 1. Prepare Release
 
@@ -20,6 +21,15 @@ This checklist covers the full release process for kitfly, from preparation thro
   ```bash
   make check-all
   ```
+- [ ] Verify embedded assets from clean state:
+  ```bash
+  make clean
+  make build
+  bun run src/cli.ts docs list    # confirm all expected topics present
+  ```
+  > This ensures no stale generated files survive from previous builds.
+  > The `embed-assets` target regenerates `src/generated/embedded-docs.ts`
+  > from the manifest each time.
 - [ ] Commit preparation:
   ```bash
   git add VERSION package.json CHANGELOG.md
@@ -172,7 +182,31 @@ make release-all
   shasum -a 256 kitfly-0.2.0.tgz
   ```
 
-## 6. Announce
+## 6. Update Homebrew Tap
+
+- [ ] Update, audit, and test the formula in one step:
+  ```bash
+  cd ../homebrew-tap
+  make release APP=kitfly
+  ```
+  > Runs `update → style → audit → test` against the published GitHub release.
+  > The update script fetches binaries from the release, computes SHA256 checksums,
+  > and rewrites `Formula/kitfly.rb` automatically.
+- [ ] Review the diff and push:
+  ```bash
+  git diff Formula/kitfly.rb
+  git add Formula/kitfly.rb
+  git commit -m "Update kitfly to v0.2.0"
+  git push origin main
+  ```
+- [ ] Verify Homebrew installation (optional):
+  ```bash
+  brew untap 3leaps/tap 2>/dev/null; brew tap 3leaps/tap
+  brew install 3leaps/tap/kitfly
+  kitfly --version
+  ```
+
+## 7. Announce
 
 - [ ] Update any external documentation
 - [ ] Announce in relevant channels

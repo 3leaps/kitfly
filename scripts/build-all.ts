@@ -70,6 +70,11 @@ function getVersion(): string {
 function main(): void {
 	const version = getVersion();
 
+	// Generate embedded docs before compiling binaries
+	console.log("Generating embedded documentation...");
+	execSync("bun scripts/embed-docs.ts", { stdio: "inherit" });
+	console.log();
+
 	console.log(`Building ${TARGETS.length} binaries for '${BINARY_NAME}' v${version}`);
 	console.log(`  Entry point: ${ENTRY_POINT}`);
 	console.log(`  Output dir:  ${OUT_DIR}`);

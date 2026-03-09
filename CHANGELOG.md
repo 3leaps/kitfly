@@ -2,6 +2,29 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.4] - 2026-03-08
+
+### Added
+
+- **Planning visuals plugin** (`planning-visuals`): Gantt charts for docs and slides with `:::gantt` fenced blocks
+- Week and month time-axis support with ISO week date parsing (`YYYY-Www`) and month ordinals (`YYYY-MM`)
+- Hierarchical depth filtering (`max-depth`) — same dataset drives summary views (depth 1) and detail views (depth 2+)
+- Track status colors: `planned`, `active`, `complete`, `blocked` with dark mode adaptation
+- Milestones as distinct point-in-time markers (diamond icons, separate from duration tracks)
+- Chart-level markers with custom colors for highlighting key dates
+- `max-tracks` truncation with "+N more" overflow indicator for dense timelines
+- `today` marker: vertical dashed line at specified date
+- Dual-mode rendering: works in both docs mode (`<main class="content">`) and slides mode (`.slide` containers)
+- Comprehensive fence validation with semantic date/range checking in build/dev/bundle pipelines
+- Sparse week-axis labeling (every Nth week when >16 units) with abbreviated format and edge alignment
+- Test fixtures and contract tests for planning visuals fence validation
+- **Embedded CLI documentation** (`kitfly docs`): `kitfly docs list` and `kitfly docs show <slug>` for offline access to curated documentation from the compiled binary, with build-time codegen from `docs/embed-manifest.yaml`
+
+### Docs
+
+- New `content/reference/gantt-widget.md` with complete authoring reference, schema, and examples
+- Updated plugin registry documentation with `planning-visuals` contract and usage
+
 ## [0.2.3] - 2026-02-17
 
 ### Added

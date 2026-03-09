@@ -1385,7 +1385,9 @@ function parsePlanningGanttBlocks(markdown: string): ParsedPlanningBlock[] {
 
 		const item = raw.match(/^ {2}-\s+(.+)$/);
 		if (item && currentList) {
-			const list = Array.isArray(current.data[currentList]) ? current.data[currentList] : [];
+			const list: unknown[] = Array.isArray(current.data[currentList])
+				? (current.data[currentList] as unknown[])
+				: [];
 			current.data[currentList] = list;
 			const objKV = item[1].match(/^([a-z][a-z0-9-]*)\s*:\s*(.+)$/i);
 			if (objKV) {

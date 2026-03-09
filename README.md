@@ -115,17 +115,19 @@ For full contributor setup (toolchain, bootstrap, local CLI), see [docs/developm
 
 ## What You Get
 
-| Feature             | How                                                                     |
-| ------------------- | ----------------------------------------------------------------------- |
-| Hot reload          | Edit markdown, see changes instantly                                    |
-| Navigation          | Auto-generated from folder structure                                    |
-| Table of contents   | Extracted from headings                                                 |
-| Dark mode           | System preference + toggle                                              |
-| Slides mode         | `mode: slides` for fixed-aspect decks (v0.2.0+)                         |
-| Plugins             | Optional add-ons via `kitfly.plugins.yaml` (pinned + integrity-checked) |
-| Diagrams            | Mermaid via CDN                                                         |
-| Syntax highlighting | Prism.js via CDN                                                        |
-| Offline-ready       | Static HTML, no server required                                         |
+| Feature             | How                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| Hot reload          | Edit markdown, see changes instantly                                                             |
+| Navigation          | Auto-generated from folder structure                                                             |
+| Table of contents   | Extracted from headings                                                                          |
+| Dark mode           | System preference + toggle                                                                       |
+| Slides mode         | `mode: slides` for fixed-aspect decks (v0.2.0+)                                                  |
+| Gantt charts        | Wave-based planning with `max-depth` filtering — one dataset, summary and detail views (v0.2.4+) |
+| Plugins             | Optional add-ons via `kitfly.plugins.yaml` (pinned + integrity-checked)                          |
+| Diagrams            | Mermaid via CDN                                                                                  |
+| Syntax highlighting | Prism.js via CDN                                                                                 |
+| Embedded docs       | `kitfly docs list` and `kitfly docs show <slug>` — offline CLI reference (v0.2.4+)               |
+| Offline-ready       | Static HTML, no server required                                                                  |
 
 ## What You Don't Get
 

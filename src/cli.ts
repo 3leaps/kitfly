@@ -12,6 +12,9 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadSiteConfig } from "./shared.ts";
 
+// Exit cleanly when piped output is closed early (e.g., `kitfly docs show x | less` then quit)
+process.on("SIGPIPE", () => process.exit(0));
+
 // Resolve paths relative to CLI location (works in binary too)
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -76,6 +79,7 @@ Usage:
   kitfly servers          List running dev servers
   kitfly stop <port|all>  Stop dev server(s)
   kitfly logs <port>      View daemon server logs
+  kitfly docs [list|show]  Browse embedded documentation
   kitfly version          Show version (use 'version extended' for details)
   kitfly help             Show this help
 
@@ -558,6 +562,28 @@ async function main() {
 					console.error(`  Expected: ${logFile}`);
 					process.exit(1);
 				}
+			}
+			break;
+		}
+
+		case "docs": {
+			const sub = positional[0];
+			const { docsList, docsShow } = await import("./commands/docs.ts");
+			if (!sub || sub === "list") {
+				docsList();
+			} else if (sub === "show") {
+				const slug = positional[1];
+				if (!slug) {
+					console.error("Error: Slug required.\n");
+					console.error("Usage: kitfly docs show <slug>");
+					console.error("       kitfly docs list");
+					process.exit(1);
+				}
+				docsShow(slug);
+			} else {
+				console.error(`Unknown docs subcommand: "${sub}"\n`);
+				console.error("Usage: kitfly docs [list|show <slug>]");
+				process.exit(1);
 			}
 			break;
 		}

@@ -16,7 +16,7 @@ GONEAT_VERSION ?= v0.5.3
 SFETCH_INSTALL_URL ?= https://github.com/3leaps/sfetch/releases/latest/download/install-sfetch.sh
 
 .PHONY: all help bootstrap bootstrap-force tools
-.PHONY: dev build bundle clean install uninstall
+.PHONY: dev build bundle clean install uninstall embed-assets
 .PHONY: fmt lint typecheck test test-watch verify-plugin-registry check-all quality precommit prepush
 .PHONY: license-audit license-check vuln-scan sbom public-readiness
 .PHONY: validate-schemas version version-set version-sync
@@ -173,14 +173,19 @@ tools: ## Verify external tools are available
 dev: ## Start development server with hot reload
 	@bun run dev
 
-build: ## Build static HTML site to dist/
+embed-assets: ## Generate embedded assets (docs)
+	@echo "Generating embedded assets..."
+	@bun scripts/embed-docs.ts
+	@echo "Embedded assets generated"
+
+build: embed-assets ## Build static HTML site to dist/
 	@bun run build
 
 bundle: ## Build single-file HTML bundle
 	@bun run bundle --out bundles
 
 clean: ## Remove build artifacts
-	@rm -rf dist/ bundles/ dist-cli/ coverage/ sbom/
+	@rm -rf dist/ bundles/ dist-cli/ coverage/ sbom/ src/generated/
 	@echo "Clean complete"
 
 # -----------------------------------------------------------------------------

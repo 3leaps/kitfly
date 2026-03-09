@@ -1,0 +1,13 @@
+include:
+  - "docs/userguide/**/*.md"
+  - "docs/development.md"
+  - "content/guide/getting-started.md"
+  - "content/guide/kitfly-overview.md"
+  - "content/reference/configuration.md"
+  - "content/reference/plugins.md"
+  - "content/reference/environment-variables.md"
+  - "content/reference/key-concepts.md"
+  - "content/reference/structure.md"
+exclude:
+  - "docs/releases/**"
+  - "docs/decisions/**"
