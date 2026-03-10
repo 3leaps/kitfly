@@ -60,6 +60,8 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Generate embedded assets
+        run: bun scripts/embed-docs.ts
       - name: Build Windows ARM64 binary (native compile)
         run: |
           mkdir -p dist/release
