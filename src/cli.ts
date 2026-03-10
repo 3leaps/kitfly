@@ -319,7 +319,6 @@ async function main() {
 						stdout: logFd.fd,
 						stderr: logFd.fd,
 						stdin: "ignore",
-						// @ts-ignore — detached is a valid Bun.spawn option
 						detached: true,
 					});
 					proc.unref();
