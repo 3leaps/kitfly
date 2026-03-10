@@ -12,7 +12,7 @@ VERSION := $(shell cat VERSION 2>/dev/null || echo "0.1.0")
 
 # External tooling (bootstrap)
 BINDIR ?= $(HOME)/.local/bin
-GONEAT_VERSION ?= v0.5.3
+GONEAT_VERSION ?= v0.5.7
 SFETCH_INSTALL_URL ?= https://github.com/3leaps/sfetch/releases/latest/download/install-sfetch.sh
 
 .PHONY: all help bootstrap bootstrap-force tools
