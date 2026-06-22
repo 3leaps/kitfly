@@ -21,15 +21,15 @@ jobs:
             name: windows-x64
           - os: windows-latest-arm64-s
             name: windows-arm64
-            skip-lint: true # Biome has no win32-arm64 binary
-            skip-test: true # Rollup/Vitest has no win32-arm64 binary
+            skip-lint: true  # Biome has no win32-arm64 binary
+            skip-test: true  # Rollup/Vitest has no win32-arm64 binary
     runs-on: ${{ matrix.os }}
     name: quality (${{ matrix.name }})
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install prerequisites (Linux)
         if: runner.os == 'Linux'
         run: |

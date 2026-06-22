@@ -2,6 +2,35 @@
 
 All notable changes to Kitfly are documented here.
 
+## [0.2.5] - 2026-06-22
+
+Maintenance release: CI/release hardening and a dependency refresh. No
+user-facing feature changes; no breaking changes.
+
+### Fixed
+
+- **npm publish workflow:** generate embedded CLI docs
+  (`src/generated/embedded-docs.ts`) before packing. `bun run build` does not
+  produce this generated file and it is gitignored, so an automated publish from
+  a clean checkout could have shipped a package with a broken `kitfly docs`
+  command. The publish path now generates it explicitly.
+
+### Changed
+
+- **GitHub Actions Node 24 migration:** `actions/checkout@v4 → v5`,
+  `actions/setup-node@v4 → v6` (npm publish now runs on Node 24).
+  `oven-sh/setup-bun@v2` already targets Node 24. Clears the Node 20 runtime
+  deprecation.
+- **DRY release workflows:** the build-time embedded-asset step is consolidated
+  into a shared `./.github/actions/build-prep` composite action (Bun setup +
+  frozen install + embed), used by the release, Windows ARM64, and npm-publish
+  workflows. Previously inlined separately in each, which caused per-workflow
+  drift during the v0.2.4 cycle.
+- **Dependencies (patch + minor):** `@3leaps/sysprims` 0.1.15,
+  `@fulmenhq/tsfulmen` 0.2.10, `@biomejs/biome` 2.5.0, `vitest` /
+  `@vitest/coverage-v8` 4.1.9, `@types/bun` 1.3.14, `prettier` 3.8.4.
+  (`marked` 18 and `typescript` 6 majors deferred to dedicated upgrades.)
+
 ## [0.2.4] - 2026-03-08
 
 ### Added

@@ -1,0 +1,15 @@
+name: Build prep
+description: >-
+  Set up Bun, install pinned dependencies, and generate build-time embedded assets (src/generated/embedded-docs.ts). Single source of truth for the generated-asset step shared by the release and publish workflows. CI uses the Makefile dependency graph (make build/typecheck/test all depend on embed-assets) and does not need this action.
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+    - name: Generate embedded assets
+      shell: bash
+      run: bun scripts/embed-docs.ts

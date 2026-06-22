@@ -1,5 +1,31 @@
 <!-- Retention policy: latest 3 releases, reverse-chronological. Older notes archived in docs/releases/. -->
 
+# Kitfly v0.2.5
+
+**Release date:** 2026-06-22
+
+Maintenance release: CI/release hardening and a dependency refresh. No user-facing feature changes; no breaking changes.
+
+## Fixed
+
+- **npm publish robustness.** The publish workflow now generates the embedded CLI docs (`src/generated/embedded-docs.ts`, which backs `kitfly docs`) before packing. That file is gitignored and is not produced by `bun run build`, so an automated publish from a clean checkout could have shipped a package whose `kitfly docs` command fails to load.
+
+## Changed
+
+- **GitHub Actions on Node 24:** `actions/checkout` v4 → v5 and `actions/setup-node` v4 → v6 (npm publish now runs on Node 24); `oven-sh/setup-bun@v2` already targets Node 24. Clears the upstream Node 20 runtime deprecation.
+- **DRY workflows:** the Bun-setup + install + embed step is consolidated into a shared `./.github/actions/build-prep` composite action used by the release, Windows ARM64, and npm-publish workflows.
+- **Dependency refresh (patch + minor):** `@3leaps/sysprims` 0.1.15, `@fulmenhq/tsfulmen` 0.2.10, `@biomejs/biome` 2.5.0, `vitest` / `@vitest/coverage-v8` 4.1.9, `@types/bun` 1.3.14, `prettier` 3.8.4. The `marked` 18 and `typescript` 6 majors are deferred to dedicated upgrades.
+
+## Upgrading
+
+Nothing to do — drop-in patch.
+
+## Full changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete list.
+
+---
+
 # Kitfly v0.2.4
 
 **Release date:** 2026-03-08
@@ -274,184 +300,3 @@ None. All new features are opt-in. Existing sites are unaffected.
 ## Full changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete list.
-
----
-
-# Kitfly v0.2.2
-
-**Release date:** 2026-02-16
-
-## What's new
-
-Kitfly v0.2.2 adds two new CDN plugins (**charts** and **math typesetting**), a **brief template** for product documentation, **footer logo** support, **dark mode logo variants**, and **hierarchical slide navigation** for decks with nested content.
-
-### Charts plugin (`slides-charts-lite`)
-
-Bar, line, and pie charts via Chart.js 4.4.7 CDN. Author charts using fenced code blocks:
-
-````text
-```chart
-type: bar
-labels: ["Q1", "Q2", "Q3", "Q4"]
-data: [12, 19, 8, 15]
-```
-````
-
-Charts render inline, respect theme colors, and re-render on light/dark mode toggle. Works in dev, build, and bundle output.
-
-### LaTeX plugin (`latex`)
-
-Math typesetting via KaTeX 0.16.21 CDN. Three authoring modes:
-
-- Inline: `$E = mc^2$`
-- Display: `$$\int_0^\infty e^{-x} dx = 1$$`
-- Fenced: ` ```math ` blocks
-
-Works in both docs and slides modes.
-
-### Brief template
-
-New `kitfly init --template brief` for external-audience product documentation. Four sections: Product, Use Cases, Getting Started, Reference. Includes starter content with `<!-- ← CUSTOMIZE -->` markers.
-
-### Footer logo
-
-Add an image logo to the footer ribbon — typically a parent company or client logo distinct from the header brand:
-
-```yaml
-footer:
-  logo: "assets/brand/footer-logo.png"
-  logoUrl: "https://example.com"
-  logoAlt: "Example Corp"
-  logoHeight: 24
-```
-
-Renders at the leading edge of the footer, before version and publish date. All fields are optional.
-
-### Dark mode logo variants
-
-Provide separate light/dark images for precise brand control:
-
-```yaml
-brand:
-  logo: "assets/brand/logo.png"
-  logoDark: "assets/brand/logo-dark.png"
-
-footer:
-  logo: "assets/brand/footer-logo.png"
-  logoDark: "assets/brand/footer-logo-dark.png"
-```
-
-When `logoDark` is set, kitfly shows it in dark mode instead of applying the default brightness filter. The swap is pure CSS — instant on theme toggle, no JavaScript.
-
-### Hierarchical slide navigation
-
-Slide decks with subfolder content now render nested navigation with collapsible groups, matching the same tree pattern docs mode already uses:
-
-```
-Data Integration
-  ├── Overview
-  ├── Sources
-  │   └── POS Data
-  ├── Transforms
-  │   └── ETL Pipeline
-```
-
-When content has no subfolders (the common case), the output is identical to the previous flat nav. Works in dev, build, and bundle.
-
-### Branding documentation
-
-New canonical branding guide covering header logos, footer logos, dark mode variants, and recommended asset files. Configuration reference updated with all new fields.
-
-### Template brand asset docs
-
-All built-in templates (handbook, runbook, brief, deck) updated with expanded Brand Assets documentation covering footer logo and dark mode variant configuration.
-
-## Notes for upgraders
-
-- No breaking changes.
-- To use charts: add `slides-charts-lite` to your `kitfly.plugins.yaml`.
-- To use math: add `latex` to your `kitfly.plugins.yaml`.
-- Footer logo and dark mode logo fields are optional — existing sites are unaffected.
-
-## Plugin fixes
-
-- Fixed `$` replacement corruption in template injection that broke LaTeX delimiter rendering
-- Fixed CDN loader path resolution for LaTeX plugin assets
-
-## Deferred to v0.3.0
-
-- Build-time marked extension hook (both plugins sidestepped the need)
-- Visual figures Phase 3 (radial types)
-- `slides-embed` (iframe/video)
-- Offline cache polish
-- PlantUML rendering (no viable client-side option)
-- Windows operation (separate release)
-
-## Full changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for the complete list.
-
----
-
-# Kitfly v0.2.1
-
-**Release date:** 2026-02-15
-
-## What's new
-
-Kitfly v0.2.1 completes **Phase 2 of the visual figures** set in the `slides-visuals` plugin, adding five new `:::` figure types for timelines, flows, and maturity models. It also improves developer experience with friendlier error handling and new authoring guidelines.
-
-### Phase 2 figures (`slides-visuals` plugin)
-
-Five new deterministic figure types, all following the same `:::` fence contract introduced in v0.2.0:
-
-| Figure                | Description                                               |
-| --------------------- | --------------------------------------------------------- |
-| `timeline-horizontal` | Left-to-right chronology strip (flexbox)                  |
-| `timeline-vertical`   | Top-to-bottom chronology (flexbox)                        |
-| `flow-branching`      | Single split point with deterministic branches (CSS grid) |
-| `flow-converging`     | Multiple inputs merging to one output (CSS grid)          |
-| `staircase`           | Ascending/descending stepped blocks for maturity models   |
-
-Example:
-
-```text
-:::timeline-horizontal
-events:
-  - label: "Kickoff"
-    date: "Jan 2026"
-  - label: "Alpha"
-    date: "Mar 2026"
-  - label: "GA Release"
-    date: "Jun 2026"
-:::
-```
-
-All five types work in dev, build, and bundle output. They respect theme colors and dark mode. Validation rejects missing required fields with clear diagnostics.
-
-### Friendlier plugin errors in dev preview
-
-When a plugin version mismatch or loader error occurs, the dev server now renders a styled error page with actionable guidance instead of a raw 500 stack trace.
-
-### Slides authoring guidelines
-
-New reference doc (`content/reference/slides-authoring-guidelines.md`) with practical do/don't guidance for content-density pitfalls discovered during dogfooding:
-
-- Don't use `.accent` on a single block in a grid row (looks like a selected tab)
-- Limit vertical flows to 3 blocks at 4:3 aspect ratio
-- Limit `timeline-vertical` to 4 events at 16:9, 3 at 4:3
-
-### Test compatibility
-
-Fixed vitest/bun dual-runtime compatibility so `bunx vitest run` and `bun test` both work cleanly.
-
-## Breaking Changes
-
-None.
-
-## Deferred to v0.2.2
-
-- `slides-charts-lite` (CDN/SRI pattern)
-- `latex` (KaTeX, same CDN pattern)
-- Build-time `:::` support via marked extension hook (decision memo in progress)
-- `slides-embed` (iframe/video)

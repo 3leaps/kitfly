@@ -30,7 +30,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag }}
       - name: Verify tag matches VERSION
@@ -55,13 +55,8 @@ jobs:
             exit 1
           fi
           echo "Release $TAG exists (draft=$DRAFT)"
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Generate embedded assets
-        run: bun scripts/embed-docs.ts
+      - name: Build prep (Bun + deps + embedded assets)
+        uses: ./.github/actions/build-prep
       - name: Build Windows ARM64 binary (native compile)
         run: |
           mkdir -p dist/release
