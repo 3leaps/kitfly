@@ -2,6 +2,8 @@
 
 All notable changes to Kitfly are documented here.
 
+<!-- Retention policy: latest 10 releases, reverse-chronological. Older entries archived in docs/releases/ (per-release notes) and git history. -->
+
 ## [0.2.5] - 2026-06-22
 
 Maintenance release: CI/release hardening and a dependency refresh. No
