@@ -23,7 +23,7 @@ coverage/
 tmp/
 .scratch/
 
-# Planning artifacts (NEVER commit)
+# Planning artifacts — defense-in-depth only; planning lives org-rooted, out of tree
 .plans/
 
 # Session-specific guidance (NEVER commit)
